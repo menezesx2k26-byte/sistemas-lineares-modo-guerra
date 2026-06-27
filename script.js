@@ -220,7 +220,7 @@ function dividePivotLab(id, line, row, pivotIndex, origin = "Gerada") {
   const result = row.map((x) => x / pivot);
   return labItem({
     id,
-    title: `Dividir ${line} por ${pivot}`,
+    title: `Dividir L${line} por ${pivot}`,
     origin,
     difficulty: 1,
     skill: "dividir linha",
@@ -248,7 +248,7 @@ function multiplyLab(id, line, row, c) {
   const result = scaleRow(row, c);
   return labItem({
     id,
-    title: `Multiplicar ${line} por ${c}`,
+    title: `Multiplicar L${line} por ${c}`,
     difficulty: 1,
     skill: "multiplicar linha",
     matrix: String.raw`\[${c}${rowBareTex(row)}=?\]`,
