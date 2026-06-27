@@ -920,6 +920,19 @@ button,
   box-shadow: none;
 }
 
+.compact-actions .game-button {
+  min-height: 74px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+}
+
+.pocket-card {
+  border-color: color-mix(in srgb, var(--blue) 32%, var(--line));
+}
+
+.pocket-card span {
+  color: var(--blue);
+}
+
 .secondary-grid .game-button small,
 .skill-card small,
 .skill-card span {

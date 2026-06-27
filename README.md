@@ -6,6 +6,8 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 
 - Home, Jornada, Laboratorio, Duelos, Boss Lista 11, Treino infinito e Grimorio.
 - Laboratorio com 59 desafios de operacoes de linha.
+- Diagnostico rapido com 10 questoes que recomenda fundamentos, escalonamento, classificacao, homogeneos, parametros ou Boss Lista 11.
+- Quadro de Bolso com 3 escalonamentos 3x3 guiados em passos curtos para celular, sem exigir digitar matriz inteira.
 - Banco de treino com 20 questoes de equacao linear, 20 de matriz aumentada, 20 de classificacao, 15 de homogeneos, 26 de parametros e 168 questoes no treino infinito.
 - Boss final com 50 questoes baseadas na Lista 11 e questoes geradas equivalentes dentro do mesmo escopo.
 - Cada questao gerada tem origem marcada como `Gerada`; questoes das listas aparecem como `Lista 10` ou `Lista 11`.
@@ -57,6 +59,9 @@ Depois abra o endereco mostrado pelo terminal.
 - Lab, Duelos, Treino Infinito, Grimorio e Boss livre continuam existindo como modos auxiliares, mas nao controlam a ordem da Jornada.
 - O HUD tem alternancia de tema claro/escuro salva em `localStorage`, com contraste alto e cores vivas.
 - A refatoracao `ux-didactic-refactor` simplifica a Home, transforma a Jornada em superficie de curso limpo e organiza o Laboratorio por habilidade.
+- A atualizacao adaptativa troca "fundamento como pedagio" por recomendacao: quem acerta o basico pode ir direto para escalonamento completo, parametros ou Lista 11.
+- O Diagnostico marca os fundamentos como revisao opcional quando o aluno demonstra dominio de termo independente, linearidade e matriz aumentada.
+- A Home agora mostra atalhos avancados: Diagnostico rapido, Escalonamento completo, Parametros, Boss Lista 11 e Quadro de Bolso.
 - O conteudo longo fica no Grimorio. Jornada, Laboratorio e Boss mostram uma decisao por tela.
 - O Laboratorio reforca a automatizacao de operacoes de linha antes de exigir escalonamento completo.
 - O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.
@@ -94,6 +99,23 @@ Referencias oficiais:
 
 - [Cloudflare Pages: Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/)
 - [Cloudflare Pages: Deploy any static site](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/)
+
+## Atualizacao adaptativa
+
+- Reducao de repeticao: fundamentos continuam disponiveis na Jornada, mas o Diagnostico pode marca-los como revisao opcional e recomendar trilhas avancadas.
+- Recomendacao: `recommendNextMode(...)` considera erros do diagnostico, progresso salvo e habilidades fracas. Erros de sinal/pivo mandam ao Quadro de Bolso; erros de parametro mandam a Parametros; erros de classificacao mandam ao Classificador; acerto quase perfeito libera escalonamento completo.
+- Atalhos avancados: Home exibe Escalonamento completo, Parametros, Boss Lista 11 e Quadro de Bolso sem esconder tudo em menu secundario.
+- Quadro de Bolso: resolve escalonamentos 3x3 em decisoes pequenas, como escolher pivo, calcular `3L_2`, conferir termo independente e classificar SPD/SPI/SI.
+- Escalonamentos completos adicionados: Sistema I da Lista 10 terminando em SI, sistema com pivo 3 sem fracao terminando em SPD, e sistema gerado equivalente terminando em SPI.
+- Parametros ficaram acessiveis diretamente pela Home e pela recomendacao do diagnostico.
+- Boss Lista 11 pode ser iniciado mesmo antes dos 140 XP; o app ainda avisa que e recomendado treinar antes.
+
+Relatorio de auditoria desta atualizacao:
+
+- O que foi reduzido: o caminho basico deixou de ser obrigatorio para quem passa no diagnostico.
+- Como o diagnostico decide: ele registra alvos fracos (`fundamentals`, `linear`, `matrix`, `rows`, `signs`, `pivot`, `classify`, `free`, `homogeneous`, `parameters`) e escolhe a trilha mais util.
+- Teste mobile esperado: botoes grandes, uma decisao por tela, formulas dentro de caixas rolaveis e sem digitacao longa.
+- Pendencias conhecidas: o conteudo antigo da Jornada foi preservado; a reducao e adaptativa, nao uma remocao fisica das missoes.
 
 ## Pente fino 2x
 

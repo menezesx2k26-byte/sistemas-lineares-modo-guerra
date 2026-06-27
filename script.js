@@ -25,6 +25,7 @@ const defaultState = {
   diagnostic: null,
   bossUnlocked: false,
   theme: "light",
+  optionalReview: { foundations: false },
   stats: { mistakes: {}, seen: {} }
 };
 
@@ -34,7 +35,12 @@ let screen = { mode: "home", index: 0, boss: "mixed", score: 0, errors: [], item
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    return { ...defaultState, ...saved, stats: { ...defaultState.stats, ...(saved.stats || {}) } };
+    return {
+      ...defaultState,
+      ...saved,
+      optionalReview: { ...defaultState.optionalReview, ...(saved.optionalReview || {}) },
+      stats: { ...defaultState.stats, ...(saved.stats || {}) }
+    };
   } catch {
     return { ...defaultState };
   }
@@ -102,6 +108,13 @@ function renderHud() {
     finalBoss: "infinite",
     boss: "infinite",
     params: "infinite",
+    escalation: "lab",
+    pocketHome: "lab",
+    pocket: "lab",
+    classificationTrack: "infinite",
+    homogeneousTrack: "infinite",
+    parametersTrack: "infinite",
+    lista11Boss: "infinite",
     checklist: "grimoire"
   }[screen.mode] || screen.mode;
   $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === activeMode));
@@ -241,6 +254,179 @@ function topMistakes() {
   return Object.entries(state.stats.mistakes || {})
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
+}
+
+function diagnosticMisses(result = state.diagnostic) {
+  return new Set(result?.misses || []);
+}
+
+function diagnosticBasicsMastered(result = state.diagnostic) {
+  if (!result) return false;
+  const misses = diagnosticMisses(result);
+  return !["fundamentals", "linear", "matrix"].some((key) => misses.has(key));
+}
+
+function markFoundationsOptional() {
+  const foundationChapters = new Set([COURSE_CHAPTERS[0], COURSE_CHAPTERS[1], COURSE_CHAPTERS[2]]);
+  COURSE_PATH
+    .filter((mission) => foundationChapters.has(mission.chapter))
+    .forEach((mission) => {
+      if (!state.completed.includes(mission.id)) state.completed.push(mission.id);
+    });
+  state.optionalReview.foundations = true;
+  saveState();
+}
+
+function recommendationLabel(mode) {
+  return {
+    diagnostic: "Fazer diagnÃ³stico rÃ¡pido",
+    journey: "Revisar fundamentos essenciais",
+    escalation: "Pular para Escalonamento Completo",
+    pocketHome: "Treinar deitado: Quadro de Bolso",
+    classificationTrack: "Treinar ClassificaÃ§Ã£o SPD/SPI/SI",
+    homogeneousTrack: "Treinar HomogÃªneos da Lista 11",
+    params: "Ir direto para ParÃ¢metros",
+    lista11Boss: "Encarar Boss Lista 11"
+  }[mode] || "Continuar Jornada";
+}
+
+function recommendationLabel(mode) {
+  return {
+    diagnostic: "Fazer diagnostico rapido",
+    journey: "Revisar fundamentos essenciais",
+    escalation: "Pular para Escalonamento Completo",
+    pocketHome: "Treinar deitado: Quadro de Bolso",
+    classificationTrack: "Treinar Classificacao SPD/SPI/SI",
+    homogeneousTrack: "Treinar Homogeneos da Lista 11",
+    params: "Ir direto para Parametros",
+    lista11Boss: "Encarar Boss Lista 11"
+  }[mode] || "Continuar Jornada";
+}
+
+function legacyRecommendNextModeMojibake(diagnosticResult = state.diagnostic, currentState = state) {
+  const completed = new Set(currentState.completed || []);
+  if (!diagnosticResult) {
+    return {
+      mode: "diagnostic",
+      title: "Fazer diagnÃ³stico rÃ¡pido",
+      reason: "Em 10 perguntas eu descubro se vocÃª deve revisar base ou ir direto para as picas."
+    };
+  }
+
+  const misses = diagnosticMisses(diagnosticResult);
+  const score = diagnosticResult.score ?? 0;
+  const total = diagnosticResult.total ?? diagnostic.length;
+
+  if (score >= total - 1 && !completed.has("pocket-lista10-si-finish")) {
+    return {
+      mode: "pocketHome",
+      title: "VocÃª domina fundamentos. Pular para Escalonamento Completo.",
+      reason: "Fundamento Ã© base, nÃ£o pedÃ¡gio eterno. Agora o alvo Ã© pivÃ´, sinais e matriz final."
+    };
+  }
+  if (misses.has("parameters")) {
+    return {
+      mode: "params",
+      title: "VocÃª estÃ¡ pronto para ParÃ¢metros, mas com cuidado no zero.",
+      reason: "Apareceu risco em expressÃ£o como \(\lambda-1\). Vamos treinar separaÃ§Ã£o de casos."
+    };
+  }
+  if (misses.has("pivot") || misses.has("rows") || misses.has("signs")) {
+    return {
+      mode: "pocketHome",
+      title: "Anti-vacilo de Escalonamento.",
+      reason: "Seu gargalo Ã© escolher operaÃ§Ã£o ou fazer sinal. O Quadro de Bolso quebra isso em uma conta por tela."
+    };
+  }
+  if (misses.has("classify") || misses.has("free")) {
+    return {
+      mode: "classificationTrack",
+      title: "Treinar leitura da matriz final.",
+      reason: "Vamos separar SPD, SPI e SI com pivÃ´, contradiÃ§Ã£o e variÃ¡vel livre."
+    };
+  }
+  if (misses.has("homogeneous")) {
+    return {
+      mode: "homogeneousTrack",
+      title: "Revisar homogÃªneos da Lista 11.",
+      reason: "A frase-chave Ã©: homogÃªneo sempre tem a trivial; determinante decide se sÃ³ ela aparece."
+    };
+  }
+  if (misses.has("fundamentals") || misses.has("linear") || misses.has("matrix")) {
+    return {
+      mode: "journey",
+      title: "Revisar base sem ficar preso nela.",
+      reason: "Tem algum fundamento balançando. A Jornada te leva por microtelas curtas."
+    };
+  }
+  return {
+    mode: "params",
+    title: "Ir para ParÃ¢metros.",
+    reason: "VocÃª jÃ¡ mostrou base suficiente. Bora treinar \(\lambda\), \(m\), \(\alpha\) e \(k\)."
+  };
+}
+
+function recommendNextMode(diagnosticResult = state.diagnostic, currentState = state) {
+  const completed = new Set(currentState.completed || []);
+  if (!diagnosticResult) {
+    return {
+      mode: "diagnostic",
+      title: "Fazer diagnostico rapido",
+      reason: "Em 10 perguntas eu descubro se voce deve revisar base ou ir direto para as partes que derrubam na prova."
+    };
+  }
+
+  const misses = diagnosticMisses(diagnosticResult);
+  const score = diagnosticResult.score ?? 0;
+  const total = diagnosticResult.total ?? diagnostic.length;
+
+  if (score >= total - 1 && !completed.has("pocket-lista10-si-finish")) {
+    return {
+      mode: "pocketHome",
+      title: "Voce domina fundamentos. Pular para Escalonamento Completo.",
+      reason: "Fundamento e base, nao pedagio eterno. Agora o alvo e pivo, sinais e matriz final."
+    };
+  }
+  if (misses.has("parameters")) {
+    return {
+      mode: "params",
+      title: "Voce esta pronto para Parametros, mas com cuidado no zero.",
+      reason: String.raw`Apareceu risco em expressao como \(\lambda-1\). Vamos treinar separacao de casos.`
+    };
+  }
+  if (misses.has("pivot") || misses.has("rows") || misses.has("signs")) {
+    return {
+      mode: "pocketHome",
+      title: "Anti-vacilo de Escalonamento.",
+      reason: "Seu gargalo e escolher operacao ou fazer sinal. O Quadro de Bolso quebra isso em uma conta por tela."
+    };
+  }
+  if (misses.has("classify") || misses.has("free")) {
+    return {
+      mode: "classificationTrack",
+      title: "Treinar leitura da matriz final.",
+      reason: "Vamos separar SPD, SPI e SI com pivo, contradicao e variavel livre."
+    };
+  }
+  if (misses.has("homogeneous")) {
+    return {
+      mode: "homogeneousTrack",
+      title: "Revisar homogeneos da Lista 11.",
+      reason: "A frase-chave e: homogeneo sempre tem a trivial; determinante decide se so ela aparece."
+    };
+  }
+  if (misses.has("fundamentals") || misses.has("linear") || misses.has("matrix")) {
+    return {
+      mode: "journey",
+      title: "Revisar base sem ficar preso nela.",
+      reason: "Tem algum fundamento balancando. A Jornada te leva por microtelas curtas."
+    };
+  }
+  return {
+    mode: "params",
+    title: "Ir para Parametros.",
+    reason: String.raw`Voce ja mostrou base suficiente. Bora treinar \(\lambda\), \(m\), \(\alpha\) e \(k\).`
+  };
 }
 
 function fmt(n) {
@@ -1979,16 +2165,19 @@ const COURSE_PATH = COURSE_PATH_BASE.flatMap((mission) => [
 ]);
 
 const DIAGNOSTIC_TARGETS = {
-  fund: "course-c0-03-coefficient",
+  fundamentals: "course-c0-03-coefficient",
   linear: "course-c1-06-l10-1a",
-  system: "course-c2-12-vector-solution",
   matrix: "course-c3-17-line-row",
-  "spell-scale": "course-c4-24-scale-nonzero",
-  parameters: "course-c8-55-parameter",
-  homogeneous: "course-c7-48-homogeneous"
+  rows: "course-c4-28-right-side",
+  signs: "course-c5-33-g3",
+  pivot: "course-c5-31b-pivot-not-one",
+  classify: "course-c6-40-impossible",
+  free: "course-c6-44-free-variable",
+  homogeneous: "course-c7-48-homogeneous",
+  parameters: "course-c8-55-parameter"
 };
 
-const diagnostic = [
+const legacyDiagnostic = [
   { target: "fund", q: String.raw`Em \(5x_1+12x_2+5x_3=-21\), o coeficiente de \(x_2\) é:`, c: ["12", "-21", "5"], a: 0 },
   { target: "fund", q: String.raw`O termo independente em \(3x_1+7x_2+2x_3=-19\) é:`, c: ["2", "-19", "7"], a: 1 },
   { target: "linear", q: String.raw`\(x_1+4x_3x_4=20\) é linear?`, c: ["Sim", "Não"], a: 1 },
@@ -1997,6 +2186,158 @@ const diagnostic = [
   { target: "spell-scale", q: String.raw`Transformar \(4y=8\) em \(y=2\) é:`, c: [String.raw`multiplicar por \(\frac{1}{4}\)`, "multiplicar por 4", "multiplicar por 0"], a: 0 },
   { target: "parameters", q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`, c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"], a: 0 },
   { target: "homogeneous", q: "Sistema homogêneo sempre tem:", c: ["a trivial", "contradição", "lado direito 7"], a: 0 }
+];
+
+const diagnosticMojibake = [
+  {
+    target: "fundamentals",
+    q: String.raw`Em \(3x_1+7x_2+2x_3=-19\), qual Ã© o termo independente?`,
+    c: ["7", "-19", "2"],
+    a: 1,
+    feedbacks: ["7 Ã© coeficiente de \(x_2\).", "Certo: termo independente fica depois da igualdade.", "2 Ã© coeficiente de \(x_3\)."]
+  },
+  {
+    target: "linear",
+    q: String.raw`\(x_1+4x_3x_4=20\) Ã© linear?`,
+    c: ["Sim", "NÃ£o, tem produto entre variÃ¡veis", "SÃ³ se \(x_4=1\)"],
+    a: 1,
+    feedbacks: ["NÃ£o: \(x_3x_4\) Ã© produto entre variÃ¡veis.", "Certo: produto entre variÃ¡veis quebra linearidade.", "NÃ£o vale escolher valor para salvar a forma."]
+  },
+  {
+    target: "matrix",
+    q: String.raw`A linha correta para \(x_1-x_2+3x_3=8\) Ã©:`,
+    context: lista10Ex2System,
+    c: [String.raw`\([1,-1,3|8]\)`, String.raw`\([1,1,3|8]\)`, String.raw`\([8,1,-1|3]\)`],
+    a: 0,
+    feedbacks: ["Certo: coeficientes antes da barra, lado direito depois.", "O sinal de \(x_2\) Ã© negativo.", "O 8 Ã© termo independente; fica depois da barra."]
+  },
+  {
+    target: "rows",
+    q: String.raw`Para zerar o 3 abaixo do pivÃ´ 1 em \(L_2=[3,7,2|-19]\), use:`,
+    context: String.raw`\[L_1=[1,2,-1|-10]\]`,
+    c: [String.raw`\(L_2\leftarrow L_2-3L_1\)`, String.raw`\(L_2\leftarrow L_2+3L_1\)`, String.raw`\(L_1\leftarrow L_1-3L_2\)`],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(3-3\cdot1=0\).`, String.raw`Sinal errado: \(3+3\cdot1=6\).`, "Linha errada: quem recebe a nova linha Ã© \(L_2\)."]
+  },
+  {
+    target: "signs",
+    q: String.raw`Na conta \(-19-(-30)\), o resultado Ã©:`,
+    c: ["11", "-49", "-11"],
+    a: 0,
+    feedbacks: ["Certo: subtrair negativo vira somar.", "Isso seria \(-19-30\), mas aqui Ã© \(-19-(-30)\).", "Faltou cuidar do segundo sinal de menos."]
+  },
+  {
+    target: "pivot",
+    q: String.raw`Com pivÃ´ \(3\) e alvo \(2\), qual operaÃ§Ã£o zera sem fraÃ§Ã£o?`,
+    context: matrixTex([[3, 1, -1, -10], [2, -1, -1, 6]]),
+    c: [String.raw`\(L_2\leftarrow3L_2-2L_1\)`, String.raw`\(L_2\leftarrow2L_2-3L_1\)`, String.raw`\(L_2\leftarrow L_2-3L_1\)`],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(3\cdot2-2\cdot3=0\).`, String.raw`DÃ¡ \(2\cdot2-3\cdot3=-5\), nÃ£o zero.`, String.raw`DÃ¡ \(2-3\cdot3=-7\), nÃ£o zero.`]
+  },
+  {
+    target: "classify",
+    q: String.raw`A linha \([0,0,0|7]\) significa:`,
+    c: [String.raw`SI, pois \(0=7\)`, "SPI, pois sobrou variÃ¡vel livre", "SPD, pois tem uma resposta"],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(0=7\) Ã© contradiÃ§Ã£o.`, "NÃ£o: variÃ¡vel livre exige linha zero consistente, nÃ£o \(0=7\).", "NÃ£o: contradiÃ§Ã£o elimina todas as soluÃ§Ãµes."]
+  },
+  {
+    target: "free",
+    q: String.raw`Se nÃ£o hÃ¡ contradiÃ§Ã£o e \(x_3\) nÃ£o tem pivÃ´, entÃ£o:`,
+    c: [String.raw`\(x_3\) Ã© variÃ¡vel livre`, String.raw`\(x_3=0\) obrigatoriamente`, "o sistema Ã© impossÃ­vel"],
+    a: 0,
+    feedbacks: ["Certo: variÃ¡vel sem pivÃ´ vira parÃ¢metro.", "NÃ£o. Livre nÃ£o quer dizer automaticamente zero.", "NÃ£o hÃ¡ contradiÃ§Ã£o."]
+  },
+  {
+    target: "homogeneous",
+    q: String.raw`Sistema homogÃªneo \(A\vec{x}=\vec{0}\) sempre tem:`,
+    c: ["a soluÃ§Ã£o trivial", "contradiÃ§Ã£o", "lado direito 7"],
+    a: 0,
+    feedbacks: ["Certo: \(\vec{x}=\vec{0}\) sempre funciona.", "HomogÃªneo nunca Ã© impossÃ­vel de cara.", "O lado direito Ã© zero."]
+  },
+  {
+    target: "parameters",
+    q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`,
+    c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(\lambda-1=0\Rightarrow\lambda=1\).`, "Esse valor zera \(\lambda+1\), nÃ£o \(\lambda-1\).", "Perigoso: pode dividir por zero sem perceber."]
+  }
+];
+
+const diagnostic = [
+  {
+    target: "fundamentals",
+    q: String.raw`Em \(3x_1+7x_2+2x_3=-19\), qual e o termo independente?`,
+    c: ["7", "-19", "2"],
+    a: 1,
+    feedbacks: ["7 e coeficiente de x2.", "Certo: termo independente fica depois da igualdade.", "2 e coeficiente de x3."]
+  },
+  {
+    target: "linear",
+    q: String.raw`\(x_1+4x_3x_4=20\) e linear?`,
+    c: ["Sim", "Nao, tem produto entre variaveis", String.raw`So se \(x_4=1\)`],
+    a: 1,
+    feedbacks: [String.raw`Nao: \(x_3x_4\) e produto entre variaveis.`, "Certo: produto entre variaveis quebra linearidade.", "Nao vale escolher valor para salvar a forma."]
+  },
+  {
+    target: "matrix",
+    q: String.raw`A linha correta para \(x_1-x_2+3x_3=8\) e:`,
+    context: lista10Ex2System,
+    c: [String.raw`\([1,-1,3|8]\)`, String.raw`\([1,1,3|8]\)`, String.raw`\([8,1,-1|3]\)`],
+    a: 0,
+    feedbacks: ["Certo: coeficientes antes da barra, lado direito depois.", String.raw`O sinal de \(x_2\) e negativo.`, "O 8 e termo independente; fica depois da barra."]
+  },
+  {
+    target: "rows",
+    q: String.raw`Para zerar o 3 abaixo do pivo 1 em \(L_2=[3,7,2|-19]\), use:`,
+    context: String.raw`\[L_1=[1,2,-1|-10]\]`,
+    c: [String.raw`\(L_2\leftarrow L_2-3L_1\)`, String.raw`\(L_2\leftarrow L_2+3L_1\)`, String.raw`\(L_1\leftarrow L_1-3L_2\)`],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(3-3\cdot1=0\).`, String.raw`Sinal errado: \(3+3\cdot1=6\).`, String.raw`Linha errada: quem recebe a nova linha e \(L_2\).`]
+  },
+  {
+    target: "signs",
+    q: String.raw`Na conta \(-19-(-30)\), o resultado e:`,
+    c: ["11", "-49", "-11"],
+    a: 0,
+    feedbacks: ["Certo: subtrair negativo vira somar.", String.raw`Isso seria \(-19-30\), mas aqui e \(-19-(-30)\).`, "Faltou cuidar do segundo sinal de menos."]
+  },
+  {
+    target: "pivot",
+    q: String.raw`Com pivo \(3\) e alvo \(2\), qual operacao zera sem fracao?`,
+    context: matrixTex([[3, 1, -1, -10], [2, -1, -1, 6]]),
+    c: [String.raw`\(L_2\leftarrow3L_2-2L_1\)`, String.raw`\(L_2\leftarrow2L_2-3L_1\)`, String.raw`\(L_2\leftarrow L_2-3L_1\)`],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(3\cdot2-2\cdot3=0\).`, String.raw`Da \(2\cdot2-3\cdot3=-5\), nao zero.`, String.raw`Da \(2-3\cdot3=-7\), nao zero.`]
+  },
+  {
+    target: "classify",
+    q: String.raw`A linha \([0,0,0|7]\) significa:`,
+    c: [String.raw`SI, pois \(0=7\)`, "SPI, pois sobrou variavel livre", "SPD, pois tem uma resposta"],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(0=7\) e contradicao.`, String.raw`Nao: variavel livre exige linha zero consistente, nao \(0=7\).`, "Nao: contradicao elimina todas as solucoes."]
+  },
+  {
+    target: "free",
+    q: String.raw`Se nao ha contradicao e \(x_3\) nao tem pivo, entao:`,
+    c: [String.raw`\(x_3\) e variavel livre`, String.raw`\(x_3=0\) obrigatoriamente`, "o sistema e impossivel"],
+    a: 0,
+    feedbacks: ["Certo: variavel sem pivo vira parametro.", "Nao. Livre nao quer dizer automaticamente zero.", "Nao ha contradicao."]
+  },
+  {
+    target: "homogeneous",
+    q: String.raw`Sistema homogeneo \(A\vec{x}=\vec{0}\) sempre tem:`,
+    c: ["a solucao trivial", "contradicao", "lado direito 7"],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(\vec{x}=\vec{0}\) sempre funciona.`, "Homogeneo nunca e impossivel de cara.", "O lado direito e zero."]
+  },
+  {
+    target: "parameters",
+    q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`,
+    c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"],
+    a: 0,
+    feedbacks: [String.raw`Certo: \(\lambda-1=0\Rightarrow\lambda=1\).`, String.raw`Esse valor zera \(\lambda+1\), nao \(\lambda-1\).`, "Perigoso: pode dividir por zero sem perceber."]
+  }
 ];
 
 const bossSets = {
@@ -2061,6 +2402,10 @@ function home() {
   const locked = !state.bossUnlocked;
   const completedCount = getCourseCompletedCount();
   const nextMissionItem = getNextCourseMission();
+  const recommendation = recommendNextMode();
+  const basicsNote = state.optionalReview.foundations
+    ? `<p class="tiny"><strong>Fundamentos:</strong> revisão opcional liberada pelo diagnóstico. Você pode voltar quando quiser.</p>`
+    : "";
   const chapterTitle = nextMissionItem?.chapter || "Campanha concluída";
   setStage(`
     <section class="home-shell">
@@ -2073,32 +2418,42 @@ function home() {
         </div>
       </div>
       <article class="current-mission">
-        <span class="eyebrow">Missão atual</span>
-        <h2>${chapterTitle}</h2>
-        <p>${next.label}</p>
+        <span class="eyebrow">Recomendacao inteligente</span>
+        <h2>${recommendation.title}</h2>
+        <p>${recommendation.reason}</p>
         <div class="bar"><span style="width:${Math.round((completedCount / COURSE_PATH.length) * 100)}%"></span></div>
-        <button class="primary big-cta" data-mode="continue">Continuar Jornada</button>
+        <button class="primary big-cta" data-mode="${recommendation.mode}">Continuar recomendacao</button>
+        ${basicsNote}
       </article>
       <div class="secondary-grid" aria-label="Ações secundárias">
-        ${menuButton("Revisar capítulo", `${completedCount}/${COURSE_PATH.length} missões`, "journeyMap")}
-        ${menuButton("Laboratório", "Treino focado por habilidade", "lab")}
-        ${menuButton("Grimório", "Consulta organizada", "grimoire")}
-        ${menuButton("Treino livre", "Questões misturadas", "infinite")}
+        ${menuButton("Comecar do zero", "Jornada completa desde fundamentos", "startJourney")}
+        ${menuButton("Diagnostico rapido", "10 questoes para calibrar rota", "diagnostic")}
+        ${menuButton("Escalonamento completo", "Pivo, sinais, retrocesso e classificacao", "escalation")}
+        ${menuButton("Parametros", String.raw`\(\lambda\), \(m\), \(\alpha\), \(k\) sem travar`, "params")}
+        ${menuButton("Boss Lista 11", "Mistao de prova sem pedagio", "lista11Boss")}
+        ${menuButton("Quadro de Bolso", "Treinar deitado, uma conta por tela", "pocketHome")}
+      </div>
+      <div class="secondary-grid compact-actions" aria-label="Modos auxiliares">
+        ${menuButton("Jornada linear", `${completedCount}/${COURSE_PATH.length} missoes`, "continue")}
+        ${menuButton("Laboratorio", "Treino focado por habilidade", "lab")}
+        ${menuButton("Grimorio", "Consulta organizada", "grimoire")}
+        ${menuButton("Treino livre", "Questoes misturadas", "infinite")}
       </div>
       <div class="status-strip" aria-label="Status do estudante">
         <span>${state.xp} XP</span>
         <span>${state.streak} sequência</span>
         <span>${state.medals.length} medalhas</span>
+        <span>${chapterTitle}: ${next.label}</span>
       </div>
       <details class="extras-panel">
         <summary>Outros modos e conquistas</summary>
         <div class="menu-grid compact-menu">
-          ${menuButton("Começar do zero", "Reiniciar só a campanha linear", "startJourney")}
           ${menuButton("Exemplo guiado Lista 10", "Sistema I ativo + Sistema II resolvido", "guided")}
           ${menuButton("Duelos rápidos", "Bosses por habilidade", "duels")}
+          ${menuButton("Classificacao SPD/SPI/SI", "Ler matriz final com linguagem formal", "classificationTrack")}
+          ${menuButton("Homogeneos", "Trivial, determinante e Lista 11", "homogeneousTrack")}
           ${menuButton("Câmara dos Parâmetros", "Boss real da Lista 11", "params")}
-          ${menuButton("Boss fight Lista 11", locked ? "Bloqueado: ganhe 140 XP ou conclua o exemplo" : `${bossSets.mixed.qs.length} questões reais`, "finalBoss", locked)}
-          ${menuButton("Diagnóstico opcional", "Calibrar rota sem bloquear", "diagnostic")}
+          ${menuButton("Boss fight Lista 11", locked ? "Recomendado treinar antes, mas liberado" : `${bossSets.mixed.qs.length} questões reais`, "lista11Boss")}
         </div>
         <div class="medal-list compact-medals">${Object.entries(medals).map(([key, label]) => `<div class="medal ${state.medals.includes(key) ? "earned" : ""}">${label}</div>`).join("")}</div>
       </details>
@@ -2135,6 +2490,7 @@ function hasCourseProgress() {
 function resetCourseProgress() {
   const ids = courseIds();
   state.completed = state.completed.filter((id) => !ids.has(id));
+  state.optionalReview.foundations = false;
   saveState();
 }
 
@@ -2270,19 +2626,22 @@ function diagnosticMode(index = 0, score = 0, misses = []) {
 function diagnosticResult(score, misses) {
   const perfect = score === diagnostic.length;
   if (perfect) state.bossUnlocked = true;
-  state.diagnostic = { score, misses, date: new Date().toISOString() };
+  state.diagnostic = { score, total: diagnostic.length, misses, date: new Date().toISOString() };
+  if (diagnosticBasicsMastered(state.diagnostic)) markFoundationsOptional();
   saveState();
+  const recommendation = recommendNextMode(state.diagnostic);
   const recommendations = misses.length
     ? [...new Set(misses)].map((id) => COURSE_PATH.find((mission) => mission.id === DIAGNOSTIC_TARGETS[id])).filter(Boolean)
     : [];
   setStage(`
     <section class="panel stack">
       <span class="pill">${score}/${diagnostic.length}</span>
-      <h2>${perfect ? "Você não precisa do tutorial básico." : "Rota calibrada"}</h2>
-      <p>${perfect ? "Atalhos avançados liberados. Revise fundamentos só se quiser." : "Sugestões de microaula, sem bloquear o resto do app."}</p>
+      <h2>${perfect ? "Voce nao precisa do tutorial basico." : "Rota calibrada"}</h2>
+      <p>${recommendation.reason}</p>
       <div class="actions">
-        <button class="primary" data-mode="${perfect ? "lab" : "journey"}">${perfect ? "Pular para Laboratório" : "Revisar sugeridos"}</button>
-        <button class="secondary" data-mode="finalBoss">Ir ao Boss</button>
+        <button class="primary" data-mode="${recommendation.mode}">${recommendationLabel(recommendation.mode)}</button>
+        <button class="secondary" data-mode="pocketHome">Quadro de Bolso</button>
+        <button class="secondary" data-mode="lista11Boss">Boss Lista 11</button>
         <button class="secondary" data-mode="home">Menu</button>
       </div>
       ${recommendations.length ? `<div class="mission-list">${recommendations.map((r) => `<button class="game-button" data-jump="${r.id}"><strong>${r.title}</strong><small>${r.chapter}</small></button>`).join("")}</div>` : ""}
@@ -2290,7 +2649,378 @@ function diagnosticResult(score, misses) {
   `);
 }
 
+function pocketStep({ id, title, matrix, q: prompt, choices, why, solution, skill = "escalonamento" }) {
+  return { id, title, matrix, q: prompt, choices, why, solution, skill };
+}
+
+const POCKET_ESCALATIONS = [
+  {
+    id: "lista10-si",
+    title: "Sistema I: termina em SI",
+    origin: "Lista 10 sistema I",
+    summary: "Pivo 1, linha por linha, ate aparecer [0,0,0|7].",
+    steps: [
+      pocketStep({
+        id: "pivot",
+        title: "Escolha o primeiro pivo",
+        matrix: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19], [5, 12, 5, -21]]),
+        q: "Qual numero serve como primeiro pivo natural?",
+        choices: [
+          { t: "1 na linha 1", ok: true, f: "Certo: ele ja esta na primeira coluna e facilita zerar 3 e 5." },
+          { t: "-10 depois da barra", ok: false, f: "Depois da barra e lado direito; nao e pivo de variavel." },
+          { t: "7 na linha 2", ok: false, f: "O primeiro pivo deve ficar na primeira coluna da primeira linha ativa." }
+        ],
+        why: "Pivo e o numero de apoio usado para limpar a coluna abaixo.",
+        solution: "<p>Primeira coluna: o 1 da primeira linha e o apoio mais simples.</p>"
+      }),
+      pocketStep({
+        id: "targets",
+        title: "Quais numeros precisam zerar?",
+        matrix: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19], [5, 12, 5, -21]]),
+        q: "Abaixo do pivo 1, queremos zerar:",
+        choices: [
+          { t: "3 e 5", ok: true, f: "Certo: sao os numeros abaixo do pivo na primeira coluna." },
+          { t: "2 e -1", ok: false, f: "Esses estao na linha do pivo, nao abaixo dele." },
+          { t: "-19 e -21", ok: false, f: "Esses ficam depois da barra; tambem mudam, mas nao sao alvos de pivo." }
+        ],
+        why: "Escalonar e construir uma escada de zeros abaixo dos pivos.",
+        solution: "<p>Na primeira coluna, abaixo do 1 aparecem 3 e 5.</p>"
+      }),
+      pocketStep({
+        id: "op-l2",
+        title: "Zerar o 3",
+        matrix: String.raw`\[L_1=[1,2,-1|-10],\quad L_2=[3,7,2|-19]\]`,
+        q: "Qual operacao zera o 3 da linha 2?",
+        choices: [
+          { t: String.raw`\(L_2\leftarrow L_2-3L_1\)`, ok: true, f: String.raw`Certo: \(3-3\cdot1=0\).` },
+          { t: String.raw`\(L_2\leftarrow L_2+3L_1\)`, ok: false, f: String.raw`Sinal errado: \(3+3\cdot1=6\).` },
+          { t: String.raw`\(L_1\leftarrow L_1-3L_2\)`, ok: false, f: "Linha errada: queremos substituir a linha 2." }
+        ],
+        why: "O 3 vem do numero que queremos zerar.",
+        solution: fullResolution({
+          objective: "zerar o primeiro termo da linha 2",
+          operation: String.raw`\(L_2\leftarrow L_2-3L_1\)`,
+          reason: String.raw`\(3-3\cdot1=0\)`,
+          account: String.raw`\(3L_1=[3,6,-3|-30]\)`,
+          result: String.raw`\(L_2-3L_1=[0,1,5|11]\)`,
+          interpretation: "A linha 2 nova comeca com zero.",
+          trap: "O lado direito tambem muda: -19-(-30)=11."
+        })
+      }),
+      pocketStep({
+        id: "3l1",
+        title: "Calcule 3L1",
+        matrix: String.raw`\[L_1=[1,2,-1|-10]\]`,
+        q: String.raw`Quanto e \(3L_1\)?`,
+        choices: [
+          { t: rowTex([3, 6, -3, -30]), ok: true, f: "Certo: multiplicou a linha inteira." },
+          { t: rowTex([3, 6, -3, -10]), ok: false, f: "Esqueceu de multiplicar o lado direito depois da barra." },
+          { t: rowTex([1, 6, -3, -30]), ok: false, f: "Tambem precisa multiplicar o primeiro termo." }
+        ],
+        why: "Operacao de linha sempre mexe na linha inteira.",
+        solution: String.raw`<p>\(3[1,2,-1|-10]=[3,6,-3|-30]\).</p>`
+      }),
+      pocketStep({
+        id: "l2-result",
+        title: "Subtraia entrada por entrada",
+        matrix: String.raw`\[[3,7,2|-19]-[3,6,-3|-30]\]`,
+        q: "Qual e a nova linha 2?",
+        choices: [
+          { t: rowTex([0, 1, 5, 11]), ok: true, f: "Certo: inclusive depois da barra." },
+          { t: rowTex([0, 1, -1, 11]), ok: false, f: "Sinal no terceiro termo: 2-(-3)=5." },
+          { t: rowTex([0, 1, 5, -49]), ok: false, f: "Erro de sinal: -19-(-30)=11, nao -49." }
+        ],
+        why: "Cada entrada da linha participa da conta.",
+        solution: String.raw`<p>\([3,7,2|-19]-[3,6,-3|-30]=[0,1,5|11]\).</p>`
+      }),
+      pocketStep({
+        id: "l3-result",
+        title: "Zerar o 5",
+        matrix: String.raw`\[L_3=[5,12,5|-21],\quad L_1=[1,2,-1|-10]\]`,
+        q: String.raw`Depois de \(L_3\leftarrow L_3-5L_1\), a linha 3 vira:`,
+        choices: [
+          { t: rowTex([0, 2, 10, 29]), ok: true, f: "Certo: 5L1=[5,10,-5|-50]." },
+          { t: rowTex([0, 2, 0, 29]), ok: false, f: "No terceiro termo: 5-(-5)=10." },
+          { t: rowTex([0, 2, 10, -71]), ok: false, f: "Depois da barra: -21-(-50)=29." }
+        ],
+        why: "O multiplicador 5 vem do alvo abaixo do pivo.",
+        solution: String.raw`<p>\(5L_1=[5,10,-5|-50]\).</p><p>\(L_3-5L_1=[0,2,10|29]\).</p>`
+      }),
+      pocketStep({
+        id: "second-pivot",
+        title: "Zerar abaixo do segundo pivo",
+        matrix: matrixTex([[1, 2, -1, -10], [0, 1, 5, 11], [0, 2, 10, 29]]),
+        q: "Qual operacao zera o 2 abaixo do pivo 1 da segunda coluna?",
+        choices: [
+          { t: String.raw`\(L_3\leftarrow L_3-2L_2\)`, ok: true, f: String.raw`Certo: \(2-2\cdot1=0\).` },
+          { t: String.raw`\(L_3\leftarrow L_3+2L_2\)`, ok: false, f: String.raw`Isso faz \(2+2=4\), nao zero.` },
+          { t: String.raw`\(L_2\leftarrow L_2-2L_3\)`, ok: false, f: "Linha errada: a linha 3 e o alvo." }
+        ],
+        why: "Agora o apoio e a linha 2.",
+        solution: String.raw`<p>Como o alvo e 2 e o pivo e 1, usamos \(L_3-2L_2\).</p>`
+      }),
+      pocketStep({
+        id: "final-row",
+        title: "Interprete a linha final",
+        matrix: matrixTex([[1, 2, -1, -10], [0, 1, 5, 11], [0, 0, 0, 7]]),
+        q: String.raw`A linha \([0,0,0|7]\) quer dizer:`,
+        choices: [
+          { t: String.raw`\(0=7\), sistema impossivel`, ok: true, f: "Certo: apareceu contradicao." },
+          { t: "variavel livre", ok: false, f: "Variavel livre aparece sem contradicao; aqui o lado direito e 7." },
+          { t: "solucao unica", ok: false, f: "Nao pode haver solucao se uma linha exige 0=7." }
+        ],
+        why: "Essa e a linha que mata o Sistema I.",
+        solution: String.raw`<p>\(0x_1+0x_2+0x_3=7\Rightarrow0=7\). Logo, SI e \(S=\varnothing\).</p>`
+      })
+    ]
+  },
+  {
+    id: "pivot3-spd",
+    title: "Pivo 3: sem fracao",
+    origin: "Gerada no escopo da Lista 10",
+    summary: "Treina a operacao sem fracao quando o pivo nao e 1.",
+    steps: [
+      pocketStep({
+        id: "choose",
+        title: "Escolha o pivo",
+        matrix: matrixTex([[3, 1, -1, -10], [2, -1, -1, 6], [-4, 2, -5, 20]]),
+        q: "Qual e o primeiro pivo?",
+        choices: [
+          { t: "3", ok: true, f: "Certo: ele abre a primeira coluna." },
+          { t: "2", ok: false, f: "O 2 e alvo abaixo do pivo." },
+          { t: "-10", ok: false, f: "Depois da barra nao e pivo." }
+        ],
+        why: "Nem todo pivo precisa ser 1.",
+        solution: "<p>O pivo e 3. Vamos evitar fracao multiplicando a linha alvo.</p>"
+      }),
+      pocketStep({
+        id: "l2-op",
+        title: "Zerar o 2 sem fracao",
+        matrix: String.raw`\[L_1=[3,1,-1|-10],\quad L_2=[2,-1,-1|6]\]`,
+        q: "Qual operacao zera o 2?",
+        choices: [
+          { t: String.raw`\(L_2\leftarrow3L_2-2L_1\)`, ok: true, f: String.raw`Certo: \(3\cdot2-2\cdot3=0\).` },
+          { t: String.raw`\(L_2\leftarrow2L_2-3L_1\)`, ok: false, f: String.raw`Da \(4-9=-5\), nao zero.` },
+          { t: String.raw`\(L_2\leftarrow L_2-2L_1\)`, ok: false, f: String.raw`Da \(2-6=-4\), nao zero.` }
+        ],
+        why: String.raw`Formula sem fracao: \(L_{\text{alvo}}\leftarrow pL_{\text{alvo}}-aL_{\text{pivo}}\).`,
+        solution: String.raw`<p>Aqui \(p=3\) e \(a=2\). Entao \(3L_2-2L_1\).</p>`
+      }),
+      pocketStep({
+        id: "l2-calc",
+        title: "Calcule a nova L2",
+        matrix: String.raw`\[3L_2=[6,-3,-3|18],\quad 2L_1=[6,2,-2|-20]\]`,
+        q: String.raw`Quanto e \(3L_2-2L_1\)?`,
+        choices: [
+          { t: rowTex([0, -5, -1, 38]), ok: true, f: "Certo: 18-(-20)=38." },
+          { t: rowTex([0, -5, -1, -2]), ok: false, f: "Cuidado: o lado direito e 18-(-20), nao 18-20." },
+          { t: rowTex([0, -1, -5, 38]), ok: false, f: "Voce trocou as entradas do meio." }
+        ],
+        why: "A conferencia do termo independente e o anti-vacilo aqui.",
+        solution: String.raw`<p>\([6,-3,-3|18]-[6,2,-2|-20]=[0,-5,-1|38]\).</p>`
+      }),
+      pocketStep({
+        id: "l3-op",
+        title: "Zerar o -4",
+        matrix: String.raw`\[L_3=[-4,2,-5|20],\quad L_1=[3,1,-1|-10]\]`,
+        q: "Com p=3 e alvo a=-4, qual operacao sem fracao?",
+        choices: [
+          { t: String.raw`\(L_3\leftarrow3L_3+4L_1\)`, ok: true, f: String.raw`Certo: \(3(-4)+4(3)=0\).` },
+          { t: String.raw`\(L_3\leftarrow3L_3-4L_1\)`, ok: false, f: String.raw`Isso da \(-12-12=-24\).` },
+          { t: String.raw`\(L_3\leftarrow4L_3+3L_1\)`, ok: false, f: String.raw`Isso da \(-16+9=-7\).` }
+        ],
+        why: String.raw`Como \(a=-4\), subtrair \(aL_1\) vira somar \(4L_1\).`,
+        solution: String.raw`<p>\(L_3\leftarrow3L_3-(-4)L_1=3L_3+4L_1\).</p>`
+      }),
+      pocketStep({
+        id: "l3-result",
+        title: "Nova L3",
+        matrix: String.raw`\[3L_3=[-12,6,-15|60],\quad4L_1=[12,4,-4|-40]\]`,
+        q: String.raw`Quanto e \(3L_3+4L_1\)?`,
+        choices: [
+          { t: rowTex([0, 10, -19, 20]), ok: true, f: "Certo." },
+          { t: rowTex([0, 2, -11, 100]), ok: false, f: "Voce subtraiu em vez de somar." },
+          { t: rowTex([0, 10, -19, 100]), ok: false, f: "Depois da barra: 60+(-40)=20." }
+        ],
+        why: "Quando o alvo e negativo, o sinal da operacao fica mais perigoso.",
+        solution: String.raw`<p>\([-12,6,-15|60]+[12,4,-4|-40]=[0,10,-19|20]\).</p>`
+      }),
+      pocketStep({
+        id: "second-column",
+        title: "Zerar abaixo do segundo pivo",
+        matrix: matrixTex([[3, 1, -1, -10], [0, -5, -1, 38], [0, 10, -19, 20]]),
+        q: "Qual operacao zera o 10 usando o pivo -5?",
+        choices: [
+          { t: String.raw`\(L_3\leftarrow L_3+2L_2\)`, ok: true, f: String.raw`Certo: \(10+2(-5)=0\).` },
+          { t: String.raw`\(L_3\leftarrow L_3-2L_2\)`, ok: false, f: String.raw`Isso da \(10-2(-5)=20\).` },
+          { t: String.raw`\(L_2\leftarrow L_2+2L_3\)`, ok: false, f: "Linha errada: quem tem o 10 e L3." }
+        ],
+        why: "O sinal do pivo -5 muda a escolha.",
+        solution: String.raw`<p>Queremos \(10+c(-5)=0\). Entao \(c=2\).</p>`
+      }),
+      pocketStep({
+        id: "final",
+        title: "Forma escalonada",
+        matrix: matrixTex([[3, 1, -1, -10], [0, -5, -1, 38], [0, 0, -21, 96]]),
+        q: "Essa forma final indica:",
+        choices: [
+          { t: "SPD: pivo nas tres variaveis", ok: true, f: "Certo: nao ha contradicao e ha pivo em x1, x2, x3." },
+          { t: "SI: aparece 0=96", ok: false, f: "A ultima linha tem coeficiente -21 em x3, nao e 0=96." },
+          { t: "SPI: x3 e livre", ok: false, f: "x3 tem pivo -21, entao nao e livre." }
+        ],
+        why: "Classificar vem depois de ler pivos e contradicoes.",
+        solution: String.raw`<p>\(-21x_3=96\Rightarrow x_3=-\frac{32}{7}\). Ha pivo em todas as variaveis: SPD.</p>`
+      })
+    ]
+  },
+  {
+    id: "generated-spi",
+    title: "Sistema que termina em SPI",
+    origin: "Gerada no escopo da Lista 10",
+    summary: "Treina linha 0=0 e variavel livre sem confundir com SI.",
+    steps: [
+      pocketStep({
+        id: "start",
+        title: "Primeiro pivo",
+        matrix: matrixTex([[1, 2, -1, 3], [2, 4, -2, 6], [0, 1, 1, 4]]),
+        q: "Qual operacao mostra que a linha 2 e repetida?",
+        choices: [
+          { t: String.raw`\(L_2\leftarrow L_2-2L_1\)`, ok: true, f: "Certo: a linha 2 vira tudo zero." },
+          { t: String.raw`\(L_2\leftarrow L_2+2L_1\)`, ok: false, f: "Sinal errado: isso dobra em vez de cancelar." },
+          { t: String.raw`\(L_3\leftarrow L_3-L_1\)`, ok: false, f: "A linha 3 nao e multiplo direto da linha 1." }
+        ],
+        why: "Linha repetida costuma virar 0=0.",
+        solution: String.raw`<p>\([2,4,-2|6]-2[1,2,-1|3]=[0,0,0|0]\).</p>`
+      }),
+      pocketStep({
+        id: "swap",
+        title: "Organizar a escada",
+        matrix: matrixTex([[1, 2, -1, 3], [0, 0, 0, 0], [0, 1, 1, 4]]),
+        q: "Para ficar escalonada, o que fazemos?",
+        choices: [
+          { t: String.raw`\(L_2\leftrightarrow L_3\)`, ok: true, f: "Certo: linha nula vai para baixo." },
+          { t: String.raw`\(L_1\leftrightarrow L_2\)`, ok: false, f: "Isso colocaria linha nula no topo." },
+          { t: "Nada: linha nula no meio e ideal", ok: false, f: "Forma escalonada deixa linhas nulas no fim." }
+        ],
+        why: "Escada limpa facilita ler pivos.",
+        solution: String.raw`<p>Depois da troca: \([1,2,-1|3]\), \([0,1,1|4]\), \([0,0,0|0]\).</p>`
+      }),
+      pocketStep({
+        id: "classify",
+        title: "Classifique",
+        matrix: matrixTex([[1, 2, -1, 3], [0, 1, 1, 4], [0, 0, 0, 0]]),
+        q: "A matriz final e:",
+        choices: [
+          { t: "SPI: sem contradicao e x3 livre", ok: true, f: "Certo: nao ha pivo na terceira coluna." },
+          { t: "SI: 0=0 e contradicao", ok: false, f: "0=0 nao e contradicao; e identidade." },
+          { t: "SPD: tres pivos", ok: false, f: "So ha pivos em x1 e x2." }
+        ],
+        why: "0=0 nao derruba o sistema; variavel sem pivo gera infinitas.",
+        solution: String.raw`<p>Como \(x_3\) nao tem pivo, tome \(x_3=t\). Entao \(x_2=4-t\) e \(x_1=-5+3t\).</p>`
+      })
+    ]
+  }
+];
+
+function pocketHome() {
+  screen = { mode: "pocketHome", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  const cards = POCKET_ESCALATIONS.map((board, index) => `
+    <button class="skill-card pocket-card" data-pocket-start="${index}">
+      <strong>${board.title}</strong>
+      <small>${board.summary}</small>
+      <span>${board.steps.length} passos curtos</span>
+    </button>
+  `).join("");
+  setStage(`
+    <section class="panel stack lab-home">
+      <span class="eyebrow">Quadro de Bolso</span>
+      <h2>Sem lousa? Sem desculpa.</h2>
+      <p>O celular quebra o escalonamento em decisoes pequenas: escolher pivo, calcular uma linha, conferir sinal e classificar.</p>
+      <div class="skill-grid">${cards}</div>
+      <button class="secondary" data-mode="home">Voltar</button>
+    </section>
+  `);
+}
+
+function pocketMode(boardIndex = 0, stepIndex = 0, score = 0, errors = []) {
+  const board = POCKET_ESCALATIONS[boardIndex] || POCKET_ESCALATIONS[0];
+  const item = board.steps[stepIndex];
+  screen = { mode: "pocket", index: stepIndex, boardIndex, boss: "mixed", score, errors, item: null };
+  const data = {
+    id: item.id,
+    title: item.title,
+    chapter: `Quadro de Bolso - ${board.title}`,
+    phase: `${stepIndex + 1}/${board.steps.length}`,
+    origin: board.origin,
+    skill: item.skill,
+    difficulty: 3,
+    type: "escalonamento completo",
+    data: item.matrix,
+    explain: item.why,
+    question: item.q,
+    choices: item.choices.map((choice) => choice.t),
+    why: item.why
+  };
+  setStage(`
+    <section class="micro lesson-flow">
+      ${courseHeader({ mode: "pocket", data, index: stepIndex, total: board.steps.length, progress: Math.round(((stepIndex + 1) / board.steps.length) * 100), kicker: "Quadro de Bolso" })}
+      ${sourceChip(data)}
+      ${contextBlock(data)}
+      ${conceptCard(data)}
+      ${exerciseCard(data, "data-pocket-answer")}
+      <div id="feedback" class="feedback"></div>
+      <div class="actions">
+        <button class="primary" data-next="pocket" disabled>${stepIndex === board.steps.length - 1 ? "Fechar escalonamento" : "Proximo pedaco"}</button>
+        <button class="secondary" data-repeat="pocket">Refazer passo</button>
+        <button class="secondary" data-mode="pocketHome">Trocar sistema</button>
+      </div>
+    </section>
+  `);
+}
+
+function answerPocket(selected) {
+  const board = POCKET_ESCALATIONS[screen.boardIndex] || POCKET_ESCALATIONS[0];
+  const item = board.steps[screen.index];
+  const choice = item.choices[selected];
+  const correctIndex = item.choices.findIndex((c) => c.ok);
+  markChoices(selected, correctIndex, "[data-pocket-answer]");
+  if (choice.ok) {
+    screen.score += 1;
+    addXp(8, "quadro de bolso");
+    complete(`pocket-${board.id}-${item.id}`);
+  } else {
+    screen.errors.push(item.skill);
+    miss(item.skill);
+  }
+  $("#feedback").innerHTML = `${choice.ok ? "Acertou. " : "Ainda nao. "}${choice.f}${solutionBlock(item, "Ver conta completa")}`;
+  $("#feedback").className = `feedback show ${choice.ok ? "success" : "danger"}`;
+  enableNextButtons();
+  typeset();
+}
+
+function pocketResult() {
+  const board = POCKET_ESCALATIONS[screen.boardIndex] || POCKET_ESCALATIONS[0];
+  complete(`pocket-${board.id}-finish`);
+  setStage(`
+    <section class="panel stack">
+      <span class="pill">Escalonamento completo</span>
+      <h2>${board.title} concluido</h2>
+      <p>Voce resolveu em blocos pequenos, do pivo ate a classificacao.</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${screen.score}/${board.steps.length}</strong><small>passos certos</small></div>
+        <div class="mission-card"><strong>${state.xp}</strong><small>XP total</small></div>
+      </div>
+      <div class="actions">
+        <button class="primary" data-mode="pocketHome">Treinar outro sistema</button>
+        <button class="secondary" data-mode="params">Ir para parametros</button>
+        <button class="secondary" data-mode="home">Menu</button>
+      </div>
+    </section>
+  `);
+}
+
 const LAB_GROUPS = [
+  { title: "Escalonamento completo", hint: "Sistemas 3x3 em blocos pequenos.", mode: "pocketHome", label: "Abrir Quadro de Bolso" },
   { title: "Operações de linha", hint: "Trocar, multiplicar e combinar linhas.", start: 0, label: "Abrir treino de linhas" },
   { title: "Sinais e aritmética", hint: "Sinais, distribuição e lado direito.", start: 49, label: "Abrir treino de contas" },
   { title: "Matriz aumentada", hint: "Antes da barra e depois da barra.", boss: "matrix", label: "Abrir treino de matrizes" },
@@ -2318,6 +3048,24 @@ function labHome() {
       <h2>Treino focado</h2>
       <p>Escolha uma habilidade. Cada treino mostra só dados, pergunta, feedback e próxima ação.</p>
       <div class="skill-grid">${cards}</div>
+      <button class="secondary" data-mode="home">Voltar</button>
+    </section>
+  `);
+}
+
+function escalationTrack() {
+  screen = { mode: "escalation", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  setStage(`
+    <section class="panel stack lab-home">
+      <span class="eyebrow">Trilha direta</span>
+      <h2>Escalonamento completo</h2>
+      <p>Sem ficar preso no basico: escolha um treino 3x3, veja uma conta por tela e classifique no final.</p>
+      <div class="skill-grid">
+        <button class="skill-card" data-mode="pocketHome"><strong>Quadro de Bolso</strong><small>3 escalonamentos completos guiados</small><span>Uma conta por tela</span></button>
+        <button class="skill-card" data-jump="course-c5-31b-pivot-not-one"><strong>Pivo diferente de 1</strong><small>Operacao sem fracao</small><span>Ir para a microaula</span></button>
+        <button class="skill-card" data-mode="guided"><strong>Exemplo Lista 10</strong><small>Sistema I passo a passo</small><span>Resolver exemplo guiado</span></button>
+        <button class="skill-card" data-mode="classificationTrack"><strong>Classificacao</strong><small>SPD, SPI, SI</small><span>Ler matriz final</span></button>
+      </div>
       <button class="secondary" data-mode="home">Voltar</button>
     </section>
   `);
@@ -2392,14 +3140,15 @@ function duels() {
   `);
 }
 
-function bossMode(key = "mixed", index = 0, score = 0, errors = []) {
-  if (key === "mixed" && !state.bossUnlocked) {
+function bossMode(key = "mixed", index = 0, score = 0, errors = [], force = false) {
+  if (key === "mixed" && !state.bossUnlocked && !force) {
     setStage(`
       <section class="panel stack">
         <span class="pill">Boss bloqueado</span>
         <h2>Treine um pouco antes.</h2>
-        <p>Ganhe 140 XP ou conclua o exemplo guiado da Lista 10 para liberar o boss final.</p>
-        <button class="primary" data-mode="lab">Ir ao laboratório</button>
+        <p>Recomendado ganhar 140 XP ou concluir o exemplo guiado. Mas se voce quer prova bruta agora, pode entrar.</p>
+        <button class="primary" data-mode="lista11Boss">Entrar mesmo assim</button>
+        <button class="secondary" data-mode="pocketHome">Treinar escalonamento antes</button>
       </section>
     `);
     return;
@@ -2582,7 +3331,7 @@ function answer(selected) {
   if (screen.mode === "diagnostic") {
     if (correct) screen.score += 1;
     else screen.errors.push(item.target);
-    fb.innerHTML = correct ? "Acertou." : "Quase. Vou recomendar revisão, sem bloquear nada.";
+    fb.innerHTML = item.feedbacks?.[selected] || (correct ? "Acertou." : "Quase. Vou recomendar revisao, sem bloquear nada.");
   } else {
     const msg = correct
       ? (item.feedbacks?.[selected] || item.feedback || item.f || "Certo.")
@@ -2651,7 +3400,7 @@ function answerInfinite(selected) {
 function markChoices(selected, answer, selector = "[data-answer]") {
   $$(selector).forEach((btn) => {
     btn.disabled = true;
-    const value = Number(btn.dataset.answer ?? btn.dataset.lab ?? btn.dataset.bossAnswer ?? btn.dataset.infiniteAnswer);
+    const value = Number(btn.dataset.answer ?? btn.dataset.lab ?? btn.dataset.bossAnswer ?? btn.dataset.infiniteAnswer ?? btn.dataset.pocketAnswer);
     if (value === answer) btn.classList.add("correct");
     if (value === selected && value !== answer) btn.classList.add("wrong");
   });
@@ -2670,6 +3419,11 @@ function next(kind) {
   if (kind === "lab") {
     if (screen.index >= lab.length - 1) return labHome();
     return labMode(screen.index + 1);
+  }
+  if (kind === "pocket") {
+    const board = POCKET_ESCALATIONS[screen.boardIndex] || POCKET_ESCALATIONS[0];
+    if (screen.index >= board.steps.length - 1) return pocketResult();
+    return pocketMode(screen.boardIndex, screen.index + 1, screen.score, screen.errors);
   }
   if (kind === "guided") {
     if (screen.index >= guided.length - 1) {
@@ -2691,6 +3445,7 @@ function next(kind) {
 function repeat(kind) {
   if (kind === "journey") return journey(screen.index);
   if (kind === "lab") return labMode(screen.index);
+  if (kind === "pocket") return pocketMode(screen.boardIndex, screen.index, screen.score, screen.errors);
   if (kind === "guided") return guidedMode(screen.index);
   if (kind === "boss") return bossMode(screen.boss, 0, 0, []);
   if (kind === "infinite") return infiniteMode(screen.item);
@@ -2707,6 +3462,12 @@ function route(mode) {
   if (mode === "startJourney") return confirmRestartJourney();
   if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
+  if (mode === "escalation") return escalationTrack();
+  if (mode === "pocketHome") return pocketHome();
+  if (mode === "classificationTrack") return bossMode("classify", 0, 0, []);
+  if (mode === "homogeneousTrack") return bossMode("homogeneous", 0, 0, []);
+  if (mode === "parametersTrack") return paramsMode();
+  if (mode === "lista11Boss") return bossMode("mixed", 0, 0, [], true);
   if (mode === "lab") return labHome();
   if (mode === "guided") return guidedMode(0);
   if (mode === "duels") return duels();
@@ -2744,11 +3505,17 @@ document.addEventListener("click", (event) => {
   const labStart = event.target.closest("[data-lab-start]");
   if (labStart) return labMode(Number(labStart.dataset.labStart));
 
+  const pocketStart = event.target.closest("[data-pocket-start]");
+  if (pocketStart) return pocketMode(Number(pocketStart.dataset.pocketStart), 0, 0, []);
+
   const bossAns = event.target.closest("[data-boss-answer]");
   if (bossAns) return answerBoss(Number(bossAns.dataset.bossAnswer));
 
   const infiniteAns = event.target.closest("[data-infinite-answer]");
   if (infiniteAns) return answerInfinite(Number(infiniteAns.dataset.infiniteAnswer));
+
+  const pocketAns = event.target.closest("[data-pocket-answer]");
+  if (pocketAns) return answerPocket(Number(pocketAns.dataset.pocketAnswer));
 
   const nextBtn = event.target.closest("[data-next]");
   if (nextBtn) return next(nextBtn.dataset.next);
