@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistemas Lineares | Tutor Gamificado</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="hud" aria-label="Progresso do jogador">
+      <button class="brand-button" data-action="home" aria-label="Voltar ao menu">
+        <span class="brand-mark">SL</span>
+        <span class="brand-copy">
+          <strong>Modo Guerra</strong>
+          <small>Sistemas Lineares</small>
+        </span>
+      </button>
+      <div class="stats">
+        <span id="xpStat">0 XP</span>
+        <span id="streakStat">0 sequência</span>
+        <span id="medalStat">0 medalhas</span>
+      </div>
+    </header>
+
+    <main id="appStage" class="stage" aria-live="polite"></main>
+
+    <nav class="bottom-nav" aria-label="Navegação rápida">
+      <button data-mode="home">Menu</button>
+      <button data-mode="journey">Jornada</button>
+      <button data-mode="lab">Lab</button>
+      <button data-mode="duels">Duelos</button>
+      <button data-mode="grimoire">Grimório</button>
+    </nav>
+  </div>
+</body>
+</html>
