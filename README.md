@@ -2,6 +2,16 @@
 
 App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 dias. O projeto usa apenas HTML, CSS e JavaScript, sem backend e sem etapa real de build.
 
+## O que o app treina
+
+- Home, Jornada, Laboratorio, Duelos, Boss Lista 11, Treino infinito e Grimorio.
+- Laboratorio com 59 desafios de operacoes de linha.
+- Banco de treino com 20 questoes de equacao linear, 20 de matriz aumentada, 20 de classificacao, 15 de homogeneos, 26 de parametros e 168 questoes no treino infinito.
+- Boss final com 50 questoes baseadas na Lista 11 e questoes geradas equivalentes dentro do mesmo escopo.
+- Cada questao gerada tem origem marcada como `Gerada`; questoes das listas aparecem como `Lista 10` ou `Lista 11`.
+- Feedback errado explica o motivo do erro e abre uma area "Ver conta inteira".
+- O Sistema III da Lista 10 fica marcado como `conferir enunciado`, porque a extracao do PDF mostrou possivel erro de OCR na segunda equacao.
+
 ## Estrutura
 
 ```text
@@ -36,6 +46,25 @@ Depois abra o endereco mostrado pelo terminal.
 - O app e totalmente estatico e funciona sem backend.
 - As formulas sao renderizadas com MathJax via CDN:
   `https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js`
+
+## Decisoes didaticas e de design
+
+- A casca gamificada foi mantida; a refatoracao aprofundou principalmente `script.js`.
+- O conteudo longo fica no Grimorio. Jornada, Laboratorio e Boss mostram uma decisao por tela.
+- O Laboratorio reforca a automatizacao de operacoes de linha antes de exigir escalonamento completo.
+- O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.
+- O Treino infinito mistura questoes das listas e questoes geradas equivalentes, registra erros frequentes e recomenda revisao por habilidade.
+- Botoes grandes, layout de uma coluna no mobile e formulas em caixas com rolagem horizontal continuam como padrao.
+
+## Fontes usadas
+
+- [OpenStax College Algebra 2e, 7.6 Solving Systems with Gaussian Elimination](https://openstax.org/books/college-algebra-2e/pages/7-6-solving-systems-with-gaussian-elimination): usado para conferir a ordem conceitual de matriz aumentada, operacoes de linha, eliminacao gaussiana e forma escalonada.
+- [OpenStax College Algebra 2e, Chapter 7 Key Concepts](https://openstax.org/books/college-algebra-2e/pages/7-key-concepts): usado como checklist de conceitos essenciais: matriz aumentada, operacoes de linha e representacao de sistemas.
+- [Khan Academy, Solving linear systems with matrices](https://www.khanacademy.org/math/linear-algebra/vectors-and-spaces/matrices-elimination/v/matrices-reduced-row-echelon-form-2): usado como referencia de exemplos resolvidos com matriz aumentada e reducao por linhas.
+- [The Learning Scientists, Six Strategies for Effective Learning](https://www.learningscientists.org/blog/2019/11/28-1): influenciou recuperacao ativa, feedback imediato e revisoes curtas.
+- [The Learning Scientists, Interleaving](https://www.learningscientists.org/blog/tag/interleaving): influenciou o Treino infinito, que mistura habilidades em vez de treinar sempre o mesmo tipo.
+- [Nielsen Norman Group, Progressive Disclosure](https://www.nngroup.com/articles/progressive-disclosure/): influenciou a separacao entre microtelas e Grimorio, escondendo detalhes longos em botoes/detalhes expansivos.
+- [Nielsen Norman Group, Reduce Cognitive Load in Forms](https://www.nngroup.com/articles/4-principles-reduce-cognitive-load/): reforcou a decisao de uma tarefa por tela e feedback visual imediato.
 
 ## Deploy no Cloudflare Pages
 
