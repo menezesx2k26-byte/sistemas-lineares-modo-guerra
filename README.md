@@ -21,6 +21,9 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 |-- script.js
 |-- README.md
 `-- assets/
+    |-- rpg-arcane-map.svg
+    |-- rpg-divider.svg
+    |-- rpg-sigil.svg
     `-- study-map-banner.png
 ```
 
@@ -46,6 +49,48 @@ Depois abra o endereco mostrado pelo terminal.
 - O app e totalmente estatico e funciona sem backend.
 - As formulas sao renderizadas com MathJax via CDN:
   `https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js`
+
+## Versao experimental rpg-v2
+
+A branch `main` continua sendo a versao estavel. A branch `rpg-v2` e uma experiencia visual paralela, com identidade de RPG academico arcano, pensada para ser publicada como link separado antes de qualquer promocao para producao.
+
+Notas de seguranca da `rpg-v2`:
+
+- Nao substitui o deploy atual da `main`.
+- Usa a chave de progresso `sl-game-rpg-v2` no `localStorage`, separada da versao estavel.
+- Mantem o app totalmente estatico, sem backend e sem etapa real de build.
+- Preserva o conteudo matematico e o banco de questoes da versao estavel.
+- A mudanca de nivel no HUD e apenas visual: o nivel e calculado a partir do XP ja existente.
+
+Deploy paralelo sugerido:
+
+1. No Cloudflare Pages, crie um novo projeto para teste visual.
+2. Conecte o mesmo repositorio.
+3. Escolha a branch `rpg-v2`.
+4. Configure:
+   - Framework preset: `None`
+   - Build command: `exit 0`
+   - Build output directory: `.`
+   - Root directory: `/`
+5. Publique com um nome separado, por exemplo `sistemas-lineares-rpg-v2`.
+6. Teste no celular antes de promover qualquer alteracao para a versao estavel.
+
+## Assets e licencas
+
+A `rpg-v2` usa poucos assets leves e autorais para reduzir risco de licenca. Nao foram importados assets de terceiros para a interface experimental.
+
+| Asset | Autor/fonte | Licenca | Atribuicao | Uso |
+| --- | --- | --- | --- | --- |
+| `assets/rpg-arcane-map.svg` | Criado neste projeto | Uso interno do projeto | Nao exige | Fundo abstrato, hero e atmosfera de mapa arcano |
+| `assets/rpg-sigil.svg` | Criado neste projeto | Uso interno do projeto | Nao exige | Marca visual generica do HUD |
+| `assets/rpg-divider.svg` | Criado neste projeto | Uso interno do projeto | Nao exige | Divisoria visual em cards e secoes |
+| `assets/study-map-banner.png` | Asset legado da versao estavel | Mantido por compatibilidade | Conforme historico do projeto | Retido no repositorio; a `rpg-v2` usa o SVG leve no hero |
+
+Fontes consultadas antes da decisao de criar assets proprios:
+
+- [Kenney Support](https://kenney.nl/support): confirma que os assets de jogo da Kenney sao public domain/CC0 e que atribuicao nao e obrigatoria. Foi usado como referencia de seguranca de licenca, mas nenhum asset Kenney foi importado nesta branch.
+- [Game-icons.net About](https://game-icons.net/about.html): confirma uso sob Creative Commons BY 3.0, com credito exigido. Foi usado como referencia, mas nenhum icone Game-icons foi importado nesta branch.
+- [Creative Commons BY 3.0](https://creativecommons.org/licenses/by/3.0/): consultado para validar a obrigacao de atribuicao quando um asset CC BY e usado.
 
 ## Decisoes didaticas e de design
 
