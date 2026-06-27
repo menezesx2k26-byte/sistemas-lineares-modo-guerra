@@ -307,6 +307,18 @@ p {
   padding: 1rem;
 }
 
+.grimoire-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.grimoire-card p,
+.grimoire-card li {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}
+
 .stack {
   display: grid;
   gap: 0.85rem;
@@ -473,9 +485,40 @@ p {
 .mission-list,
 .medal-list,
 .boss-grid,
-.grimoire-grid {
+.grimoire-grid,
+.campaign-map {
   display: grid;
   gap: 0.7rem;
+}
+
+.chapter-card {
+  display: grid;
+  gap: 0.28rem;
+  min-height: 74px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 18px rgba(23, 33, 46, 0.08);
+}
+
+.chapter-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.chapter-card.atual {
+  border-color: var(--gold);
+  background: #fff8e2;
+}
+
+.chapter-card.concluído {
+  border-color: #9bc6ba;
+  background: #edf8f3;
+}
+
+.chapter-card.bloqueado {
+  opacity: 0.58;
+  cursor: not-allowed;
 }
 
 .mission-card {

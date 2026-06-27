@@ -75,10 +75,11 @@ function award(key) {
 
 function complete(id) {
   if (!state.completed.includes(id)) state.completed.push(id);
-  if (id === "matrix") award("bar");
+  if (id === "matrix" || id === "course-c3-22-system-i-full") award("bar");
   if (id === "checklist") award("patrono");
-  if (id === "contradiction") award("zeroSeven");
-  if (id === "parameters") award("params");
+  if (id === "contradiction" || id === "course-c5-38-g12" || id === "course-c6-46-lista10-i") award("zeroSeven");
+  if (id === "parameters" || id.startsWith("course-c8-")) award("params");
+  if (id === "course-c10-75-campaign-complete") award("boss");
   saveState();
 }
 
@@ -108,8 +109,8 @@ function sourceChip(item) {
 }
 
 function solutionBlock(item, label = "Ver conta inteira") {
-  if (!item.solution && !item.resolution) return "";
-  return `<details class="solution"><summary>${label}</summary><div>${item.solution || item.resolution}</div></details>`;
+  if (!item.solution && !item.resolution && !item.fullSolution) return "";
+  return `<details class="solution"><summary>${label}</summary><div>${item.solution || item.resolution || item.fullSolution}</div></details>`;
 }
 
 function contextBlock(item) {
@@ -1031,12 +1032,492 @@ const phases = [
   }
 ];
 
+const COURSE_CHAPTERS = [
+  "Capítulo 0 — Orientação",
+  "Capítulo 1 — Equações lineares",
+  "Capítulo 2 — Solução de sistema",
+  "Capítulo 3 — Matriz aumentada",
+  "Capítulo 4 — Operações elementares",
+  "Capítulo 5 — Escalonamento guiado",
+  "Capítulo 6 — Classificação",
+  "Capítulo 7 — Homogêneos",
+  "Capítulo 8 — Parâmetros",
+  "Capítulo 9 — Revisão integradora",
+  "Capítulo 10 — Boss final"
+];
+
+const lista10SystemI = String.raw`
+  <p><strong>Lista 10 — Sistema I:</strong></p>
+  \[\begin{cases}
+  x_1+2x_2-x_3=-10\\
+  3x_1+7x_2+2x_3=-19\\
+  5x_1+12x_2+5x_3=-21
+  \end{cases}\]
+`;
+
+const lista10SystemII = String.raw`
+  <p><strong>Lista 10 — Sistema II:</strong></p>
+  \[\begin{cases}
+  3x_1+x_2+x_3=4\\
+  2x_1-x_2-x_3=6\\
+  -4x_1+x_2-5x_3=20
+  \end{cases}\]
+`;
+
+function courseMission({
+  id,
+  chapter,
+  title,
+  origin = "Fundamento",
+  skill = "jornada",
+  difficulty = 1,
+  type = "conceito",
+  data = "",
+  explain = "",
+  example = "",
+  question,
+  choices,
+  answer,
+  feedback,
+  feedbacks,
+  fullSolution,
+  why
+}) {
+  return {
+    id,
+    chapter,
+    phase: chapter,
+    title,
+    origin,
+    skill,
+    difficulty,
+    type,
+    data,
+    explain,
+    example,
+    question,
+    choices,
+    answer,
+    feedback,
+    feedbacks,
+    fullSolution,
+    solution: fullSolution,
+    why
+  };
+}
+
+function courseFromQuestion(courseId, chapter, title, item, overrides = {}) {
+  return courseMission({
+    id: courseId,
+    chapter,
+    title,
+    origin: item.origin,
+    skill: item.skill,
+    difficulty: item.difficulty,
+    type: item.tipo,
+    data: item.context || "",
+    explain: item.review || "Resolva usando apenas os dados mostrados nesta tela.",
+    question: item.prompt,
+    choices: item.choices,
+    answer: item.answer,
+    feedback: item.correct,
+    feedbacks: item.feedbacks,
+    fullSolution: item.solution,
+    why: item.review || "A pergunta treina uma habilidade que aparece nas Listas 10 e 11.",
+    ...overrides
+  });
+}
+
+function courseFromGuided(courseId, chapter, item, overrides = {}) {
+  return courseMission({
+    id: courseId,
+    chapter,
+    title: item.title,
+    origin: item.origin,
+    skill: item.skill,
+    difficulty: 2,
+    type: "exemplo guiado",
+    data: item.math,
+    explain: item.body,
+    question: item.q,
+    choices: item.c,
+    answer: item.a,
+    feedback: item.f,
+    fullSolution: item.solution || `<p>${item.f}</p>`,
+    why: "O exemplo guiado separa objetivo, operação, conta e interpretação para a técnica não virar decoreba.",
+    ...overrides
+  });
+}
+
+function courseFromLab(courseId, chapter, item, overrides = {}) {
+  return courseMission({
+    id: courseId,
+    chapter,
+    title: item.title,
+    origin: item.origin,
+    skill: item.skill,
+    difficulty: item.difficulty,
+    type: "operação de linha",
+    data: item.matrix,
+    explain: item.why,
+    question: item.q,
+    choices: item.choices.map((choice) => choice.t),
+    answer: item.choices.findIndex((choice) => choice.ok),
+    feedbacks: item.choices.map((choice) => choice.f),
+    feedback: item.choices.find((choice) => choice.ok)?.f || "Certo.",
+    fullSolution: item.solution,
+    why: item.why,
+    ...overrides
+  });
+}
+
+const COURSE_PATH = [
+  courseMission({
+    id: "course-c0-01-system-linear",
+    chapter: COURSE_CHAPTERS[0],
+    title: "O que é um sistema linear",
+    origin: "Fundamento",
+    skill: "sistema linear",
+    data: String.raw`\[\begin{cases}x_1+x_2=3\\2x_1-x_2=0\end{cases}\]`,
+    explain: "Um sistema é um conjunto de equações que precisam ser verdadeiras ao mesmo tempo.",
+    question: "Para resolver um sistema, precisamos satisfazer:",
+    choices: ["todas as equações", "só a primeira", "só a equação mais curta"],
+    answer: 0,
+    feedback: "Sistema é pacote fechado: a solução precisa passar em todas.",
+    fullSolution: "<p>Leia cada linha como uma equação. Resolver o sistema é achar valores que deixam todas as linhas verdadeiras ao mesmo tempo.</p>",
+    why: "Sem essa ideia, o aluno acha que acertar uma linha já basta."
+  }),
+  courseMission({
+    id: "course-c0-02-unknown",
+    chapter: COURSE_CHAPTERS[0],
+    title: "O que é incógnita",
+    origin: "Fundamento",
+    skill: "incógnita",
+    data: String.raw`\[3x_1+7x_2+2x_3=-19\]`,
+    explain: "Incógnitas são os valores que ainda não sabemos. Aqui elas são \(x_1\), \(x_2\) e \(x_3\).",
+    question: "Qual item é uma incógnita nessa equação?",
+    choices: [String.raw`\(x_2\)`, "-19", "7"],
+    answer: 0,
+    feedback: String.raw`\(x_2\) é uma variável. O 7 multiplica a variável e o -19 é o lado direito.`,
+    fullSolution: String.raw`<p>As letras com índice, como \(x_1,x_2,x_3\), são as incógnitas. Os números que multiplicam essas letras são coeficientes.</p>`,
+    why: "A matriz aumentada só faz sentido quando sabemos o que vira coluna."
+  }),
+  courseMission({
+    id: "course-c0-03-coefficient",
+    chapter: COURSE_CHAPTERS[0],
+    title: "Coeficiente",
+    origin: "Lista 10 sistema I",
+    skill: "coeficiente",
+    data: String.raw`\[3x_1+7x_2+2x_3=-19\]`,
+    explain: "Coeficiente é o número que multiplica uma incógnita.",
+    question: String.raw`Qual é o coeficiente de \(x_2\)?`,
+    choices: ["7", "-19", "2"],
+    answer: 0,
+    feedback: String.raw`O 7 multiplica \(x_2\). O -19 não multiplica variável: é termo independente.`,
+    fullSolution: String.raw`<p>Na equação \(3x_1+7x_2+2x_3=-19\), os coeficientes são \(3,7,2\), na ordem das variáveis.</p>`,
+    why: "Essa tela evita o erro grave de chamar o lado direito de coeficiente."
+  }),
+  courseMission({
+    id: "course-c0-04-independent-term",
+    chapter: COURSE_CHAPTERS[0],
+    title: "Termo independente",
+    origin: "Lista 10 sistema I",
+    skill: "termo independente",
+    data: String.raw`\[3x_1+7x_2+2x_3=-19\]`,
+    explain: "Termo independente é o número que fica do outro lado da igualdade.",
+    question: "Qual é o termo independente?",
+    choices: ["7", "-19", "2"],
+    answer: 1,
+    feedback: "O -19 fica depois da igualdade. Na matriz aumentada, ele vai depois da barra.",
+    fullSolution: String.raw`<p>Os coeficientes ficam antes da barra: \([3,7,2|-19]\). O termo independente é \(-19\).</p>`,
+    why: "Esse é o ponto que precisa estar explícito antes de montar matriz aumentada."
+  }),
+  courseMission({
+    id: "course-c0-05-solve-meaning",
+    chapter: COURSE_CHAPTERS[0],
+    title: "O que significa resolver",
+    origin: "Fundamento",
+    skill: "solução",
+    data: String.raw`\[(x_1,x_2,x_3)=(2,3,-5)\]`,
+    explain: "Resolver é encontrar os valores das incógnitas que tornam o sistema verdadeiro.",
+    question: "Uma resposta como \((2,3,-5)\) significa:",
+    choices: ["valores para as variáveis", "coeficientes da matriz", "operações de linha"],
+    answer: 0,
+    feedback: String.raw`Ela diz \(x_1=2,\ x_2=3,\ x_3=-5\).`,
+    fullSolution: String.raw`<p>Quando uma solução é escrita como \((2,3,-5)\), a ordem segue \((x_1,x_2,x_3)\).</p>`,
+    why: "Antes de verificar uma solução, o aluno precisa saber ler o vetor."
+  }),
+
+  ...linearQuestions.slice(0, 6).map((item, i) => courseFromQuestion(
+    `course-c1-${String(i + 6).padStart(2, "0")}-${item.id}`,
+    COURSE_CHAPTERS[1],
+    [
+      "Identificar equação linear",
+      "Expoente diferente de 1",
+      "Produto entre variáveis",
+      "Raiz de variável",
+      "Variável no denominador",
+      "Lista 10 exercício 1"
+    ][i] || "Equação linear",
+    item,
+    {
+      explain: "Equação linear tem variáveis em grau 1, sem produto entre variáveis, sem raiz de variável e sem variável no denominador.",
+      why: "Só sistemas lineares entram na técnica de matriz aumentada e escalonamento."
+    }
+  )),
+
+  courseMission({
+    id: "course-c2-12-vector-solution",
+    chapter: COURSE_CHAPTERS[2],
+    title: "Vetor como candidato a solução",
+    origin: "Lista 10 ex. 2",
+    skill: "verificar solução",
+    data: `${lista10Ex2System}<p><strong>Vetor candidato:</strong> \\((0,-5,1)\\), isto é, \\(x_1=0,\\ x_2=-5,\\ x_3=1\\).</p>`,
+    explain: "Um vetor é uma tentativa de valores para as incógnitas.",
+    question: "Antes de concluir, precisamos testar:",
+    choices: ["as duas equações", "só a primeira", "só o sinal do vetor"],
+    answer: 0,
+    feedback: "Precisa passar nas duas equações do sistema.",
+    fullSolution: String.raw`<p>Substitua \(x_1=0\), \(x_2=-5\), \(x_3=1\) em cada equação. Só depois conclua.</p>`,
+    why: "Este capítulo corrige a ideia de testar uma equação isolada."
+  }),
+  ...solutionQuestions.slice(0, 4).map((item, i) => courseFromQuestion(
+    `course-c2-${String(i + 13).padStart(2, "0")}-${item.id}`,
+    COURSE_CHAPTERS[2],
+    [
+      "Substituir vetor na primeira equação",
+      "Substituir vetor nas duas equações",
+      "Passar em uma só não basta",
+      "Resolver os vetores da Lista 10"
+    ][i],
+    item,
+    {
+      explain: `Substitua os valores do vetor nas duas equações. ${item.assignmentText || ""}`,
+      why: "Acertar uma equação só não basta; a solução precisa ser simultânea."
+    }
+  )),
+
+  courseFromQuestion("course-c3-17-line-row", COURSE_CHAPTERS[3], "Transformar equação em linha", matrixQuestions[0], {
+    data: lista10SystemI,
+    explain: "Uma linha aumentada copia coeficientes antes da barra e lado direito depois da barra."
+  }),
+  courseFromQuestion("course-c3-18-coefficients-right", COURSE_CHAPTERS[3], "Separar coeficientes e lado direito", matrixQuestions[1], {
+    data: lista10SystemI,
+    explain: "Os coeficientes acompanham variáveis. O lado direito fica depois da barra."
+  }),
+  courseFromGuided("course-c3-19-augmented-matrix", COURSE_CHAPTERS[3], guided[0], {
+    title: "Montar a matriz aumentada do Sistema I",
+    data: lista10SystemI + guided[0].math
+  }),
+  courseMission({
+    id: "course-c3-20-bar-meaning",
+    chapter: COURSE_CHAPTERS[3],
+    title: "O que a barra significa",
+    origin: "Fundamento",
+    skill: "matriz aumentada",
+    data: matrixTex([[3, 7, 2, -19]]),
+    explain: "A barra separa o lado esquerdo da equação do lado direito.",
+    question: "O número depois da barra é:",
+    choices: ["termo independente", "coeficiente de \(x_3\)", "pivô"],
+    answer: 0,
+    feedback: "Depois da barra fica o lado direito da equação.",
+    fullSolution: String.raw`<p>\([3,7,2|-19]\) traduz \(3x_1+7x_2+2x_3=-19\).</p>`,
+    why: "A barra impede misturar coeficientes com termos independentes."
+  }),
+  courseFromQuestion("course-c3-21-signs", COURSE_CHAPTERS[3], "Corrigir sinais", matrixQuestions[4], {
+    data: lista10SystemII,
+    explain: "Sinal negativo também é parte do coeficiente."
+  }),
+  courseMission({
+    id: "course-c3-22-system-i-full",
+    chapter: COURSE_CHAPTERS[3],
+    title: "Matriz aumentada do Sistema I",
+    origin: "Lista 10 sistema I",
+    skill: "matriz aumentada",
+    data: lista10SystemI,
+    explain: "Agora copie o sistema inteiro para uma matriz aumentada.",
+    question: "Qual é a matriz aumentada correta?",
+    choices: [
+      matrixTex([[1, 2, -1, -10], [3, 7, 2, -19], [5, 12, 5, -21]]),
+      matrixTex([[-10, 1, 2, -1], [-19, 3, 7, 2], [-21, 5, 12, 5]]),
+      matrixTex([[1, 2, -10, -1], [3, 7, -19, 2], [5, 12, -21, 5]])
+    ],
+    answer: 0,
+    feedback: "Coeficientes nas três primeiras colunas; termos independentes depois da barra.",
+    fullSolution: String.raw`<p>Cada linha da matriz é uma equação do sistema na mesma ordem em que foi escrita.</p>`,
+    why: "Esse é o ponto de entrada para escalonamento."
+  }),
+
+  courseMission({
+    id: "course-c4-23-swap-rows",
+    chapter: COURSE_CHAPTERS[4],
+    title: "Trocar linhas",
+    origin: "Fundamento",
+    skill: "operações de linha",
+    data: String.raw`\[L_1\leftrightarrow L_2\]`,
+    explain: "Trocar linhas só muda a ordem das equações. O conjunto de soluções continua o mesmo.",
+    question: "Trocar duas linhas muda as soluções?",
+    choices: ["Não", "Sim", "Só se tiver fração"],
+    answer: 0,
+    feedback: "Não muda. É como trocar a ordem dos itens de uma lista.",
+    fullSolution: "<p>O sistema continua contendo as mesmas equações, apenas em outra ordem.</p>",
+    why: "É a primeira operação elementar permitida."
+  }),
+  courseFromLab("course-c4-24-scale-nonzero", COURSE_CHAPTERS[4], lab[0], {
+    title: "Multiplicar linha por constante não nula"
+  }),
+  courseFromLab("course-c4-25-zero-invalid", COURSE_CHAPTERS[4], lab.find((item) => item.id === "invalid-zero-0") || lab[25], {
+    title: "Por que zero é proibido"
+  }),
+  courseFromLab("course-c4-26-add-multiple", COURSE_CHAPTERS[4], lab.find((item) => item.id === "combo-0") || lab[49], {
+    title: "Somar múltiplo de outra linha"
+  }),
+  courseFromLab("course-c4-27-whole-row", COURSE_CHAPTERS[4], lab.find((item) => item.id === "multiple-0") || lab[41], {
+    title: "A operação mexe na linha inteira"
+  }),
+  courseFromLab("course-c4-28-right-side", COURSE_CHAPTERS[4], lab.find((item) => item.id === "lista10-l2-3l1") || lab[1], {
+    title: "O lado direito também muda"
+  }),
+  courseFromLab("course-c4-29-short-row-training", COURSE_CHAPTERS[4], lab.find((item) => item.id === "lista10-zero-3") || lab[4], {
+    title: "Treino curto de operação de linha"
+  }),
+
+  courseMission({
+    id: "course-c5-30-pivot",
+    chapter: COURSE_CHAPTERS[5],
+    title: "O que é pivô",
+    origin: "Lista 10 sistema I",
+    skill: "pivô",
+    data: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19], [5, 12, 5, -21]]),
+    explain: "Pivô é o número de apoio usado para limpar a coluna abaixo dele.",
+    question: "Na primeira coluna, o primeiro pivô natural é:",
+    choices: ["1", "3", "-10"],
+    answer: 0,
+    feedback: "Usamos o 1 da primeira linha como apoio.",
+    fullSolution: String.raw`<p>Com pivô \(1\), fica fácil zerar \(3\) e \(5\) abaixo dele.</p>`,
+    why: "Sem pivô, a operação de linha fica sem objetivo."
+  }),
+  courseMission({
+    id: "course-c5-31-zero-below",
+    chapter: COURSE_CHAPTERS[5],
+    title: "Zerar abaixo do pivô",
+    origin: "Lista 10 sistema I",
+    skill: "zerar abaixo",
+    data: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19]]),
+    explain: "Zerar abaixo do pivô cria a escada. O objetivo local é transformar o 3 em 0.",
+    question: "Qual conta queremos no primeiro termo da linha 2?",
+    choices: [String.raw`\(3-3\cdot1=0\)`, String.raw`\(3+3\cdot1=6\)`, String.raw`\(1-3=-2\)`],
+    answer: 0,
+    feedback: "O multiplicador 3 vem do número que queremos zerar.",
+    fullSolution: String.raw`<p>Como o pivô é \(1\), subtrair \(3L_1\) faz \(3-3\cdot1=0\).</p>`,
+    why: "A escolha da operação nasce do objetivo, não de chute."
+  }),
+  ...[guided[2], guided[3], guided[4], guided[5], guided[8], guided[10], guided[11]].map((item, i) => courseFromGuided(
+    `course-c5-${String(i + 32).padStart(2, "0")}-${item.id}`,
+    COURSE_CHAPTERS[5],
+    item
+  )),
+
+  courseFromQuestion("course-c6-39-unique", COURSE_CHAPTERS[6], "Sistema possível determinado", classifyQuestions[1]),
+  courseFromQuestion("course-c6-40-impossible", COURSE_CHAPTERS[6], "Sistema impossível", classifyQuestions[0]),
+  courseFromQuestion("course-c6-41-infinite", COURSE_CHAPTERS[6], "Sistema possível indeterminado", classifyQuestions[2]),
+  courseFromQuestion("course-c6-42-pivots", COURSE_CHAPTERS[6], "Pivôs", classifyQuestions[14]),
+  courseFromQuestion("course-c6-43-contradiction", COURSE_CHAPTERS[6], "Contradição", classifyQuestions[9]),
+  courseFromQuestion("course-c6-44-free-variable", COURSE_CHAPTERS[6], "Variável livre", classifyQuestions[4]),
+  courseFromQuestion("course-c6-45-final-matrices", COURSE_CHAPTERS[6], "Classificar matrizes finais", classifyQuestions[10]),
+  courseFromQuestion("course-c6-46-lista10-i", COURSE_CHAPTERS[6], "Resolver e classificar o Sistema I", classifyQuestions[0], {
+    data: lista10SystemI + matrixTex([[1, 2, -1, -10], [0, 1, 5, 11], [0, 0, 0, 7]])
+  }),
+  courseFromGuided("course-c6-47-lista10-ii", COURSE_CHAPTERS[6], guided[15], {
+    title: "Resolver e classificar o Sistema II",
+    data: lista10SystemII + guided[15].math
+  }),
+
+  courseFromQuestion("course-c7-48-homogeneous", COURSE_CHAPTERS[7], "O que é sistema homogêneo", homogeneousQuestions.find((item) => item.id === "h-gen-1"), {
+    data: String.raw`\[A\vec{x}=\vec{0}\]`
+  }),
+  courseFromQuestion("course-c7-49-trivial", COURSE_CHAPTERS[7], "Solução trivial", homogeneousQuestions.find((item) => item.id === "h-gen-4"), {
+    data: String.raw`\[A\vec{x}=\vec{0},\quad \vec{x}=(0,0,0)\]`
+  }),
+  courseMission({
+    id: "course-c7-50-always-has-solution",
+    chapter: COURSE_CHAPTERS[7],
+    title: "Por que homogêneo sempre tem solução",
+    origin: "Fundamento",
+    skill: "homogêneos",
+    data: String.raw`\[A\vec{x}=\vec{0}\]`,
+    explain: "Se todas as incógnitas são zero, o lado esquerdo vira zero. O lado direito já é zero.",
+    question: "A solução garantida é:",
+    choices: [String.raw`\(\vec{x}=\vec{0}\)`, String.raw`\(\vec{x}=(1,1,1)\)`, "nenhuma"],
+    answer: 0,
+    feedback: "Tudo zero sempre funciona em sistema homogêneo.",
+    fullSolution: String.raw`<p>\(A\vec{0}=\vec{0}\), então homogêneo nunca é impossível.</p>`,
+    why: "Esta é a frase-chave: homogêneo nunca é sem solução."
+  }),
+  courseFromQuestion("course-c7-51-determinant", COURSE_CHAPTERS[7], "Relação com determinante", homogeneousQuestions.find((item) => item.id === "h-gen-2")),
+  courseFromQuestion("course-c7-52-only-trivial", COURSE_CHAPTERS[7], "Quando só existe a trivial", homogeneousQuestions.find((item) => item.id === "h-l11-6-det")),
+  courseFromQuestion("course-c7-53-nontrivial", COURSE_CHAPTERS[7], "Quando existem soluções não triviais", homogeneousQuestions.find((item) => item.id === "h-l11-5-alpha")),
+  courseFromQuestion("course-c7-54-lista11-homogeneous", COURSE_CHAPTERS[7], "Resolver homogêneo da Lista 11", homogeneousQuestions.find((item) => item.id === "h-l11-5-rref")),
+
+  courseFromQuestion("course-c8-55-parameter", COURSE_CHAPTERS[8], "O que é parâmetro", parameterQuestions.find((item) => item.id === "p-gen-k2")),
+  courseFromQuestion("course-c8-56-no-divide-zero", COURSE_CHAPTERS[8], "Não dividir por algo que pode zerar", parameterQuestions.find((item) => item.id === "p-gen-div")),
+  courseFromQuestion("course-c8-57-cases", COURSE_CHAPTERS[8], "Separar casos", parameterQuestions.find((item) => item.id === "p-gen-case")),
+  courseFromQuestion("course-c8-58-param-det", COURSE_CHAPTERS[8], "Determinante com parâmetro", parameterQuestions.find((item) => item.id === "p-l11-1a-det")),
+  courseFromQuestion("course-c8-59-general-case", COURSE_CHAPTERS[8], "Caso geral", parameterQuestions.find((item) => item.id === "p-l11-1a-case1")),
+  courseFromQuestion("course-c8-60-special-case", COURSE_CHAPTERS[8], "Caso especial", parameterQuestions.find((item) => item.id === "p-l11-1a-case2")),
+  courseFromQuestion("course-c8-61-classify-values", COURSE_CHAPTERS[8], "Classificação por valores", parameterQuestions.find((item) => item.id === "p-l11-4-det")),
+  courseFromQuestion("course-c8-62-lista11-1a", COURSE_CHAPTERS[8], "Resolver Lista 11 ex. 1(a)", parameterQuestions.find((item) => item.id === "p-l11-1a-infinite")),
+  courseFromQuestion("course-c8-63-lista11-2", COURSE_CHAPTERS[8], "Resolver Lista 11 ex. 2", parameterQuestions.find((item) => item.id === "p-l11-2-m2-solution")),
+  courseFromQuestion("course-c8-64-lista11-3", COURSE_CHAPTERS[8], "Resolver Lista 11 ex. 3", parameterQuestions.find((item) => item.id === "p-l11-3-a1")),
+  courseFromQuestion("course-c8-65-lista11-4", COURSE_CHAPTERS[8], "Resolver Lista 11 ex. 4", parameterQuestions.find((item) => item.id === "p-l11-4-k0")),
+
+  courseFromQuestion("course-c9-66-mix-linear", COURSE_CHAPTERS[9], "Misturar identificação linear", linearQuestions[6]),
+  courseFromQuestion("course-c9-67-mix-matrix", COURSE_CHAPTERS[9], "Misturar matriz aumentada", matrixQuestions[8]),
+  courseFromLab("course-c9-68-mix-row-operation", COURSE_CHAPTERS[9], lab.find((item) => item.id === "combo-3") || lab[52]),
+  courseFromQuestion("course-c9-69-mix-classification", COURSE_CHAPTERS[9], "Misturar classificação", classifyQuestions[12]),
+  courseFromQuestion("course-c9-70-mix-homogeneous", COURSE_CHAPTERS[9], "Misturar homogêneos", homogeneousQuestions.find((item) => item.id === "h-gen-9")),
+  courseFromQuestion("course-c9-71-mix-parameters", COURSE_CHAPTERS[9], "Misturar parâmetros", parameterQuestions.find((item) => item.id === "p-gen-det")),
+
+  courseFromQuestion("course-c10-72-boss-lista10", COURSE_CHAPTERS[10], "Boss final da Lista 10", classifyQuestions[0], {
+    data: lista10SystemI + matrixTex([[1, 2, -1, -10], [0, 1, 5, 11], [0, 0, 0, 7]]),
+    explain: "Leia a matriz final do Sistema I e classifique sem abrir a lista."
+  }),
+  courseFromQuestion("course-c10-73-boss-lista11", COURSE_CHAPTERS[10], "Boss final da Lista 11", parameterQuestions.find((item) => item.id === "p-l11-3-am1")),
+  courseFromQuestion("course-c10-74-boss-mixed", COURSE_CHAPTERS[10], "Boss final misto", parameterQuestions.find((item) => item.id === "p-l11-4-infinite")),
+  courseMission({
+    id: "course-c10-75-campaign-complete",
+    chapter: COURSE_CHAPTERS[10],
+    title: "Tela de conclusão da campanha",
+    origin: "Campanha",
+    skill: "síntese",
+    difficulty: 3,
+    data: String.raw`<p><strong>Você atravessou a trilha:</strong> fundamentos, Lista 10, Lista 11, homogêneos e parâmetros.</p>`,
+    explain: "Esta é a missão de fechamento. Depois dela, a Jornada mostra o relatório final em vez de voltar para a Fase 0.",
+    question: "Qual é o próximo passo natural após concluir a campanha?",
+    choices: ["Ver conclusão", "Voltar para Fase 0 automaticamente", "Apagar todo XP"],
+    answer: 0,
+    feedback: "Isso fecha a campanha linear e abre o relatório final.",
+    fullSolution: "<p>A campanha principal termina aqui. Lab, Duelos e Treino Infinito continuam como academia de revisão.</p>",
+    why: "A Jornada precisa terminar em conclusão, não reiniciar sozinha."
+  })
+];
+
+const DIAGNOSTIC_TARGETS = {
+  fund: "course-c0-03-coefficient",
+  linear: "course-c1-06-l10-1a",
+  system: "course-c2-12-vector-solution",
+  matrix: "course-c3-17-line-row",
+  "spell-scale": "course-c4-24-scale-nonzero",
+  parameters: "course-c8-55-parameter",
+  homogeneous: "course-c7-48-homogeneous"
+};
+
 const diagnostic = [
   { target: "fund", q: String.raw`Em \(5x_1+12x_2+5x_3=-21\), o coeficiente de \(x_2\) é:`, c: ["12", "-21", "5"], a: 0 },
   { target: "fund", q: String.raw`O termo independente em \(3x_1+7x_2+2x_3=-19\) é:`, c: ["2", "-19", "7"], a: 1 },
   { target: "linear", q: String.raw`\(x_1+4x_3x_4=20\) é linear?`, c: ["Sim", "Não"], a: 1 },
   { target: "system", q: "Uma solução de sistema precisa satisfazer:", c: ["uma equação", "todas as equações", "só a última"], a: 1 },
-  { target: "matrix", q: "Na matriz aumentada, a barra separa:", c: ["coeficientes e lado direito", "linhas e colunas", "pivôs e zeros"], a: 0 },
+  { target: "matrix", q: "Na matriz aumentada abaixo, a barra separa:", context: matrixTex([[1, -2, 8], [0, 3, -3]]), c: ["coeficientes e lado direito", "linhas e colunas", "pivôs e zeros"], a: 0 },
   { target: "spell-scale", q: String.raw`Transformar \(4y=8\) em \(y=2\) é:`, c: [String.raw`multiplicar por \(\frac{1}{4}\)`, "multiplicar por 4", "multiplicar por 0"], a: 0 },
   { target: "parameters", q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`, c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"], a: 0 },
   { target: "homogeneous", q: "Sistema homogêneo sempre tem:", c: ["a trivial", "contradição", "lado direito 7"], a: 0 }
@@ -1113,7 +1594,8 @@ function home() {
       </div>
       <div class="menu-grid">
         ${menuButton("Continuar jornada", next.label, "continue")}
-        ${menuButton("Começar do zero", "Fase 0: fundamentos mínimos", "journey")}
+        ${menuButton("Começar do zero", "Reiniciar só a campanha linear", "startJourney")}
+        ${menuButton("Mapa da Jornada", `${getCourseCompletedCount()}/${COURSE_PATH.length} missões concluídas`, "journeyMap")}
         ${menuButton("Laboratório de operações de linha", `${lab.length} desafios com conta inteira`, "lab")}
         ${menuButton("Exemplo guiado Lista 10", "Sistema I ativo + Sistema II resolvido", "guided")}
         ${menuButton("Duelos rápidos", "Bosses por habilidade", "duels")}
@@ -1132,21 +1614,51 @@ function menuButton(title, sub, mode, locked = false) {
   return `<button class="game-button ${locked ? "locked" : ""}" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
 }
 
+function courseIds() {
+  return new Set(COURSE_PATH.map((mission) => mission.id));
+}
+
+function getCourseCompletedCount() {
+  const ids = courseIds();
+  return state.completed.filter((id) => ids.has(id)).length;
+}
+
+function getNextCourseMissionIndex() {
+  return COURSE_PATH.findIndex((mission) => !state.completed.includes(mission.id));
+}
+
+function getNextCourseMission() {
+  const index = getNextCourseMissionIndex();
+  return index === -1 ? null : COURSE_PATH[index];
+}
+
+function hasCourseProgress() {
+  return getCourseCompletedCount() > 0;
+}
+
+function resetCourseProgress() {
+  const ids = courseIds();
+  state.completed = state.completed.filter((id) => !ids.has(id));
+  saveState();
+}
+
 function nextMission() {
-  const item = phases.find((phase) => !state.completed.includes(phase.id));
-  if (item) return { label: `${item.phase}: ${item.title}`, mode: "journey" };
-  if (!state.completed.includes("guided")) return { label: "Exemplo guiado Lista 10", mode: "guided" };
-  if (!state.bossUnlocked) return { label: "Ganhe XP no laboratório", mode: "lab" };
-  return { label: "Boss fight Lista 11", mode: "finalBoss" };
+  const index = getNextCourseMissionIndex();
+  if (index === -1) return { label: "Campanha concluída", mode: "campaignComplete" };
+  const item = COURSE_PATH[index];
+  return { label: `${index + 1}/${COURSE_PATH.length}: ${item.title}`, mode: "journey" };
 }
 
 function renderMission(mode, data, index, total, options = {}) {
   const progress = Math.round(((index + 1) / total) * 100);
   const whyId = `why-${data.id || index}`;
+  const headerLabel = mode === "journey"
+    ? `${data.chapter} · Missão ${index + 1}/${total}`
+    : (options.kicker || data.phase || "Missão");
   setStage(`
     <section class="micro">
       <div class="module-header">
-        <span class="pill">${options.kicker || data.phase || "Missão"}</span>
+        <span class="pill">${headerLabel}</span>
         <h2>${data.title}</h2>
         <div class="bar"><span style="width:${progress}%"></span></div>
       </div>
@@ -1164,14 +1676,92 @@ function renderMission(mode, data, index, total, options = {}) {
       <div class="actions">
         <button class="primary" data-next="${mode}" disabled>${index === total - 1 ? (options.doneLabel || "Concluir") : "Próximo"}</button>
         <button class="secondary" data-repeat="${mode}">${mode === "guided" ? "Refazer passo" : "Refazer tela"}</button>
+        ${mode === "journey" ? `<button class="secondary" data-mode="journeyMap">Mapa da Jornada</button>` : ""}
       </div>
     </section>
   `);
 }
 
-function journey(index = 0) {
+function journey(index = getNextCourseMissionIndex()) {
+  if (index < 0) return showCampaignComplete();
   screen = { mode: "journey", index, boss: "mixed", score: 0, errors: [], item: null };
-  renderMission("journey", phases[index], index, phases.length, { doneLabel: "Voltar ao menu" });
+  renderMission("journey", COURSE_PATH[index], index, COURSE_PATH.length, { doneLabel: "Ver conclusão" });
+}
+
+function journeyMap() {
+  screen = { mode: "journeyMap", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  const nextIndex = getNextCourseMissionIndex();
+  const completedCount = getCourseCompletedCount();
+  const cards = COURSE_CHAPTERS.map((chapter) => {
+    const missions = COURSE_PATH.map((mission, index) => ({ ...mission, index })).filter((mission) => mission.chapter === chapter);
+    const done = missions.filter((mission) => state.completed.includes(mission.id)).length;
+    const firstIncomplete = missions.find((mission) => !state.completed.includes(mission.id));
+    const firstIndex = firstIncomplete?.index ?? missions[0]?.index ?? 0;
+    const isComplete = done === missions.length;
+    const isCurrent = nextIndex !== -1 && missions.some((mission) => mission.index === nextIndex);
+    const isBlocked = nextIndex !== -1 && missions.every((mission) => mission.index > nextIndex);
+    const status = isComplete ? "concluído" : isCurrent ? "atual" : isBlocked ? "bloqueado" : "disponível";
+    return `
+      <button class="chapter-card ${status}" ${isBlocked ? "disabled" : `data-course-jump="${firstIndex}"`}>
+        <strong>${chapter}</strong>
+        <small>${done}/${missions.length} missões · ${status}</small>
+      </button>
+    `;
+  }).join("");
+  setStage(`
+    <section class="panel stack">
+      <span class="pill">Mapa da Jornada</span>
+      <h2>Campanha linear</h2>
+      <p>A Jornada segue sempre a próxima missão não concluída. Lab, Duelos e Treino Infinito são academia de treino.</p>
+      <div class="bar"><span style="width:${Math.round((completedCount / COURSE_PATH.length) * 100)}%"></span></div>
+      <div class="campaign-map">${cards}</div>
+      <div class="actions">
+        <button class="primary" data-mode="journey">${nextIndex === -1 ? "Ver conclusão" : "Continuar jornada"}</button>
+        <button class="secondary" data-mode="home">Menu</button>
+      </div>
+    </section>
+  `);
+}
+
+function confirmRestartJourney() {
+  if (!hasCourseProgress()) {
+    resetCourseProgress();
+    return journey(0);
+  }
+  setStage(`
+    <section class="panel stack">
+      <span class="pill">Reiniciar campanha</span>
+      <h2>Começar do zero?</h2>
+      <p>Isso reinicia apenas a campanha linear. XP, medalhas, histórico de Lab, Duelos e Treino Infinito ficam preservados.</p>
+      <div class="actions">
+        <button class="danger" data-confirm-reset-journey>Sim, reiniciar Jornada</button>
+        <button class="secondary" data-mode="journey">Cancelar e continuar</button>
+      </div>
+    </section>
+  `);
+}
+
+function showCampaignComplete() {
+  screen = { mode: "campaignComplete", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  const skills = [...new Set(COURSE_PATH.map((mission) => mission.skill))].slice(0, 12);
+  setStage(`
+    <section class="panel stack">
+      <span class="pill">Campanha concluída</span>
+      <h2>Campanha concluída</h2>
+      <p>Você fechou a trilha principal de Sistemas Lineares. Agora os modos auxiliares viram revisão e velocidade.</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${state.xp} XP</strong><small>XP total</small></div>
+        <div class="mission-card"><strong>${state.medals.length}</strong><small>medalhas</small></div>
+        <div class="mission-card"><strong>${state.bestStreak}</strong><small>melhor sequência</small></div>
+      </div>
+      <div class="feedback show"><strong>Habilidades dominadas:</strong> ${skills.join(", ")}.</div>
+      <div class="actions">
+        <button class="primary" data-mode="journeyMap">Revisar capítulos</button>
+        <button class="secondary" data-mode="infinite">Treino Infinito</button>
+        <button class="secondary" data-mode="finalBoss">Boss Final de novo</button>
+      </div>
+    </section>
+  `);
 }
 
 function diagnosticMode(index = 0, score = 0, misses = []) {
@@ -1185,6 +1775,7 @@ function diagnosticMode(index = 0, score = 0, misses = []) {
         <div class="bar"><span style="width:${((index + 1) / diagnostic.length) * 100}%"></span></div>
       </div>
       <p>Responda para calibrar a rota. Isso não bloqueia nenhum módulo.</p>
+      ${contextBlock(item)}
       <div class="choices">
         <p><strong>${item.q}</strong></p>
         ${item.c.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
@@ -1204,7 +1795,7 @@ function diagnosticResult(score, misses) {
   state.diagnostic = { score, misses, date: new Date().toISOString() };
   saveState();
   const recommendations = misses.length
-    ? [...new Set(misses)].map((id) => phases.find((p) => p.id === id)).filter(Boolean)
+    ? [...new Set(misses)].map((id) => COURSE_PATH.find((mission) => mission.id === DIAGNOSTIC_TARGETS[id])).filter(Boolean)
     : [];
   setStage(`
     <section class="panel stack">
@@ -1216,7 +1807,7 @@ function diagnosticResult(score, misses) {
         <button class="secondary" data-mode="finalBoss">Ir ao Boss</button>
         <button class="secondary" data-mode="home">Menu</button>
       </div>
-      ${recommendations.length ? `<div class="mission-list">${recommendations.map((r) => `<button class="game-button" data-jump="${r.id}"><strong>${r.title}</strong><small>${r.phase}</small></button>`).join("")}</div>` : ""}
+      ${recommendations.length ? `<div class="mission-list">${recommendations.map((r) => `<button class="game-button" data-jump="${r.id}"><strong>${r.title}</strong><small>${r.chapter}</small></button>`).join("")}</div>` : ""}
     </section>
   `);
 }
@@ -1436,7 +2027,7 @@ function checklist() {
 }
 
 function answer(selected) {
-  const item = screen.mode === "journey" ? phases[screen.index]
+  const item = screen.mode === "journey" ? COURSE_PATH[screen.index]
     : screen.mode === "guided" ? guided[screen.index]
       : screen.mode === "diagnostic" ? diagnostic[screen.index]
         : null;
@@ -1457,7 +2048,7 @@ function answer(selected) {
     correct ? complete(item.id) : miss(item.skill || "jornada");
   }
   fb.className = `feedback show ${correct ? "success" : "danger"}`;
-  enableNextButtons();
+  if (correct || screen.mode === "diagnostic") enableNextButtons();
   typeset();
 }
 
@@ -1525,8 +2116,9 @@ function markChoices(selected, answer, selector = "[data-answer]") {
 
 function next(kind) {
   if (kind === "journey") {
-    if (screen.index >= phases.length - 1) return home();
-    return journey(screen.index + 1);
+    const index = getNextCourseMissionIndex();
+    if (index === -1) return showCampaignComplete();
+    return journey(index);
   }
   if (kind === "diagnostic") {
     if (screen.index >= diagnostic.length - 1) return diagnosticResult(screen.score, screen.errors);
@@ -1567,7 +2159,10 @@ function route(mode) {
     const nextItem = nextMission();
     return route(nextItem.mode);
   }
-  if (mode === "journey") return journey(0);
+  if (mode === "campaignComplete") return showCampaignComplete();
+  if (mode === "journey") return journey();
+  if (mode === "startJourney") return confirmRestartJourney();
+  if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
   if (mode === "lab") return labMode(0);
   if (mode === "guided") return guidedMode(0);
@@ -1622,8 +2217,16 @@ document.addEventListener("click", (event) => {
 
   const jump = event.target.closest("[data-jump]");
   if (jump) {
-    const index = phases.findIndex((phase) => phase.id === jump.dataset.jump);
+    const index = COURSE_PATH.findIndex((mission) => mission.id === jump.dataset.jump);
     return journey(Math.max(index, 0));
+  }
+
+  const courseJump = event.target.closest("[data-course-jump]");
+  if (courseJump) return journey(Number(courseJump.dataset.courseJump));
+
+  if (event.target.closest("[data-confirm-reset-journey]")) {
+    resetCourseProgress();
+    return journey(0);
   }
 
   if (event.target.closest("[data-complete-check]")) {
