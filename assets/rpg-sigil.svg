@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220" role="img" aria-label="Sigilo arcano abstrato">
+  <defs>
+    <linearGradient id="a" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f6d889"/>
+      <stop offset=".48" stop-color="#b9802e"/>
+      <stop offset="1" stop-color="#7be0ff"/>
+    </linearGradient>
+  </defs>
+  <circle cx="110" cy="110" r="96" fill="#11192f" stroke="url(#a)" stroke-width="7"/>
+  <circle cx="110" cy="110" r="68" fill="none" stroke="#f6d889" stroke-opacity=".7" stroke-width="3"/>
+  <path d="M110 32 130 88 190 88 142 123 160 182 110 146 60 182 78 123 30 88 90 88Z" fill="none" stroke="#f6d889" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M75 112h70M110 72v86M82 143l56-62M138 143 82 81" stroke="#7be0ff" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+  <circle cx="110" cy="110" r="9" fill="#f6d889"/>
+</svg>

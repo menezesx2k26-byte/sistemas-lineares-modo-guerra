@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-label="Mapa arcano abstrato">
+  <defs>
+    <radialGradient id="g" cx="52%" cy="38%" r="72%">
+      <stop offset="0" stop-color="#3d2a63"/>
+      <stop offset=".48" stop-color="#111a36"/>
+      <stop offset="1" stop-color="#080a16"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop offset="0" stop-color="#f3cf7a" stop-opacity=".25"/>
+      <stop offset=".52" stop-color="#d5a84e" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#f3cf7a" stop-opacity=".2"/>
+    </linearGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+  <rect width="1400" height="760" fill="url(#g)"/>
+  <g opacity=".24" fill="none" stroke="#f4d486" stroke-width="2">
+    <path d="M90 560 C250 430 340 620 500 470 S790 350 990 470 1190 520 1300 410"/>
+    <path d="M130 250 C270 190 345 312 470 250 630 170 740 120 910 210 1040 280 1165 230 1270 150"/>
+    <path d="M230 650 L390 520 L560 610 L742 455 L930 610 L1160 500"/>
+    <circle cx="705" cy="365" r="140"/>
+    <circle cx="705" cy="365" r="80"/>
+    <path d="M705 225v280M565 365h280M606 266l198 198M804 266 606 464"/>
+  </g>
+  <g opacity=".55" stroke="url(#gold)" stroke-width="3" fill="none">
+    <path d="M205 192h86v84h-86z"/>
+    <path d="M232 192v-42h31v42M221 150h53"/>
+    <path d="M1075 182h112v112h-112z"/>
+    <path d="M1107 182v-55h48v55M1092 127h78"/>
+    <path d="M585 120l43 74h-86zM772 116l48 82h-96z"/>
+  </g>
+  <g opacity=".34" fill="#f4d486">
+    <circle cx="175" cy="118" r="3"/>
+    <circle cx="450" cy="92" r="2"/>
+    <circle cx="695" cy="70" r="3"/>
+    <circle cx="1020" cy="96" r="2"/>
+    <circle cx="1242" cy="336" r="3"/>
+    <circle cx="1116" cy="612" r="2"/>
+    <circle cx="334" cy="610" r="3"/>
+    <circle cx="780" cy="642" r="2"/>
+  </g>
+  <g opacity=".14" filter="url(#soft)" fill="#69c7ff">
+    <circle cx="705" cy="365" r="190"/>
+    <circle cx="1130" cy="238" r="86"/>
+  </g>
+</svg>

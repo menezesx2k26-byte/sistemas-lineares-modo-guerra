@@ -83,7 +83,8 @@ function complete(id) {
 }
 
 function renderHud() {
-  $("#xpStat").textContent = `${state.xp} XP`;
+  const level = Math.floor(state.xp / 120) + 1;
+  $("#xpStat").textContent = `Nv. ${level} · ${state.xp} XP`;
   $("#streakStat").textContent = `${state.streak} sequência`;
   $("#medalStat").textContent = `${state.medals.length} medalhas`;
   $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === screen.mode));
@@ -1105,10 +1106,10 @@ function home() {
   setStage(`
     <section class="stack">
       <div class="hero">
-        <img src="assets/study-map-banner.png" alt="">
+        <img src="assets/rpg-arcane-map.svg" alt="">
         <div class="hero-content">
-          <p class="eyebrow">Tutor gamificado</p>
-          <h1>Sistemas Lineares</h1>
+          <p class="eyebrow">Campanha de álgebra arcana</p>
+          <h1>Sistemas Lineares RPG</h1>
         </div>
       </div>
       <div class="menu-grid">
@@ -1129,7 +1130,18 @@ function home() {
 }
 
 function menuButton(title, sub, mode, locked = false) {
-  return `<button class="game-button ${locked ? "locked" : ""}" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
+  const icons = {
+    continue: "◆",
+    journey: "✦",
+    lab: "⚗",
+    guided: "▣",
+    duels: "⚔",
+    infinite: "∞",
+    params: "λ",
+    finalBoss: "♛",
+    grimoire: "✧"
+  };
+  return `<button class="game-button ${locked ? "locked" : ""}" data-icon="${icons[mode] || "✦"}" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
 }
 
 function nextMission() {

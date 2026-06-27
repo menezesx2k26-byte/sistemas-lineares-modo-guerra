@@ -589,3 +589,438 @@ p {
     border-radius: 16px 16px 0 0;
   }
 }
+
+/* RPG v2 experimental theme */
+:root {
+  --bg: #070912;
+  --bg-2: #11162b;
+  --surface: rgba(22, 25, 43, 0.88);
+  --surface-2: rgba(34, 30, 49, 0.92);
+  --surface-3: rgba(255, 244, 211, 0.94);
+  --text: #f8edd4;
+  --muted: #cdbd9d;
+  --gold: #f2c76b;
+  --gold-2: #9d6424;
+  --danger: #f07070;
+  --success: #59d98f;
+  --warning: #f3a943;
+  --arcane: #7bcfff;
+  --arcane-2: #8367e8;
+  --wine: #7d2944;
+  --green: #1e725f;
+  --blue: #406fe8;
+  --ink: var(--text);
+  --paper: #f7e6bd;
+  --soft: rgba(255, 255, 255, 0.08);
+  --line: rgba(242, 199, 107, 0.28);
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.38);
+  --glow: 0 0 28px rgba(123, 207, 255, 0.18), 0 0 18px rgba(242, 199, 107, 0.14);
+}
+
+body {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 18% 8%, rgba(125, 41, 68, 0.28), transparent 32rem),
+    radial-gradient(circle at 90% 18%, rgba(64, 111, 232, 0.22), transparent 30rem),
+    linear-gradient(180deg, rgba(7, 9, 18, 0.72), rgba(7, 9, 18, 0.98)),
+    url("assets/rpg-arcane-map.svg") center top / cover fixed,
+    var(--bg);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+button {
+  border-radius: 14px;
+}
+
+.hud {
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(14, 16, 30, 0.92), rgba(14, 16, 30, 0.72));
+  border-bottom: 1px solid rgba(242, 199, 107, 0.22);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.28);
+}
+
+.brand-button {
+  color: var(--text);
+}
+
+.brand-mark {
+  position: relative;
+  overflow: hidden;
+  color: transparent;
+  background: #11192f url("assets/rpg-sigil.svg") center / 88% no-repeat;
+  border: 1px solid rgba(242, 199, 107, 0.7);
+  box-shadow: var(--glow);
+}
+
+.brand-mark::after {
+  content: "SL";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.brand-copy small,
+.stats span {
+  color: var(--muted);
+}
+
+.stats span {
+  min-height: 34px;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(242, 199, 107, 0.18), rgba(125, 41, 68, 0.2));
+  border: 1px solid rgba(242, 199, 107, 0.28);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.bottom-nav {
+  background: rgba(8, 10, 22, 0.9);
+  border-top: 1px solid rgba(242, 199, 107, 0.22);
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.42);
+}
+
+.bottom-nav button {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(242, 199, 107, 0.2);
+}
+
+.bottom-nav button.active {
+  color: #17100a;
+  background: linear-gradient(135deg, var(--gold), #f8e3a7);
+  border-color: var(--gold);
+  box-shadow: 0 0 24px rgba(242, 199, 107, 0.24);
+}
+
+.hero {
+  min-height: 260px;
+  border: 1px solid rgba(242, 199, 107, 0.28);
+  background:
+    linear-gradient(180deg, rgba(8, 10, 22, 0.18), rgba(8, 10, 22, 0.68)),
+    url("assets/rpg-arcane-map.svg") center / cover,
+    var(--surface);
+  box-shadow: var(--shadow), var(--glow);
+}
+
+.hero img {
+  opacity: 0;
+}
+
+.hero::after {
+  background:
+    linear-gradient(90deg, rgba(8, 10, 22, 0.94), rgba(16, 21, 46, 0.64), rgba(8, 10, 22, 0.2)),
+    radial-gradient(circle at 78% 26%, rgba(123, 207, 255, 0.22), transparent 20rem);
+}
+
+.hero-content {
+  padding: 1.1rem;
+}
+
+.eyebrow {
+  color: var(--gold);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.32);
+}
+
+p,
+li,
+small,
+.tiny {
+  color: var(--muted);
+}
+
+.panel,
+.micro,
+.mission-card,
+.grimoire-card,
+.feedback {
+  color: var(--text);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    var(--surface);
+  border: 1px solid rgba(242, 199, 107, 0.24);
+  box-shadow: var(--shadow);
+}
+
+.micro,
+.panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.micro::before,
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(242, 199, 107, 0.12), transparent 32%, rgba(123, 207, 255, 0.08));
+}
+
+.micro > *,
+.panel > * {
+  position: relative;
+}
+
+.module-header {
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(242, 199, 107, 0.18);
+}
+
+.module-header::after {
+  content: "";
+  display: block;
+  height: 24px;
+  margin-top: 0.35rem;
+  background: url("assets/rpg-divider.svg") center / contain no-repeat;
+  opacity: 0.62;
+}
+
+.bar {
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(242, 199, 107, 0.26);
+}
+
+.bar span {
+  background: linear-gradient(90deg, var(--arcane), var(--gold), var(--success));
+  box-shadow: 0 0 24px rgba(123, 207, 255, 0.28);
+}
+
+.pill,
+.source-chip {
+  color: #17100a;
+  background: linear-gradient(135deg, var(--gold), #f8e3a7);
+  border: 1px solid rgba(255, 239, 186, 0.55);
+}
+
+.source-chip.soft {
+  color: var(--text);
+  background: rgba(123, 207, 255, 0.12);
+  border-color: rgba(123, 207, 255, 0.25);
+}
+
+.menu-grid,
+.boss-grid {
+  gap: 0.75rem;
+}
+
+.game-button {
+  position: relative;
+  overflow: hidden;
+  min-height: 86px;
+  padding: 1rem 1rem 1rem 4.15rem;
+  color: var(--text);
+  background:
+    linear-gradient(135deg, rgba(242, 199, 107, 0.12), transparent 38%),
+    linear-gradient(180deg, rgba(32, 36, 63, 0.92), rgba(19, 21, 37, 0.96));
+  border: 1px solid rgba(242, 199, 107, 0.28);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.32);
+}
+
+.game-button::before {
+  content: attr(data-icon);
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  width: 2.45rem;
+  height: 2.45rem;
+  display: grid;
+  place-items: center;
+  color: #1c1309;
+  background: radial-gradient(circle, #f8e3a7, var(--gold));
+  border: 1px solid rgba(255, 239, 186, 0.76);
+  border-radius: 14px;
+  transform: translateY(-50%);
+  box-shadow: 0 0 22px rgba(242, 199, 107, 0.26);
+  font-size: 1.25rem;
+}
+
+.game-button strong {
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.03rem;
+}
+
+.game-button small {
+  color: var(--muted);
+}
+
+.game-button.locked {
+  filter: grayscale(0.4);
+  opacity: 0.58;
+}
+
+.primary,
+.secondary,
+.danger,
+.choice {
+  border-radius: 14px;
+}
+
+.primary {
+  color: #17100a;
+  background: linear-gradient(135deg, var(--gold), #ffe7a1);
+  border-color: rgba(255, 239, 186, 0.75);
+  box-shadow: 0 12px 30px rgba(242, 199, 107, 0.2);
+}
+
+.secondary {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(242, 199, 107, 0.22);
+}
+
+.choice {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(123, 207, 255, 0.2);
+}
+
+.choice.correct {
+  color: #062315;
+  border-color: rgba(89, 217, 143, 0.9);
+  background: linear-gradient(135deg, #8ef0b4, #55d98c);
+}
+
+.choice.wrong {
+  color: #fff2ee;
+  border-color: rgba(240, 112, 112, 0.9);
+  background: linear-gradient(135deg, #8d253b, #4b1221);
+}
+
+.feedback {
+  border-left: 6px solid var(--gold);
+  background: rgba(255, 248, 221, 0.1);
+}
+
+.feedback.success {
+  color: #eafff2;
+  border-left-color: var(--success);
+  background: rgba(89, 217, 143, 0.14);
+}
+
+.feedback.danger {
+  color: #fff2ee;
+  border-left-color: var(--danger);
+  background: rgba(240, 112, 112, 0.14);
+}
+
+.math-box,
+.hint,
+.solution,
+.exercise-data .math-box {
+  color: #251707;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 229, 0.98), rgba(239, 218, 166, 0.96));
+  border: 1px solid rgba(242, 199, 107, 0.5);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.math-box p,
+.hint p,
+.solution p,
+.math-box li {
+  color: #3d2b16;
+}
+
+.exercise-data > .source-chip {
+  width: fit-content;
+}
+
+.medal-list {
+  gap: 0.55rem;
+}
+
+.medal {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(242, 199, 107, 0.2);
+}
+
+.medal.earned {
+  color: #17100a;
+  background: linear-gradient(135deg, var(--gold), #f8e3a7);
+  box-shadow: 0 0 24px rgba(242, 199, 107, 0.26);
+}
+
+.grimoire-card {
+  background:
+    linear-gradient(180deg, rgba(246, 216, 137, 0.11), rgba(255, 255, 255, 0.04)),
+    rgba(24, 20, 34, 0.94);
+}
+
+.checklist label {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(242, 199, 107, 0.18);
+  border-radius: 12px;
+  padding: 0.7rem;
+}
+
+@media (hover: hover) {
+  .game-button:hover,
+  .choice:hover,
+  .primary:hover,
+  .secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow), var(--glow);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .micro,
+  .panel,
+  .game-button {
+    animation: rpgFadeIn 220ms ease both;
+  }
+
+  .choice.correct {
+    animation: rpgCorrect 260ms ease both;
+  }
+}
+
+@keyframes rpgFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rpgCorrect {
+  0% {
+    box-shadow: 0 0 0 rgba(89, 217, 143, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 28px rgba(89, 217, 143, 0.28);
+  }
+}

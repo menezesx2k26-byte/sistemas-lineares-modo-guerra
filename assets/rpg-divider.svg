@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="80" viewBox="0 0 800 80" role="img" aria-label="Divisor arcano">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#f6d889" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#f6d889" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#f6d889" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M40 40h250m220 0h250" stroke="url(#g)" stroke-width="3"/>
+  <path d="M400 12l17 28-17 28-17-28z" fill="none" stroke="#f6d889" stroke-width="4"/>
+  <circle cx="400" cy="40" r="6" fill="#7be0ff"/>
+  <path d="M345 40l28-16v32zM455 40l-28-16v32z" fill="#f6d889" opacity=".8"/>
+</svg>
