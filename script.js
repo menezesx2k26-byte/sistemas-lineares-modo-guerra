@@ -95,7 +95,16 @@ function renderHud() {
     themeButton.textContent = isDark ? "Claro" : "Escuro";
     themeButton.setAttribute?.("aria-label", `Ativar tema ${isDark ? "claro" : "escuro"}`);
   }
-  $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === screen.mode));
+  const activeMode = {
+    journeyMap: "journey",
+    campaignComplete: "journey",
+    guided: "journey",
+    finalBoss: "infinite",
+    boss: "infinite",
+    params: "infinite",
+    checklist: "grimoire"
+  }[screen.mode] || screen.mode;
+  $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === activeMode));
 }
 
 function applyTheme() {
@@ -137,6 +146,95 @@ function contextBlock(item) {
   const data = item.context || item.data || item.dados;
   if (!data) return "";
   return `<div class="exercise-data"><span class="source-chip soft">Dados</span><div class="math-box">${data}</div></div>`;
+}
+
+function chapterNumber(chapter = "") {
+  const match = String(chapter).match(/Cap[íi]tulo\s+(\d+)/i);
+  return match ? Number(match[1]) : COURSE_CHAPTERS.findIndex((item) => item === chapter);
+}
+
+function courseHeader({ mode, data, index, total, progress, kicker }) {
+  const isJourney = mode === "journey";
+  const chapter = data.chapter || kicker || "Treino";
+  const chapterIndex = chapterNumber(chapter);
+  const chapterLabel = chapterIndex >= 0 ? `Capítulo ${chapterIndex} de ${COURSE_CHAPTERS.length - 1}` : chapter;
+  const missionLabel = isJourney ? `Missão ${index + 1} de ${total}` : (kicker || data.phase || "Treino focado");
+  return `
+    <header class="course-header">
+      <div>
+        <span class="eyebrow">${chapterLabel}</span>
+        <h2>${data.title}</h2>
+        <p class="mission-position">${missionLabel}${isJourney ? ` · ${data.chapter}` : ""}</p>
+      </div>
+      <div class="progress-block" aria-label="Progresso">
+        <span>${progress}%</span>
+        <div class="bar"><span style="width:${progress}%"></span></div>
+      </div>
+    </header>
+  `;
+}
+
+function commonErrorFor(item) {
+  const text = `${item.skill || ""} ${item.type || ""} ${item.title || ""}`.toLowerCase();
+  if (text.includes("par")) return "dividir por uma expressão antes de testar quando ela pode zerar.";
+  if (text.includes("barra") || text.includes("matriz")) return "fazer a conta nos coeficientes e esquecer o lado direito depois da barra.";
+  if (/class|spd|spi|sistema impossível|contradi/.test(text)) return "chamar \\([0,0,0|0]\\) de contradição ou tratar \\([0,0,0|7]\\) como resposta.";
+  if (text.includes("piv") || text.includes("linha")) return "olhar só o primeiro número e esquecer que a operação muda a linha inteira.";
+  return "pular a intuição e tentar responder pela aparência da fórmula.";
+}
+
+function conceptCard(item) {
+  const intuition = item.explain || item.body || "Leia os dados primeiro e traduza o objetivo em português simples.";
+  const formal = item.formalName || item.type || item.skill || "conceito";
+  const notation = item.example || item.math || "";
+  return `
+    <article class="concept-card">
+      <div>
+        <span class="step-label">Intuição</span>
+        <p>${intuition}</p>
+      </div>
+      <div>
+        <span class="step-label">Nome formal</span>
+        <p>${formal}</p>
+      </div>
+      ${notation ? `<div><span class="step-label">Notação ou exemplo</span><div class="math-box compact">${notation}</div></div>` : ""}
+      <div class="common-error"><strong>Erro comum:</strong> ${commonErrorFor(item)}</div>
+    </article>
+  `;
+}
+
+function exerciseCard(item, attr = "data-answer") {
+  const choices = item.choices || item.c || [];
+  const question = item.question || item.q || item.prompt;
+  return `
+    <article class="exercise-card">
+      <span class="step-label">Pergunta rápida</span>
+      <p><strong>${question}</strong></p>
+      <div class="choices">
+        ${choices.map((choice, i) => `<button class="choice" ${attr}="${i}">${choice}</button>`).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function feedbackCard(mode, data, index, total, options = {}) {
+  const whyId = `why-${data.id || index}`;
+  const nextText = index === total - 1 ? (options.doneLabel || "Concluir") : "Próximo passo";
+  return `
+    <section class="feedback-zone">
+      <button class="secondary quiet" data-why="${whyId}">Ver dica didática</button>
+      <div id="${whyId}" class="feedback">${data.why || "A técnica entra depois de entender o objetivo da pergunta."}</div>
+      <div id="feedback" class="feedback"></div>
+      <div class="actions">
+        <button class="primary" data-next="${mode}" disabled>${nextText}</button>
+        <button class="secondary" data-repeat="${mode}">${mode === "guided" ? "Refazer passo" : "Refazer tela"}</button>
+      </div>
+    </section>
+  `;
+}
+
+function miniGrimoireLink() {
+  return `<button class="mini-grimoire" data-mode="grimoire">Quer a teoria completa? Abrir Grimório.</button>`;
 }
 
 function topMistakes() {
@@ -1436,6 +1534,40 @@ const COURSE_PATH_BASE = [
     fullSolution: String.raw`<p>Como o pivô é \(1\), subtrair \(3L_1\) faz \(3-3\cdot1=0\).</p>`,
     why: "A escolha da operação nasce do objetivo, não de chute."
   }),
+  courseMission({
+    id: "course-c5-31b-pivot-not-one",
+    chapter: COURSE_CHAPTERS[5],
+    title: "Pivô diferente de 1: sem pânico",
+    origin: "Lista 10 sistema II",
+    skill: "pivô diferente de 1",
+    type: "operação de linha",
+    data: String.raw`\[\left[
+\begin{array}{ccc|c}
+3&1&-1&-10\\
+2&-1&-1&6\\
+-4&2&-5&20
+\end{array}
+\right]\]`,
+    explain: "Quando o pivô é 3 e o alvo é 2, você pode usar fração ou multiplicar a linha alvo para evitar fração. O objetivo continua sendo zerar o 2.",
+    example: String.raw`<p><strong>Com fração:</strong> \(L_{\text{alvo}}\leftarrow L_{\text{alvo}}-\frac{a}{p}L_{\text{pivô}}\).</p>
+<p><strong>Sem fração:</strong> \(L_{\text{alvo}}\leftarrow pL_{\text{alvo}}-aL_{\text{pivô}}\).</p>
+<p>Aqui: pivô \(p=3\), alvo \(a=2\), então \(L_2\leftarrow3L_2-2L_1\).</p>`,
+    question: String.raw`Para zerar o 2 usando o pivô 3 sem fração, qual operação é correta?`,
+    choices: [
+      String.raw`\(L_2\leftarrow3L_2-2L_1\)`,
+      String.raw`\(L_2\leftarrow2L_2-3L_1\)`,
+      String.raw`\(L_1\leftarrow3L_2-2L_1\)`
+    ],
+    answer: 0,
+    feedback: String.raw`Certo. \(3\cdot2-2\cdot3=0\), então o primeiro termo da nova \(L_2\) zera.`,
+    fullSolution: String.raw`<p><strong>Pivô:</strong> \(3\), na \(L_1\). <strong>Alvo:</strong> \(2\), na \(L_2\).</p>
+<p>\(3L_2=[6,-3,-3|18]\).</p>
+<p>\(2L_1=[6,2,-2|-20]\).</p>
+<p>\(3L_2-2L_1=[0,-5,-1|38]\).</p>
+<p><strong>Conferência do termo independente:</strong> \(18-(-20)=38\).</p>
+<p><strong>Erro comum:</strong> fazer \(18-20=-2\) e perder o sinal do \(-20\).</p>`,
+    why: "A estratégia sem fração troca uma divisão por uma combinação inteira. Mais limpo para sinais, desde que a linha inteira participe."
+  }),
   ...[guided[2], guided[3], guided[4], guided[5], guided[8], guided[10], guided[11]].map((item, i) => courseFromGuided(
     `course-c5-${String(i + 32).padStart(2, "0")}-${item.id}`,
     COURSE_CHAPTERS[5],
@@ -1927,29 +2059,49 @@ function home() {
   screen = { mode: "home", index: 0, boss: "mixed", score: 0, errors: [], item: null };
   const next = nextMission();
   const locked = !state.bossUnlocked;
+  const completedCount = getCourseCompletedCount();
+  const nextMissionItem = getNextCourseMission();
+  const chapterTitle = nextMissionItem?.chapter || "Campanha concluída";
   setStage(`
-    <section class="stack">
-      <div class="hero">
+    <section class="home-shell">
+      <div class="hero course-hero">
         <img src="assets/study-map-banner.png" alt="">
         <div class="hero-content">
-          <p class="eyebrow">Tutor gamificado</p>
-          <h1>Sistemas Lineares</h1>
+          <p class="eyebrow">Curso gamificado</p>
+          <h1>Sistemas Lineares — Modo Guerra</h1>
+          <p>Uma campanha linear para entender sistemas, matrizes, escalonamento e classificação sem caça ao botão.</p>
         </div>
       </div>
-      <div class="menu-grid">
-        ${menuButton("Continuar jornada", next.label, "continue")}
-        ${menuButton("Começar do zero", "Reiniciar só a campanha linear", "startJourney")}
-        ${menuButton("Mapa da Jornada", `${getCourseCompletedCount()}/${COURSE_PATH.length} missões concluídas`, "journeyMap")}
-        ${menuButton("Laboratório de operações de linha", `${lab.length} desafios com conta inteira`, "lab")}
-        ${menuButton("Exemplo guiado Lista 10", "Sistema I ativo + Sistema II resolvido", "guided")}
-        ${menuButton("Duelos rápidos", "Bosses por habilidade", "duels")}
-        ${menuButton("Treino infinito", "Questões das listas + geradas no escopo", "infinite")}
-        ${menuButton("Câmara dos Parâmetros", "Boss real da Lista 11", "params")}
-        ${menuButton("Boss fight Lista 11", locked ? "Bloqueado: ganhe 140 XP ou conclua o exemplo" : `${bossSets.mixed.qs.length} questões reais`, "finalBoss", locked)}
-        ${menuButton("Grimório / consulta rápida", "Notações, regras e checklist", "grimoire")}
+      <article class="current-mission">
+        <span class="eyebrow">Missão atual</span>
+        <h2>${chapterTitle}</h2>
+        <p>${next.label}</p>
+        <div class="bar"><span style="width:${Math.round((completedCount / COURSE_PATH.length) * 100)}%"></span></div>
+        <button class="primary big-cta" data-mode="continue">Continuar Jornada</button>
+      </article>
+      <div class="secondary-grid" aria-label="Ações secundárias">
+        ${menuButton("Revisar capítulo", `${completedCount}/${COURSE_PATH.length} missões`, "journeyMap")}
+        ${menuButton("Laboratório", "Treino focado por habilidade", "lab")}
+        ${menuButton("Grimório", "Consulta organizada", "grimoire")}
+        ${menuButton("Treino livre", "Questões misturadas", "infinite")}
       </div>
-      <button class="secondary" data-mode="diagnostic">Chapéu Seletor opcional</button>
-      <div class="medal-list">${Object.entries(medals).map(([key, label]) => `<div class="medal ${state.medals.includes(key) ? "earned" : ""}">${label}</div>`).join("")}</div>
+      <div class="status-strip" aria-label="Status do estudante">
+        <span>${state.xp} XP</span>
+        <span>${state.streak} sequência</span>
+        <span>${state.medals.length} medalhas</span>
+      </div>
+      <details class="extras-panel">
+        <summary>Outros modos e conquistas</summary>
+        <div class="menu-grid compact-menu">
+          ${menuButton("Começar do zero", "Reiniciar só a campanha linear", "startJourney")}
+          ${menuButton("Exemplo guiado Lista 10", "Sistema I ativo + Sistema II resolvido", "guided")}
+          ${menuButton("Duelos rápidos", "Bosses por habilidade", "duels")}
+          ${menuButton("Câmara dos Parâmetros", "Boss real da Lista 11", "params")}
+          ${menuButton("Boss fight Lista 11", locked ? "Bloqueado: ganhe 140 XP ou conclua o exemplo" : `${bossSets.mixed.qs.length} questões reais`, "finalBoss", locked)}
+          ${menuButton("Diagnóstico opcional", "Calibrar rota sem bloquear", "diagnostic")}
+        </div>
+        <div class="medal-list compact-medals">${Object.entries(medals).map(([key, label]) => `<div class="medal ${state.medals.includes(key) ? "earned" : ""}">${label}</div>`).join("")}</div>
+      </details>
     </section>
   `);
 }
@@ -1995,33 +2147,15 @@ function nextMission() {
 
 function renderMission(mode, data, index, total, options = {}) {
   const progress = Math.round(((index + 1) / total) * 100);
-  const whyId = `why-${data.id || index}`;
-  const headerLabel = mode === "journey"
-    ? `${data.chapter} · Missão ${index + 1}/${total}`
-    : (options.kicker || data.phase || "Missão");
   setStage(`
-    <section class="micro">
-      <div class="module-header">
-        <span class="pill">${headerLabel}</span>
-        <h2>${data.title}</h2>
-        <div class="bar"><span style="width:${progress}%"></span></div>
-      </div>
+    <section class="micro lesson-flow">
+      ${courseHeader({ mode, data, index, total, progress, kicker: options.kicker })}
       ${sourceChip(data)}
       ${contextBlock(data)}
-      <p>${data.explain || data.body}</p>
-      ${data.example || data.math ? `<div class="math-box">${data.example || data.math}</div>` : ""}
-      <div class="choices">
-        <p><strong>${data.question || data.q}</strong></p>
-        ${(data.choices || data.c).map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
-      </div>
-      <button class="secondary" data-why="${whyId}">Por quê?</button>
-      <div id="${whyId}" class="feedback">${data.why || "A técnica só entra depois de traduzir o objetivo em português simples."}</div>
-      <div id="feedback" class="feedback"></div>
-      <div class="actions">
-        <button class="primary" data-next="${mode}" disabled>${index === total - 1 ? (options.doneLabel || "Concluir") : "Próximo"}</button>
-        <button class="secondary" data-repeat="${mode}">${mode === "guided" ? "Refazer passo" : "Refazer tela"}</button>
-        ${mode === "journey" ? `<button class="secondary" data-mode="journeyMap">Mapa da Jornada</button>` : ""}
-      </div>
+      ${conceptCard(data)}
+      ${exerciseCard(data)}
+      ${feedbackCard(mode, data, index, total, options)}
+      ${mode === "journey" ? miniGrimoireLink() : ""}
     </section>
   `);
 }
@@ -2156,27 +2290,64 @@ function diagnosticResult(score, misses) {
   `);
 }
 
+const LAB_GROUPS = [
+  { title: "Operações de linha", hint: "Trocar, multiplicar e combinar linhas.", match: (item) => /linha|operação|zerar|combo|multiple/i.test(`${item.skill} ${item.title}`) },
+  { title: "Sinais e aritmética", hint: "Sinais, distribuição e lado direito.", match: (item) => /sinal|direito|conta|aritm/i.test(`${item.skill} ${item.title} ${item.why}`) },
+  { title: "Matriz aumentada", hint: "Antes da barra e depois da barra.", match: (item) => /barra|matriz|aumentada/i.test(`${item.skill} ${item.title} ${item.why}`) },
+  { title: "Classificação", hint: "SPD, SPI, SI, pivôs e contradição.", match: (item) => /class|contradi|pivô|pivo/i.test(`${item.skill} ${item.title} ${item.why}`) },
+  { title: "Parâmetros", hint: "Casos especiais sem dividir por zero.", match: (item) => /parâmetro|param|k|lambda|alpha/i.test(`${item.skill} ${item.title} ${item.why}`) }
+];
+
+function labHome() {
+  screen = { mode: "lab", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  const cards = LAB_GROUPS.map((group, groupIndex) => {
+    const firstIndex = lab.findIndex(group.match);
+    return `<button class="skill-card" data-lab-start="${firstIndex >= 0 ? firstIndex : 0}">
+      <strong>${group.title}</strong>
+      <small>${group.hint}</small>
+      <span>Abrir treino curto</span>
+    </button>`;
+  }).join("");
+  setStage(`
+    <section class="panel stack lab-home">
+      <span class="eyebrow">Laboratório</span>
+      <h2>Treino focado</h2>
+      <p>Escolha uma habilidade. Cada treino mostra só dados, pergunta, feedback e próxima ação.</p>
+      <div class="skill-grid">${cards}</div>
+      <button class="secondary" data-mode="home">Voltar</button>
+    </section>
+  `);
+}
+
 function labMode(index = 0) {
   screen = { mode: "lab", index, boss: "mixed", score: 0, errors: [], item: null };
   const item = lab[index];
+  const data = {
+    title: item.title,
+    chapter: "Laboratório",
+    phase: `Treino ${index + 1}/${lab.length}`,
+    origin: item.origin,
+    skill: item.skill,
+    difficulty: item.difficulty,
+    type: "treino focado",
+    data: item.matrix,
+    explain: item.why,
+    question: item.q,
+    choices: item.choices.map((choice) => choice.t),
+    why: item.why
+  };
   setStage(`
-    <section class="micro">
-      <div class="module-header">
-        <span class="pill">Laboratório ${index + 1}/${lab.length}</span>
-        <h2>${item.title}</h2>
-        <div class="bar"><span style="width:${((index + 1) / lab.length) * 100}%"></span></div>
-      </div>
+    <section class="micro lesson-flow">
+      ${courseHeader({ mode: "lab", data, index, total: lab.length, progress: Math.round(((index + 1) / lab.length) * 100), kicker: "Laboratório" })}
       ${sourceChip(item)}
-      <div class="math-box">${item.matrix}</div>
-      <details class="hint"><summary>De onde veio esse número?</summary><p>${item.why}</p></details>
-      <div class="choices">
-        <p><strong>${item.q}</strong></p>
-        ${item.choices.map((choice, i) => `<button class="choice" data-lab="${i}">${choice.t}</button>`).join("")}
-      </div>
+      ${contextBlock(data)}
+      ${conceptCard(data)}
+      ${exerciseCard(data, "data-lab")}
       <div id="feedback" class="feedback"></div>
       <div class="actions">
         <button class="primary" data-next="lab" disabled>${index === lab.length - 1 ? "Concluir lab" : "Próximo treino"}</button>
         <button class="secondary" data-repeat="lab">Refazer desafio</button>
+        <button class="secondary" data-mode="lab">Trocar habilidade</button>
       </div>
     </section>
   `);
@@ -2337,11 +2508,32 @@ function grimoire() {
     ["Erros comuns", String.raw`<ul><li>Esquecer o lado direito depois da barra.</li><li>Somar quando precisava subtrair.</li><li>Dividir por parâmetro que pode zerar.</li><li>Chamar \(0=0\) de contradição.</li><li>Achar que passar em uma equação basta.</li></ul>`],
     ["Checklist de prova", "<ul><li>Copiei sinais?</li><li>Montei [A|b] corretamente?</li><li>Escolhi pivô não nulo?</li><li>Mostrei a conta da linha inteira?</li><li>Classifiquei por pivô, contradição e variável livre?</li><li>Separei casos de parâmetro?</li></ul>"]
   ];
+  const sections = [
+    ["Vocabulário formal", [cards[0], cards[1], cards[2]]],
+    ["Matriz aumentada", [cards[3]]],
+    ["Operações de linha", [cards[4], cards[5], ["Pivô diferente de 1", String.raw`<p>Com fração: \(L_{\text{alvo}}\leftarrow L_{\text{alvo}}-\frac{a}{p}L_{\text{pivô}}\).</p><p>Sem fração: \(L_{\text{alvo}}\leftarrow pL_{\text{alvo}}-aL_{\text{pivô}}\).</p><p>No exemplo com pivô \(3\) e alvo \(2\): \(L_2\leftarrow3L_2-2L_1\). O termo independente fica \(18-(-20)=38\).</p>`]]],
+    ["Classificação SPD/SPI/SI", [cards[6]]],
+    ["Homogêneos", [cards[7]]],
+    ["Parâmetros", [cards[8]]],
+    ["Protocolo anti-erro", [cards[11]]],
+    ["Erros comuns", [cards[10], cards[9]]]
+  ];
   setStage(`
-    <section class="stack">
-      <div class="panel stack"><span class="pill">Consulta</span><h2>Grimório</h2><p>Texto longo fica aqui, fora da jornada principal.</p></div>
-      <div class="grimoire-grid">${cards.map(([title, body]) => `<article class="grimoire-card"><h3>${title}</h3>${body}</article>`).join("")}</div>
-      <button class="primary" data-mode="checklist">Checklist anti-vacilo</button>
+    <section class="stack grimoire-shell">
+      <div class="panel stack">
+        <span class="eyebrow">Consulta</span>
+        <h2>Grimório</h2>
+        <p>Teoria completa fica aqui. A Jornada ensina em passos curtos; o Grimório serve para revisar quando bater dúvida.</p>
+      </div>
+      <div class="grimoire-sections">
+        ${sections.map(([title, items], index) => `
+          <details class="grimoire-section" ${index === 0 ? "open" : ""}>
+            <summary>${title}</summary>
+            <div class="grimoire-grid">${items.map(([cardTitle, body]) => `<article class="grimoire-card"><h3>${cardTitle}</h3>${body}</article>`).join("")}</div>
+          </details>
+        `).join("")}
+      </div>
+      <button class="primary" data-mode="checklist">Abrir protocolo anti-erro</button>
     </section>
   `);
 }
@@ -2472,7 +2664,7 @@ function next(kind) {
     return diagnosticMode(screen.index + 1, screen.score, screen.errors);
   }
   if (kind === "lab") {
-    if (screen.index >= lab.length - 1) return home();
+    if (screen.index >= lab.length - 1) return labHome();
     return labMode(screen.index + 1);
   }
   if (kind === "guided") {
@@ -2511,7 +2703,7 @@ function route(mode) {
   if (mode === "startJourney") return confirmRestartJourney();
   if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
-  if (mode === "lab") return labMode(0);
+  if (mode === "lab") return labHome();
   if (mode === "guided") return guidedMode(0);
   if (mode === "duels") return duels();
   if (mode === "params") return paramsMode();
@@ -2544,6 +2736,9 @@ document.addEventListener("click", (event) => {
 
   const labAns = event.target.closest("[data-lab]");
   if (labAns) return answerLab(Number(labAns.dataset.lab));
+
+  const labStart = event.target.closest("[data-lab-start]");
+  if (labStart) return labMode(Number(labStart.dataset.labStart));
 
   const bossAns = event.target.closest("[data-boss-answer]");
   if (bossAns) return answerBoss(Number(bossAns.dataset.bossAnswer));

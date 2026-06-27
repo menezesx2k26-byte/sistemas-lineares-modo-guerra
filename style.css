@@ -710,3 +710,422 @@ p {
     border-radius: 16px 16px 0 0;
   }
 }
+
+/* UX didactic refactor: cleaner course surface, RPG as seasoning only. */
+:root {
+  --ink: #151923;
+  --muted: #5f6875;
+  --paper: #f7f4ed;
+  --surface: #ffffff;
+  --soft: #f3f6f8;
+  --line: #dfe5ec;
+  --green: #22705f;
+  --wine: #7a3f78;
+  --gold: #bd8b1f;
+  --blue: #2867b2;
+  --danger: #b42318;
+  --success: #18794e;
+  --bg: #f7f4ed;
+  --hud-bg: rgba(255, 255, 255, 0.96);
+  --nav-bg: rgba(255, 255, 255, 0.96);
+  --button-soft: #f6f8fa;
+  --choice-bg: #f8fafc;
+  --track: #e6ebf0;
+  --math-bg: #fffdf7;
+  --math-line: #e1d5b8;
+  --data-bg: #f8fbff;
+  --data-line: #cbdceb;
+  --chip-bg: #eef2f6;
+  --hint-bg: #fff9e8;
+  --warning-bg: #fff8dd;
+  --success-bg: #eaf7ef;
+  --danger-bg: #fff0ef;
+  --inline-bg: #f8f2fb;
+  --inline-line: #dfcae5;
+  --chapter-current-bg: #fff8e4;
+  --chapter-done-bg: #edf8f3;
+  --hero-overlay: linear-gradient(90deg, rgba(247, 244, 237, 0.98), rgba(247, 244, 237, 0.76), rgba(247, 244, 237, 0.28));
+  --shadow: 0 8px 18px rgba(21, 25, 35, 0.08);
+}
+
+:root[data-theme="dark"] {
+  --ink: #f7f2e8;
+  --muted: #cfc8bc;
+  --paper: #25221d;
+  --surface: #302c25;
+  --soft: #38342d;
+  --line: #595246;
+  --green: #6ed6b5;
+  --wine: #d2a2d1;
+  --gold: #e9c46a;
+  --blue: #9dc7ff;
+  --bg: #24211d;
+  --hud-bg: rgba(48, 44, 37, 0.96);
+  --nav-bg: rgba(48, 44, 37, 0.96);
+  --button-soft: #38342d;
+  --choice-bg: #38342d;
+  --math-bg: #2b271f;
+  --data-bg: #26313a;
+  --hero-overlay: linear-gradient(90deg, rgba(36, 33, 29, 0.98), rgba(36, 33, 29, 0.76), rgba(36, 33, 29, 0.3));
+  --shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+body {
+  background: var(--bg);
+}
+
+button,
+.hero,
+.panel,
+.micro,
+.feedback,
+.mission-card,
+.grimoire-card,
+.chapter-card,
+.medal,
+.hint,
+.solution,
+.math-box,
+.checklist label {
+  border-radius: 8px;
+}
+
+.stage {
+  width: min(100%, 880px);
+  padding: 0.8rem 0.7rem calc(4.9rem + env(safe-area-inset-bottom));
+}
+
+.hud {
+  padding: 0.55rem 0.65rem;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--green);
+}
+
+.stats {
+  gap: 0.25rem;
+}
+
+.stats span {
+  min-height: 28px;
+  padding: 0.18rem 0.46rem;
+  color: var(--ink);
+  background: var(--chip-bg);
+  border: 1px solid var(--line);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.pill,
+.source-chip {
+  color: var(--ink);
+  background: var(--chip-bg);
+  border: 1px solid var(--line);
+}
+
+.source-chip:not(.soft) {
+  color: #fff;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.bottom-nav {
+  gap: 0.25rem;
+  padding: 0.38rem 0.45rem calc(0.38rem + env(safe-area-inset-bottom));
+}
+
+.bottom-nav button {
+  min-height: 44px;
+  padding: 0.25rem;
+  border-radius: 8px;
+  background: transparent;
+  border-color: transparent;
+  font-size: 0.74rem;
+}
+
+.bottom-nav button.active {
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.home-shell,
+.lesson-flow,
+.lab-home,
+.grimoire-shell {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.course-hero {
+  min-height: 176px;
+  box-shadow: none;
+}
+
+.course-hero .hero-content {
+  display: grid;
+  gap: 0.45rem;
+  max-width: 35rem;
+}
+
+.course-hero h1 {
+  font-size: clamp(2rem, 9vw, 3.8rem);
+}
+
+.course-hero p:not(.eyebrow) {
+  color: var(--muted);
+  max-width: 31rem;
+}
+
+.current-mission {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.current-mission h2 {
+  font-size: clamp(1.3rem, 5vw, 2rem);
+}
+
+.big-cta {
+  min-height: 62px;
+  font-size: 1.02rem;
+}
+
+.secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.skill-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.secondary-grid .game-button,
+.skill-card {
+  min-height: 94px;
+  padding: 0.78rem;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.secondary-grid .game-button small,
+.skill-card small,
+.skill-card span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.status-strip span {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.extras-panel,
+.grimoire-section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.extras-panel summary,
+.grimoire-section summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0.8rem;
+  color: var(--ink);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.compact-menu,
+.compact-medals,
+.grimoire-section .grimoire-grid {
+  padding: 0 0.8rem 0.8rem;
+}
+
+.compact-menu .game-button,
+.compact-medals .medal {
+  min-height: 60px;
+  box-shadow: none;
+}
+
+.course-header {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.course-header h2 {
+  margin-top: 0.2rem;
+  font-size: clamp(1.35rem, 5.6vw, 2.35rem);
+}
+
+.mission-position {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-weight: 760;
+}
+
+.progress-block {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.concept-card,
+.exercise-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.step-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.common-error {
+  padding: 0.7rem;
+  border: 1px solid #ead8aa;
+  border-radius: 8px;
+  background: var(--warning-bg);
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.feedback-zone {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.secondary.quiet,
+.mini-grimoire {
+  min-height: 46px;
+  color: var(--blue);
+  background: transparent;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.mini-grimoire {
+  width: 100%;
+  padding: 0.75rem;
+  font-weight: 900;
+}
+
+.math-box,
+.math-box.compact {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.math-box mjx-container {
+  min-width: max-content;
+}
+
+.choice,
+.primary,
+.secondary,
+.danger,
+.game-button,
+.skill-card {
+  border-radius: 8px;
+}
+
+.choice {
+  min-height: 54px;
+  box-shadow: none;
+}
+
+.feedback {
+  box-shadow: none;
+  line-height: 1.55;
+}
+
+.actions {
+  grid-template-columns: 1fr;
+}
+
+.grimoire-sections {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.grimoire-card {
+  box-shadow: none;
+}
+
+.grimoire-card h3 {
+  font-size: 1rem;
+}
+
+@media (min-width: 760px) {
+  .stage {
+    padding: 1.1rem 1.1rem calc(5.2rem + env(safe-area-inset-bottom));
+  }
+
+  .course-header {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+    align-items: start;
+  }
+
+  .home-shell {
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    align-items: start;
+  }
+
+  .course-hero {
+    grid-column: 1 / -1;
+    min-height: 245px;
+  }
+
+  .status-strip,
+  .extras-panel {
+    grid-column: 1 / -1;
+  }
+
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .skill-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
