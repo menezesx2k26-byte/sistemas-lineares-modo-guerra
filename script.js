@@ -1037,7 +1037,7 @@ const diagnostic = [
   { target: "fund", q: String.raw`O termo independente em \(3x_1+7x_2+2x_3=-19\) é:`, c: ["2", "-19", "7"], a: 1 },
   { target: "linear", q: String.raw`\(x_1+4x_3x_4=20\) é linear?`, c: ["Sim", "Não"], a: 1 },
   { target: "system", q: "Uma solução de sistema precisa satisfazer:", c: ["uma equação", "todas as equações", "só a última"], a: 1 },
-  { target: "matrix", q: "Na matriz aumentada, a barra separa:", c: ["coeficientes e lado direito", "linhas e colunas", "pivôs e zeros"], a: 0 },
+  { target: "matrix", q: "Na matriz aumentada abaixo, a barra separa:", context: matrixTex([[1, -2, 8], [0, 3, -3]]), c: ["coeficientes e lado direito", "linhas e colunas", "pivôs e zeros"], a: 0 },
   { target: "spell-scale", q: String.raw`Transformar \(4y=8\) em \(y=2\) é:`, c: [String.raw`multiplicar por \(\frac{1}{4}\)`, "multiplicar por 4", "multiplicar por 0"], a: 0 },
   { target: "parameters", q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`, c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"], a: 0 },
   { target: "homogeneous", q: "Sistema homogêneo sempre tem:", c: ["a trivial", "contradição", "lado direito 7"], a: 0 }
@@ -1197,6 +1197,7 @@ function diagnosticMode(index = 0, score = 0, misses = []) {
         <div class="bar"><span style="width:${((index + 1) / diagnostic.length) * 100}%"></span></div>
       </div>
       <p>Responda para calibrar a rota. Isso não bloqueia nenhum módulo.</p>
+      ${contextBlock(item)}
       <div class="choices">
         <p><strong>${item.q}</strong></p>
         ${item.c.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
