@@ -2291,21 +2291,25 @@ function diagnosticResult(score, misses) {
 }
 
 const LAB_GROUPS = [
-  { title: "Operações de linha", hint: "Trocar, multiplicar e combinar linhas.", match: (item) => /linha|operação|zerar|combo|multiple/i.test(`${item.skill} ${item.title}`) },
-  { title: "Sinais e aritmética", hint: "Sinais, distribuição e lado direito.", match: (item) => /sinal|direito|conta|aritm/i.test(`${item.skill} ${item.title} ${item.why}`) },
-  { title: "Matriz aumentada", hint: "Antes da barra e depois da barra.", match: (item) => /barra|matriz|aumentada/i.test(`${item.skill} ${item.title} ${item.why}`) },
-  { title: "Classificação", hint: "SPD, SPI, SI, pivôs e contradição.", match: (item) => /class|contradi|pivô|pivo/i.test(`${item.skill} ${item.title} ${item.why}`) },
-  { title: "Parâmetros", hint: "Casos especiais sem dividir por zero.", match: (item) => /parâmetro|param|k|lambda|alpha/i.test(`${item.skill} ${item.title} ${item.why}`) }
+  { title: "Operações de linha", hint: "Trocar, multiplicar e combinar linhas.", start: 0, label: "Abrir treino de linhas" },
+  { title: "Sinais e aritmética", hint: "Sinais, distribuição e lado direito.", start: 49, label: "Abrir treino de contas" },
+  { title: "Matriz aumentada", hint: "Antes da barra e depois da barra.", boss: "matrix", label: "Abrir treino de matrizes" },
+  { title: "Classificação", hint: "SPD, SPI, SI e contradição.", boss: "classify", label: "Abrir classificador" },
+  { title: "Parâmetros", hint: "Casos especiais sem dividir por zero.", mode: "params", label: "Abrir treino de parâmetros" }
 ];
 
 function labHome() {
   screen = { mode: "lab", index: 0, boss: "mixed", score: 0, errors: [], item: null };
-  const cards = LAB_GROUPS.map((group, groupIndex) => {
-    const firstIndex = lab.findIndex(group.match);
-    return `<button class="skill-card" data-lab-start="${firstIndex >= 0 ? firstIndex : 0}">
+  const cards = LAB_GROUPS.map((group) => {
+    const attr = group.boss
+      ? `data-boss="${group.boss}"`
+      : group.mode
+        ? `data-mode="${group.mode}"`
+        : `data-lab-start="${group.start}"`;
+    return `<button class="skill-card" ${attr}>
       <strong>${group.title}</strong>
       <small>${group.hint}</small>
-      <span>Abrir treino curto</span>
+      <span>${group.label}</span>
     </button>`;
   }).join("");
   setStage(`
