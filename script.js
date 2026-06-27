@@ -95,6 +95,12 @@ function setStage(html) {
   typeset();
 }
 
+function enableNextButtons() {
+  $$("[data-next]").forEach((btn) => {
+    btn.disabled = false;
+  });
+}
+
 function sourceChip(item) {
   const origin = item.origin || item.origem;
   const skill = item.skill || item.habilidade;
@@ -166,9 +172,11 @@ function q({
   correct,
   solution,
   skill,
-  review
+  review,
+  ...rest
 }) {
   return {
+    ...rest,
     id,
     tipo,
     origin,
@@ -489,7 +497,7 @@ const linearQuestions = [
   linearQuestion("gen-linear-2", "Gerada", String.raw`\(x_1/x_2+3x_3=7\)`, false, String.raw`há variável no denominador em \(x_1/x_2\).`),
   linearQuestion("gen-linear-3", "Gerada", String.raw`\(7x_1-2x_2+x_3=0\)`, true, "coeficientes podem ser negativos ou positivos."),
   linearQuestion("gen-linear-4", "Gerada", String.raw`\(x_1x_2+x_3=5\)`, false, String.raw`há produto entre variáveis \(x_1x_2\).`),
-  linearQuestion("gen-linear-5", "Gerada", String.raw`\(x_1+\frac12x_2=3\)`, true, "coeficiente fracionário é permitido."),
+  linearQuestion("gen-linear-5", "Gerada", String.raw`\(x_1+\frac{1}{2}x_2=3\)`, true, "coeficiente fracionário é permitido."),
   linearQuestion("gen-linear-6", "Gerada", String.raw`\(x_1^3+x_2=1\)`, false, String.raw`\(x_1^3\) tem expoente 3.`),
   linearQuestion("gen-linear-7", "Gerada", String.raw`\(-x_1+x_2-x_3=-8\)`, true, "coeficiente implícito \(-1\) é permitido."),
   linearQuestion("gen-linear-8", "Gerada", String.raw`\(2\sqrt{x_1}+x_2=4\)`, false, String.raw`raiz de variável não é linear.`),
@@ -497,7 +505,7 @@ const linearQuestions = [
   linearQuestion("gen-linear-10", "Gerada", String.raw`\(5/(x_1)+x_2=2\)`, false, "variável no denominador quebra linearidade."),
   linearQuestion("gen-linear-11", "Gerada", String.raw`\(x_1-4x_2+6x_3-9x_4=1\)`, true, "quatro variáveis em grau 1 continuam lineares."),
   linearQuestion("gen-linear-12", "Gerada", String.raw`\(x_1+4x_2x_2=0\)`, false, String.raw`\(x_2x_2=x_2^2\), expoente 2.`),
-  linearQuestion("gen-linear-13", "Gerada", String.raw`\(\frac34x_1-2x_2=9\)`, true, "frações como coeficientes são permitidas."),
+  linearQuestion("gen-linear-13", "Gerada", String.raw`\(\frac{3}{4}x_1-2x_2=9\)`, true, "frações como coeficientes são permitidas."),
   linearQuestion("gen-linear-14", "Gerada", String.raw`\(x_1+\sqrt{5}x_2=0\)`, true, String.raw`\(\sqrt5\) é número, não raiz de variável.`)
 ];
 
@@ -523,7 +531,7 @@ function matrixQuestion(id, origin, equation, correct, wrong1, wrong2, reason) {
       account: `${equation} vira ${correct}.`,
       result: correct,
       interpretation: "a linha ainda é a mesma equação, só sem escrever as letras das variáveis.",
-      trap: "coeficiente implícito \(1\) ou \(-1\) precisa aparecer."
+      trap: String.raw`coeficiente implícito \(1\) ou \(-1\) precisa aparecer.`
     }),
     skill: "matriz aumentada",
     review: "Revisar montagem de [A|b]."
@@ -531,19 +539,19 @@ function matrixQuestion(id, origin, equation, correct, wrong1, wrong2, reason) {
 }
 
 const matrixQuestions = [
-  matrixQuestion("m-l10-i-1", "Lista 10 sistema I", String.raw`\(x_1+2x_2-x_3=-10\)`, String.raw`\([1,\ 2,\ -1\ |\ -10]\)`, String.raw`\([1,\ 2,\ -10\ |\ -1]\)`, String.raw`\([-10,\ 1,\ 2\ |\ -1]\)`, "o coeficiente de \(x_3\) é \(-1\)."),
-  matrixQuestion("m-l10-i-2", "Lista 10 sistema I", String.raw`\(3x_1+7x_2+2x_3=-19\)`, String.raw`\([3,\ 7,\ 2\ |\ -19]\)`, String.raw`\([3,\ 7,\ -19\ |\ 2]\)`, String.raw`\([-19,\ 3,\ 7\ |\ 2]\)`, "o \(-19\) fica depois da barra."),
+  matrixQuestion("m-l10-i-1", "Lista 10 sistema I", String.raw`\(x_1+2x_2-x_3=-10\)`, String.raw`\([1,\ 2,\ -1\ |\ -10]\)`, String.raw`\([1,\ 2,\ -10\ |\ -1]\)`, String.raw`\([-10,\ 1,\ 2\ |\ -1]\)`, String.raw`o coeficiente de \(x_3\) é \(-1\).`),
+  matrixQuestion("m-l10-i-2", "Lista 10 sistema I", String.raw`\(3x_1+7x_2+2x_3=-19\)`, String.raw`\([3,\ 7,\ 2\ |\ -19]\)`, String.raw`\([3,\ 7,\ -19\ |\ 2]\)`, String.raw`\([-19,\ 3,\ 7\ |\ 2]\)`, String.raw`o \(-19\) fica depois da barra.`),
   matrixQuestion("m-l10-i-3", "Lista 10 sistema I", String.raw`\(5x_1+12x_2+5x_3=-21\)`, String.raw`\([5,\ 12,\ 5\ |\ -21]\)`, String.raw`\([5,\ 12,\ -21\ |\ 5]\)`, String.raw`\([-21,\ 5,\ 12\ |\ 5]\)`, "todos os coeficientes ficam antes da barra."),
-  matrixQuestion("m-l10-ii-1", "Lista 10 sistema II", String.raw`\(3x_1+x_2+x_3=4\)`, String.raw`\([3,\ 1,\ 1\ |\ 4]\)`, String.raw`\([3,\ 1,\ 4\ |\ 1]\)`, String.raw`\([4,\ 3,\ 1\ |\ 1]\)`, "coeficiente omitido é \(1\)."),
+  matrixQuestion("m-l10-ii-1", "Lista 10 sistema II", String.raw`\(3x_1+x_2+x_3=4\)`, String.raw`\([3,\ 1,\ 1\ |\ 4]\)`, String.raw`\([3,\ 1,\ 4\ |\ 1]\)`, String.raw`\([4,\ 3,\ 1\ |\ 1]\)`, String.raw`coeficiente omitido é \(1\).`),
   matrixQuestion("m-l10-ii-2", "Lista 10 sistema II", String.raw`\(2x_1-x_2-x_3=6\)`, String.raw`\([2,\ -1,\ -1\ |\ 6]\)`, String.raw`\([2,\ 1,\ 1\ |\ 6]\)`, String.raw`\([6,\ 2,\ -1\ |\ -1]\)`, "os sinais negativos são coeficientes."),
   matrixQuestion("m-l10-ii-3", "Lista 10 sistema II", String.raw`\(-4x_1+x_2-5x_3=20\)`, String.raw`\([-4,\ 1,\ -5\ |\ 20]\)`, String.raw`\([4,\ 1,\ -5\ |\ 20]\)`, String.raw`\([20,\ -4,\ 1\ |\ -5]\)`, "o coeficiente de \(x_1\) é \(-4\)."),
-  matrixQuestion("m-l10-ex2-1", "Lista 10 ex. 2", String.raw`\(x_1-x_2+3x_3=8\)`, String.raw`\([1,\ -1,\ 3\ |\ 8]\)`, String.raw`\([1,\ 1,\ 3\ |\ 8]\)`, String.raw`\([8,\ 1,\ -1\ |\ 3]\)`, "\(x_2\) tem coeficiente \(-1\)."),
-  matrixQuestion("m-l10-ex2-2", "Lista 10 ex. 2", String.raw`\(x_1+x_2+2x_3=-3\)`, String.raw`\([1,\ 1,\ 2\ |\ -3]\)`, String.raw`\([1,\ 1,\ -3\ |\ 2]\)`, String.raw`\([-3,\ 1,\ 1\ |\ 2]\)`, "o \(-3\) é termo independente."),
-  matrixQuestion("m-gen-1", "Gerada", String.raw`\(-x_1+4x_2=7\)`, String.raw`\([-1,\ 4\ |\ 7]\)`, String.raw`\([1,\ 4\ |\ 7]\)`, String.raw`\([7,\ -1\ |\ 4]\)`, "coeficiente implícito \(-1\) precisa aparecer."),
+  matrixQuestion("m-l10-ex2-1", "Lista 10 ex. 2", String.raw`\(x_1-x_2+3x_3=8\)`, String.raw`\([1,\ -1,\ 3\ |\ 8]\)`, String.raw`\([1,\ 1,\ 3\ |\ 8]\)`, String.raw`\([8,\ 1,\ -1\ |\ 3]\)`, String.raw`\(x_2\) tem coeficiente \(-1\).`),
+  matrixQuestion("m-l10-ex2-2", "Lista 10 ex. 2", String.raw`\(x_1+x_2+2x_3=-3\)`, String.raw`\([1,\ 1,\ 2\ |\ -3]\)`, String.raw`\([1,\ 1,\ -3\ |\ 2]\)`, String.raw`\([-3,\ 1,\ 1\ |\ 2]\)`, String.raw`o \(-3\) é termo independente.`),
+  matrixQuestion("m-gen-1", "Gerada", String.raw`\(-x_1+4x_2=7\)`, String.raw`\([-1,\ 4\ |\ 7]\)`, String.raw`\([1,\ 4\ |\ 7]\)`, String.raw`\([7,\ -1\ |\ 4]\)`, String.raw`coeficiente implícito \(-1\) precisa aparecer.`),
   matrixQuestion("m-gen-2", "Gerada", String.raw`\(4x_1-2x_2+x_3=0\)`, String.raw`\([4,\ -2,\ 1\ |\ 0]\)`, String.raw`\([4,\ 2,\ 1\ |\ 0]\)`, String.raw`\([0,\ 4,\ -2\ |\ 1]\)`, "lado direito zero fica depois da barra."),
   matrixQuestion("m-gen-3", "Gerada", String.raw`\(0x_1+5x_2-x_3=9\)`, String.raw`\([0,\ 5,\ -1\ |\ 9]\)`, String.raw`\([5,\ -1\ |\ 9]\)`, String.raw`\([9,\ 0,\ 5\ |\ -1]\)`, "o zero pode aparecer para manter a coluna de \(x_1\)."),
   matrixQuestion("m-gen-4", "Gerada", String.raw`\(x_1-6x_3=2\)`, String.raw`\([1,\ 0,\ -6\ |\ 2]\)`, String.raw`\([1,\ -6\ |\ 2]\)`, String.raw`\([2,\ 1,\ 0\ |\ -6]\)`, "faltou \(x_2\), então seu coeficiente é zero."),
-  matrixQuestion("m-gen-5", "Gerada", String.raw`\(\frac12x_1+x_2=3\)`, String.raw`\([\frac12,\ 1\ |\ 3]\)`, String.raw`\([2,\ 1\ |\ 3]\)`, String.raw`\([3,\ \frac12\ |\ 1]\)`, "fração pode ser coeficiente."),
+  matrixQuestion("m-gen-5", "Gerada", String.raw`\(\frac{1}{2}x_1+x_2=3\)`, String.raw`\([\frac{1}{2},\ 1\ |\ 3]\)`, String.raw`\([2,\ 1\ |\ 3]\)`, String.raw`\([3,\ \frac{1}{2}\ |\ 1]\)`, "fração pode ser coeficiente."),
   matrixQuestion("m-gen-6", "Gerada", String.raw`\(7x_2+4x_3=-8\)`, String.raw`\([0,\ 7,\ 4\ |\ -8]\)`, String.raw`\([7,\ 4\ |\ -8]\)`, String.raw`\([-8,\ 0,\ 7\ |\ 4]\)`, "se existe coluna de \(x_1\), ela recebe zero."),
   matrixQuestion("m-gen-7", "Gerada", String.raw`\(2x_1+3x_2-4x_4=5\)`, String.raw`\([2,\ 3,\ 0,\ -4\ |\ 5]\)`, String.raw`\([2,\ 3,\ -4\ |\ 5]\)`, String.raw`\([5,\ 2,\ 3,\ 0\ |\ -4]\)`, "faltou \(x_3\), então entra zero."),
   matrixQuestion("m-gen-8", "Gerada", String.raw`\(-3x_1-2x_2=-1\)`, String.raw`\([-3,\ -2\ |\ -1]\)`, String.raw`\([3,\ 2\ |\ -1]\)`, String.raw`\([-1,\ -3\ |\ -2]\)`, "os sinais negativos fazem parte dos coeficientes."),
@@ -587,7 +595,7 @@ function verifyQuestion(id, origin, vectorTex, values, expected1, expected2, ans
 
 const solutionQuestions = [
   verifyQuestion("v-l10-a", "Lista 10 ex. 2(a)", String.raw`\((2,-1,5)\)`, [2, -1, 5], 8, -3, 1, "Falha nas duas."),
-  verifyQuestion("v-l10-b", "Lista 10 ex. 2(b)", String.raw`\((0,-5,1)\)`, [0, -5, 1], 8, -3, 0, "Certo: \(0-(-5)+3=8\) e \(0-5+2=-3\)."),
+  verifyQuestion("v-l10-b", "Lista 10 ex. 2(b)", String.raw`\((0,-5,1)\)`, [0, -5, 1], 8, -3, 0, String.raw`Certo: \(0-(-5)+3=8\) e \(0-5+2=-3\).`),
   verifyQuestion("v-l10-c", "Lista 10 ex. 2(c)", String.raw`\((1,2,-3)\)`, [1, 2, -3], 8, -3, 1, "Ele passa na segunda, mas falha na primeira."),
   verifyQuestion("v-l10-d", "Lista 10 ex. 2(d)", String.raw`\((-5,-4,3)\)`, [-5, -4, 3], 8, -3, 0, "Certo: passa nas duas equações."),
   verifyQuestion("v-gen-1", "Gerada equivalente", String.raw`\((1,0,2)\)`, [1, 0, 2], 8, -3, 1, "Falha no segundo lado direito."),
@@ -608,6 +616,7 @@ function classQ(id, origin, rows, answer, pivots, free, contradiction) {
     tipo: "classificação",
     origin,
     difficulty: 2,
+    rows,
     prompt: `Classifique a matriz final: ${matrixTex(rows)}`,
     choices: names,
     answer,
@@ -702,10 +711,10 @@ const parameterQuestions = [
     ["p-gen-m1", String.raw`Antes de dividir por \(m+1\), quais casos separar?`, [String.raw`\(m=-1\) e \(m\neq-1\)`, String.raw`\(m=1\) e \(m\neq1\)`, "nenhum"], 0, String.raw`\(m+1=0\Rightarrow m=-1\).`],
     ["p-gen-lambda", String.raw`Se o pivô é \(\lambda\), qual caso especial deve ser analisado?`, [String.raw`\(\lambda=0\)`, String.raw`\(\lambda=1\)`, String.raw`\(\lambda\neq0\) apenas`], 0, String.raw`\(\lambda=0\) é o caso em que não pode dividir.`],
     ["p-gen-alpha1", String.raw`Se o pivô é \(\alpha+1\), quando ele zera?`, [String.raw`\(\alpha=-1\)`, String.raw`\(\alpha=1\)`, String.raw`\(\alpha=0\)`], 0, String.raw`\(\alpha+1=0\Rightarrow\alpha=-1\).`],
-    ["p-gen-div", "Por que não dividir direto por \(k-2\)?", ["porque pode ser zero", "porque fração é proibida", "porque muda a matriz"], 0, "se \(k=2\), a divisão seria por zero."],
+    ["p-gen-div", String.raw`Por que não dividir direto por \(k-2\)?`, ["porque pode ser zero", "porque fração é proibida", "porque muda a matriz"], 0, String.raw`se \(k=2\), a divisão seria por zero.`],
     ["p-gen-case", String.raw`No caso \(k\neq2\), \(k-2\) é:`, ["não nulo", "zero", "sempre positivo"], 0, "é não nulo por definição do caso."],
-    ["p-gen-sub", String.raw`No caso \(k=2\), o próximo passo é:`, ["substituir no sistema", "dividir por \(k-2\)", "ignorar"], 0, "caso especial precisa ser analisado com o valor substituído."],
-    ["p-gen-zero-row", String.raw`Se após substituir aparece \([0,0|5]\), a classificação é:`, ["nenhuma solução", "infinitas", "única"], 0, "isso significa \(0=5\)."],
+    ["p-gen-sub", String.raw`No caso \(k=2\), o próximo passo é:`, ["substituir no sistema", String.raw`dividir por \(k-2\)`, "ignorar"], 0, "caso especial precisa ser analisado com o valor substituído."],
+    ["p-gen-zero-row", String.raw`Se após substituir aparece \([0,0|5]\), a classificação é:`, ["nenhuma solução", "infinitas", "única"], 0, String.raw`isso significa \(0=5\).`],
     ["p-gen-free", String.raw`Se após substituir aparece \([0,0|0]\) e sobra variável sem pivô, a classificação é:`, ["infinitas", "nenhuma", "única"], 0, "há variável livre sem contradição."],
     ["p-gen-det", String.raw`Se \(\det(A)=(m-2)(m+1)\), quais valores exigem caso separado?`, [String.raw`\(m=2\) e \(m=-1\)`, String.raw`\(m=-2\) e \(m=1\)`, "nenhum"], 0, "são os zeros dos fatores."]
   ].map(([id, prompt, choices, answer, explanation]) => paramQ(id, "Gerada", prompt, choices, answer, choices.map((_, i) => i === answer ? `Certo: ${explanation}` : `Não. ${explanation}`), `Certo: ${explanation}`, fullResolution({ objective: "treinar separação de casos", operation: "igualar o possível pivô a zero", reason: "não se divide por expressão que pode zerar.", account: explanation, result: "casos separados", interpretation: "só no caso não nulo a divisão é permitida." }), 1))
@@ -716,7 +725,7 @@ const lista11FinalQuestions = [
   ...homogeneousQuestions.filter((item) => item.origin.startsWith("Lista 11")),
   ...parameterQuestions.filter((item) => item.origin === "Gerada").slice(0, 10),
   ...homogeneousQuestions.filter((item) => item.origin === "Gerada").slice(0, 10),
-  ...classifyQuestions.slice(0, 8).map((item) => ({ ...item, origin: item.origin === "Gerada" ? "Gerada equivalente Lista 11" : item.origin }))
+  ...classifyQuestions.slice(1, 9).map((item) => ({ ...item, origin: "Gerada equivalente Lista 11" }))
 ];
 
 while (lista11FinalQuestions.length < 50) {
@@ -824,11 +833,11 @@ const phases = [
     title: "Feitiços legais de linha",
     explain: String.raw`\(L_i\leftarrow cL_i\) multiplica a linha inteira por \(c\), com \(c\neq0\).`,
     why: "Multiplicar por zero apaga a equação; por isso é proibido.",
-    example: String.raw`\(\frac14[0,\ 4\ |\ 8]=[0,\ 1\ |\ 2]\).`,
+    example: String.raw`\(\frac{1}{4}[0,\ 4\ |\ 8]=[0,\ 1\ |\ 2]\).`,
     question: "Qual operação transforma 4 em 1?",
-    choices: [String.raw`\(L_2\leftarrow4L_2\)`, String.raw`\(L_2\leftarrow\frac14L_2\)`, String.raw`\(L_2\leftarrow0L_2\)`],
+    choices: [String.raw`\(L_2\leftarrow4L_2\)`, String.raw`\(L_2\leftarrow\frac{1}{4}L_2\)`, String.raw`\(L_2\leftarrow0L_2\)`],
     answer: 1,
-    feedback: String.raw`Multiplicar por \(\frac14\) é dividir tudo por 4, inclusive depois da barra.`,
+    feedback: String.raw`Multiplicar por \(\frac{1}{4}\) é dividir tudo por 4, inclusive depois da barra.`,
     origin: "Base para Lista 10",
     skill: "operações de linha"
   },
@@ -910,7 +919,7 @@ const diagnostic = [
   { target: "linear", q: String.raw`\(x_1+4x_3x_4=20\) é linear?`, c: ["Sim", "Não"], a: 1 },
   { target: "system", q: "Uma solução de sistema precisa satisfazer:", c: ["uma equação", "todas as equações", "só a última"], a: 1 },
   { target: "matrix", q: "Na matriz aumentada, a barra separa:", c: ["coeficientes e lado direito", "linhas e colunas", "pivôs e zeros"], a: 0 },
-  { target: "spell-scale", q: String.raw`Transformar \(4y=8\) em \(y=2\) é:`, c: [String.raw`multiplicar por \(\frac14\)`, "multiplicar por 4", "multiplicar por 0"], a: 0 },
+  { target: "spell-scale", q: String.raw`Transformar \(4y=8\) em \(y=2\) é:`, c: [String.raw`multiplicar por \(\frac{1}{4}\)`, "multiplicar por 4", "multiplicar por 0"], a: 0 },
   { target: "parameters", q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`, c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"], a: 0 },
   { target: "homogeneous", q: "Sistema homogêneo sempre tem:", c: ["a trivial", "contradição", "lado direito 7"], a: 0 }
 ];
@@ -1034,8 +1043,8 @@ function renderMission(mode, data, index, total, options = {}) {
       <div id="${whyId}" class="feedback">${data.why || "A técnica só entra depois de traduzir o objetivo em português simples."}</div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
-        <button class="primary" data-next="${mode}">${index === total - 1 ? (options.doneLabel || "Concluir") : "Próximo"}</button>
-        <button class="secondary" data-repeat="${mode}">Treinar de novo</button>
+        <button class="primary" data-next="${mode}" disabled>${index === total - 1 ? (options.doneLabel || "Concluir") : "Próximo"}</button>
+        <button class="secondary" data-repeat="${mode}">${mode === "guided" ? "Refazer passo" : "Refazer tela"}</button>
       </div>
     </section>
   `);
@@ -1063,7 +1072,7 @@ function diagnosticMode(index = 0, score = 0, misses = []) {
       </div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
-        <button class="primary" data-next="diagnostic">Próxima</button>
+        <button class="primary" data-next="diagnostic" disabled>Próxima</button>
         <button class="secondary" data-mode="home">Sair</button>
       </div>
     </section>
@@ -1112,8 +1121,8 @@ function labMode(index = 0) {
       </div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
-        <button class="primary" data-next="lab">${index === lab.length - 1 ? "Concluir lab" : "Próximo treino"}</button>
-        <button class="secondary" data-repeat="lab">Treinar de novo</button>
+        <button class="primary" data-next="lab" disabled>${index === lab.length - 1 ? "Concluir lab" : "Próximo treino"}</button>
+        <button class="secondary" data-repeat="lab">Refazer desafio</button>
       </div>
     </section>
   `);
@@ -1183,8 +1192,8 @@ function bossMode(key = "mixed", index = 0, score = 0, errors = []) {
       </div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
-        <button class="primary" data-next="boss">${index === set.qs.length - 1 ? "Ver desempenho" : "Próxima pergunta"}</button>
-        <button class="secondary" data-repeat="boss">Treinar de novo</button>
+        <button class="primary" data-next="boss" disabled>${index === set.qs.length - 1 ? "Ver desempenho" : "Próxima pergunta"}</button>
+        <button class="secondary" data-repeat="boss">Reiniciar boss</button>
       </div>
     </section>
   `);
@@ -1243,7 +1252,7 @@ function infiniteMode(item = pickInfiniteQuestion()) {
       </div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
-        <button class="primary" data-next="infinite">Próxima aleatória</button>
+        <button class="primary" data-next="infinite" disabled>Próxima aleatória</button>
         <button class="secondary" data-mode="home">Menu</button>
       </div>
     </section>
@@ -1255,12 +1264,12 @@ function grimoire() {
   const cards = [
     ["Notação", String.raw`<ul><li>\(L_i\): linha \(i\).</li><li>\(L_j\): outra linha usada como apoio.</li><li>\([A|b]\): matriz dos coeficientes com a coluna do lado direito.</li></ul>`],
     ["Tabela de operações", String.raw`<ul><li>\(L_i\leftrightarrow L_j\): troca a ordem das equações.</li><li>\(L_i\leftarrow cL_i\), \(c\neq0\): multiplica a linha inteira.</li><li>\(L_i\leftarrow L_i+cL_j\): soma múltiplo de outra linha.</li><li>\(c=0\) é proibido porque apaga informação.</li></ul>`],
-    ["Exemplo \(L_2-3L_1\)", String.raw`<p>Objetivo: zerar o 3 abaixo do pivô 1.</p><p>\(3L_1=[3,6,-3|-30]\).</p><p>\([3,7,2|-19]-[3,6,-3|-30]=[0,1,5|11]\).</p><p>A barra participa: \(-19-(-30)=11\).</p>`],
+    [String.raw`Exemplo \(L_2-3L_1\)`, String.raw`<p>Objetivo: zerar o 3 abaixo do pivô 1.</p><p>\(3L_1=[3,6,-3|-30]\).</p><p>\([3,7,2|-19]-[3,6,-3|-30]=[0,1,5|11]\).</p><p>A barra participa: \(-19-(-30)=11\).</p>`],
     ["Classificação", String.raw`<ul><li>Pivô em todas as variáveis: solução única.</li><li>\([0,0,0|c]\), \(c\neq0\): nenhuma solução.</li><li>Sem contradição e com variável sem pivô: infinitas soluções.</li><li>\([0,0,0|0]\) sozinho não prova infinitas; precisa faltar pivô.</li></ul>`],
     ["Homogêneos", String.raw`<ul><li>Lado direito zero: \(A\vec{x}=0\).</li><li>Sempre tem a trivial \(\vec{x}=0\).</li><li>\(\det(A)\neq0\): só trivial.</li><li>\(\det(A)=0\): há variáveis livres e soluções não triviais.</li><li>Lista 11 ex. 5: \(\det=3\alpha\), especial \(\alpha=0\), geral \((-t,t,t)\).</li><li>Lista 11 ex. 6: \(\det=3m(m-3)\), só trivial se \(m\neq0,3\).</li></ul>`],
     ["Parâmetros", String.raw`<ul><li>Não divida por \(k-2\), \(m+1\), \(\lambda-1\) ou \(\alpha+1\) sem separar o zero.</li><li>Caso geral: expressão \(\neq0\), pode dividir.</li><li>Caso especial: expressão \(=0\), substitua e classifique.</li><li>Lista 11 ex. 1(a): \(\lambda\neq1\) única; \(\lambda=1\) nenhuma; infinitas nunca.</li><li>Lista 11 ex. 4: \(k\neq-3\) única; \(k=-3\) nenhuma; infinitas nunca.</li></ul>`],
     ["Lista 10 Sistema III", String.raw`<p>Marcado como <strong>conferir enunciado</strong>. A extração do PDF mostrou a segunda equação como \(-2x_1+5x-72x_3=27\), com possível erro de OCR. O app não inventa essa equação.</p>`],
-    ["Erros comuns", "<ul><li>Esquecer o lado direito depois da barra.</li><li>Somar quando precisava subtrair.</li><li>Dividir por parâmetro que pode zerar.</li><li>Chamar \(0=0\) de contradição.</li><li>Achar que passar em uma equação basta.</li></ul>"],
+    ["Erros comuns", String.raw`<ul><li>Esquecer o lado direito depois da barra.</li><li>Somar quando precisava subtrair.</li><li>Dividir por parâmetro que pode zerar.</li><li>Chamar \(0=0\) de contradição.</li><li>Achar que passar em uma equação basta.</li></ul>`],
     ["Checklist de prova", "<ul><li>Copiei sinais?</li><li>Montei [A|b] corretamente?</li><li>Escolhi pivô não nulo?</li><li>Mostrei a conta da linha inteira?</li><li>Classifiquei por pivô, contradição e variável livre?</li><li>Separei casos de parâmetro?</li></ul>"]
   ];
   setStage(`
@@ -1321,6 +1330,7 @@ function answer(selected) {
     correct ? complete(item.id) : miss(item.skill || "jornada");
   }
   fb.className = `feedback show ${correct ? "success" : "danger"}`;
+  enableNextButtons();
   typeset();
 }
 
@@ -1338,6 +1348,7 @@ function answerLab(selected) {
   }
   $("#feedback").innerHTML = `${choice.ok ? "" : "Ainda não. "}${choice.f}${solutionBlock(item)}`;
   $("#feedback").className = `feedback show ${choice.ok ? "success" : "danger"}`;
+  enableNextButtons();
   typeset();
 }
 
@@ -1354,6 +1365,7 @@ function answerBoss(selected) {
   const msg = correct ? item.correct : (item.feedbacks?.[selected] || item.review);
   $("#feedback").innerHTML = `${correct ? "Acertou. " : "Ainda não. "}${msg}${solutionBlock(item)}`;
   $("#feedback").className = `feedback show ${correct ? "success" : "danger"}`;
+  enableNextButtons();
   typeset();
 }
 
@@ -1371,6 +1383,7 @@ function answerInfinite(selected) {
   const msg = correct ? item.correct : (item.feedbacks?.[selected] || item.review);
   $("#feedback").innerHTML = `${correct ? "Acertou. " : "Ainda não. "}${msg}${solutionBlock(item)}${recs.length ? `<p class="tiny">Erros frequentes: ${recs.map(([k, v]) => `${k} (${v})`).join(", ")}.</p>` : ""}`;
   $("#feedback").className = `feedback show ${correct ? "success" : "danger"}`;
+  enableNextButtons();
   typeset();
 }
 
@@ -1417,7 +1430,7 @@ function repeat(kind) {
   if (kind === "journey") return journey(screen.index);
   if (kind === "lab") return labMode(screen.index);
   if (kind === "guided") return guidedMode(screen.index);
-  if (kind === "boss") return bossMode(screen.boss, screen.index, screen.score, screen.errors);
+  if (kind === "boss") return bossMode(screen.boss, 0, 0, []);
   if (kind === "infinite") return infiniteMode(screen.item);
 }
 

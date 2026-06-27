@@ -88,6 +88,28 @@ Referencias oficiais:
 - [Cloudflare Pages: Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/)
 - [Cloudflare Pages: Deploy any static site](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/)
 
+## Pente fino 2x
+
+Auditoria feita em duas passadas depois do aprofundamento matematico.
+
+Passada 1:
+
+- Corrigida renderizacao de formulas em feedbacks e itens do Grimorio que usavam LaTeX dentro de strings comuns.
+- Uniformizadas fracoes como `\frac{1}{4}`, `\frac{1}{2}` e `\frac{3}{4}` para evitar renderizacao ambigua.
+- Ajustado o Boss final para nao misturar uma questao com origem `Lista 10` dentro do bloco `Lista 11`.
+- O botao de avancar agora fica desabilitado ate o aluno responder em Jornada, Diagnostico, Laboratorio, Boss e Treino infinito.
+- O botao do boss foi renomeado para `Reiniciar boss` e reinicia a pontuacao, evitando inflar score repetindo a mesma pergunta.
+- As questoes de classificacao passaram a preservar a matriz original nos dados internos, permitindo auditoria automatizada.
+- O espacamento inferior foi ajustado com `env(safe-area-inset-bottom)` para a barra fixa nao cobrir conteudo no mobile.
+
+Passada 2:
+
+- `node --check script.js` passou.
+- Auditoria programatica confirmou contagens, ids, origens, alternativas, feedbacks e ausencia de lacunas no banco de questoes.
+- Classificacoes foram recalculadas por pivots, contradicao e variaveis livres.
+- Substituicoes da Lista 10 ex. 2 e contas centrais do exemplo guiado foram conferidas.
+- Teste mobile no Chrome confirmou botoes grandes, ausencia de overflow horizontal, MathJax renderizando, imagem carregando, localStorage funcional e console sem erros.
+
 ## Checklist de auditoria
 
 - Nao ha backend.
