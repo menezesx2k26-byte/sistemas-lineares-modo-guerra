@@ -112,6 +112,12 @@ function solutionBlock(item, label = "Ver conta inteira") {
   return `<details class="solution"><summary>${label}</summary><div>${item.solution || item.resolution}</div></details>`;
 }
 
+function contextBlock(item) {
+  const data = item.context || item.data || item.dados;
+  if (!data) return "";
+  return `<div class="exercise-data"><span class="source-chip soft">Dados</span><div class="math-box">${data}</div></div>`;
+}
+
 function topMistakes() {
   return Object.entries(state.stats.mistakes || {})
     .sort((a, b) => b[1] - a[1])
@@ -561,21 +567,104 @@ const matrixQuestions = [
   matrixQuestion("m-gen-12", "Gerada", String.raw`\(-x_1-x_2-x_3=-6\)`, String.raw`\([-1,\ -1,\ -1\ |\ -6]\)`, String.raw`\([1,\ 1,\ 1\ |\ -6]\)`, String.raw`\([-6,\ -1,\ -1\ |\ -1]\)`, "coeficiente implícito negativo é \(-1\).")
 ];
 
+const lista10Ex2System = String.raw`
+  <p><strong>Sistema:</strong></p>
+  \[\begin{cases}
+  x_1-x_2+3x_3=8\\
+  x_1+x_2+2x_3=-3
+  \end{cases}\]
+`;
+
+const lista11Ex1aSystem = String.raw`
+  <p><strong>Sistema:</strong></p>
+  \[\begin{cases}
+  \lambda x+2y=\lambda-1\\
+  2x+4y=3\lambda
+  \end{cases}\]
+`;
+
+const lista11Ex2System = String.raw`
+  <p><strong>Sistema:</strong></p>
+  \[
+  \begin{pmatrix}
+  m&1&1\\
+  2&-1&2\\
+  4&-1&1
+  \end{pmatrix}
+  \vec{x}=
+  \begin{pmatrix}2\\5\\6\end{pmatrix}
+  \]
+`;
+
+const lista11Ex3System = String.raw`
+  <p><strong>Sistema:</strong></p>
+  \[\begin{cases}
+  x_1+4x_2+\alpha x_3=6\\
+  2x_1-x_2+2\alpha x_3=3\\
+  \alpha x_1+3x_2+x_3=5
+  \end{cases}\]
+`;
+
+const lista11Ex4System = String.raw`
+  <p><strong>Sistema:</strong></p>
+  \[\begin{cases}
+  x_1+3x_2+x_3=5\\
+  2x_1+4x_2+3x_3=5\\
+  -x_1+x_2+kx_3=2
+  \end{cases}\]
+`;
+
+const lista11Ex5Homogeneous = String.raw`
+  <p><strong>Homogêneo:</strong></p>
+  \[
+  \begin{pmatrix}
+  2&1&1\\
+  1&\alpha&1\\
+  1&-1&2
+  \end{pmatrix}\vec{x}=\vec{0}
+  \]
+`;
+
+const lista11Ex6Homogeneous = String.raw`
+  <p><strong>Homogêneo:</strong></p>
+  \[
+  \begin{pmatrix}
+  1&2&2\\
+  m-1&1&m-2\\
+  m+1&m-1&2
+  \end{pmatrix}\vec{x}=\vec{0}
+  \]
+`;
+
+matrixQuestions.forEach((item) => {
+  if (item.origin === "Lista 10 ex. 2") item.context = lista10Ex2System;
+});
+
 function verifyQuestion(id, origin, vectorTex, values, expected1, expected2, answer, note) {
   const [x1, x2, x3] = values;
   const e1 = x1 - x2 + 3 * x3;
   const e2 = x1 + x2 + 2 * x3;
+  const assignmentText = String.raw`\(x_1=${x1},\quad x_2=${x2},\quad x_3=${x3}\)`;
+  const context = String.raw`
+    ${lista10Ex2System}
+    <p><strong>Vetor:</strong> ${vectorTex}, isto é, ${assignmentText}.</p>
+  `;
+  const substitution = String.raw`Primeira: \(${x1}-(${x2})+3\cdot${x3}=${e1}\). Segunda: \(${x1}+(${x2})+2\cdot${x3}=${e2}\).`;
+  const passes = e1 === expected1 && e2 === expected2;
   return q({
     id,
     tipo: "verificar solução",
     origin,
     difficulty: 1,
-    prompt: String.raw`No sistema da Lista 10 ex. 2, o vetor ${vectorTex} satisfaz as duas equações?`,
+    context,
+    vectorTex,
+    assignmentText,
+    prompt: String.raw`Esse vetor satisfaz as duas equações?`,
     choices: ["Sim, passa nas duas", "Não, falha em pelo menos uma", "Basta passar na primeira"],
     answer,
     feedbacks: [
-      answer === 0 ? "Certo: passou nas duas equações." : `Não. As contas dão ${e1} e ${e2}; precisa dar 8 e -3.`,
-      answer === 1 ? "Certo: acertar uma equação só não basta." : "Não. Ele passa nas duas; confira os dois lados direitos.",
+      passes ? String.raw`Certo. ${substitution} Os resultados batem com \(8\) e \(-3\).` : String.raw`Não. ${substitution} Para ser solução, teria que dar \(8\) e \(-3\).`,
+      passes ? String.raw`Não. ${substitution} Ele passa nas duas equações.` : String.raw`Certo. ${substitution} Falhou em pelo menos uma equação.`,
       "Não. Acertar uma equação só não basta. Precisa passar nas duas."
     ],
     correct: note,
@@ -583,7 +672,7 @@ function verifyQuestion(id, origin, vectorTex, values, expected1, expected2, ans
       objective: "substituir o vetor nas duas equações",
       operation: String.raw`\(x_1-x_2+3x_3\) e \(x_1+x_2+2x_3\)`,
       reason: "solução de sistema precisa satisfazer tudo simultaneamente.",
-      account: String.raw`Primeira: \(${x1}-(${x2})+3(${x3})=${e1}\). Segunda: \(${x1}+(${x2})+2(${x3})=${e2}\).`,
+      account: substitution,
       result: `esperado: ${expected1} e ${expected2}. obtido: ${e1} e ${e2}.`,
       interpretation: answer === 0 ? "o vetor é solução." : "o vetor não é solução.",
       trap: "passar em uma equação só não resolve o sistema."
@@ -617,7 +706,8 @@ function classQ(id, origin, rows, answer, pivots, free, contradiction) {
     origin,
     difficulty: 2,
     rows,
-    prompt: `Classifique a matriz final: ${matrixTex(rows)}`,
+    context: matrixTex(rows),
+    prompt: "Classifique a matriz final.",
     choices: names,
     answer,
     feedbacks: [
@@ -689,6 +779,11 @@ const homogeneousQuestions = [
   homogQ("h-gen-10", "Gerada", String.raw`No exercício 6 da Lista 11, \(m=3\) é permitido para 'apenas trivial'?`, ["Não", "Sim", "Só se \(m\neq0\)"], 0, ["Certo: \(3m(m-3)=0\) em \(m=3\).", "Não: o determinante zera.", "Também precisa excluir \(m=3\)."], "Certo.", fullResolution({ objective: "usar os valores proibidos", operation: String.raw`\(3m(m-3)\neq0\)`, reason: "apenas trivial exige determinante não zero.", account: String.raw`m=3\Rightarrow3m(m-3)=0`, result: "não permitido", interpretation: "em \(m=3\), podem aparecer não triviais." }))
 ];
 
+homogeneousQuestions.forEach((item) => {
+  if (item.id.startsWith("h-l11-5")) item.context = lista11Ex5Homogeneous;
+  if (item.id.startsWith("h-l11-6") || item.id === "h-gen-10") item.context = lista11Ex6Homogeneous;
+});
+
 const parameterQuestions = [
   paramQ("p-l11-1a-det", "Lista 11 ex. 1(a)", String.raw`Para \(\lambda x+2y=\lambda-1,\ 2x+4y=3\lambda\), o determinante dos coeficientes é:`, [String.raw`\(4(\lambda-1)\)`, String.raw`\(\lambda-1\)`, String.raw`\(4\lambda+4\)`], 0, [String.raw`Certo: \(\lambda\cdot4-2\cdot2=4\lambda-4\).`, "Faltou o fator 4.", "O sinal está errado: é subtração no determinante."], String.raw`Certo: \(4(\lambda-1)\).`, fullResolution({ objective: "descobrir quando há pivô", operation: "calcular determinante \(2\times2\)", reason: "determinante não zero dá solução única.", account: String.raw`\(\lambda\cdot4-2\cdot2=4\lambda-4=4(\lambda-1)\)`, result: String.raw`\(\lambda\neq1\) para solução única`, interpretation: "o caso \(\lambda=1\) precisa ser separado.", trap: "não divida por \(\lambda-1\) antes de separar." })),
   paramQ("p-l11-1a-case1", "Lista 11 ex. 1(a)", String.raw`No sistema do ex. 1(a), se \(\lambda\neq1\), a classificação é:`, ["solução única", "nenhuma solução", "infinitas soluções"], 0, ["Certo: determinante não zero.", "Não: sem determinante zero não há contradição obrigatória.", "Infinitas só poderiam surgir no caso determinante zero."], "Certo.", fullResolution({ objective: "classificar caso geral", operation: String.raw`\(\lambda\neq1\)`, reason: String.raw`\(4(\lambda-1)\neq0\)`, account: "matriz de coeficientes tem pivôs nas duas variáveis.", result: "solução única", interpretation: "pode resolver normalmente." })),
@@ -719,6 +814,27 @@ const parameterQuestions = [
     ["p-gen-det", String.raw`Se \(\det(A)=(m-2)(m+1)\), quais valores exigem caso separado?`, [String.raw`\(m=2\) e \(m=-1\)`, String.raw`\(m=-2\) e \(m=1\)`, "nenhum"], 0, "são os zeros dos fatores."]
   ].map(([id, prompt, choices, answer, explanation]) => paramQ(id, "Gerada", prompt, choices, answer, choices.map((_, i) => i === answer ? `Certo: ${explanation}` : `Não. ${explanation}`), `Certo: ${explanation}`, fullResolution({ objective: "treinar separação de casos", operation: "igualar o possível pivô a zero", reason: "não se divide por expressão que pode zerar.", account: explanation, result: "casos separados", interpretation: "só no caso não nulo a divisão é permitida." }), 1))
 ];
+
+const generatedParameterContexts = {
+  "p-gen-k2": String.raw`<p><strong>Pivô possível:</strong> \(k-2\). Pergunta: quando esse número vira zero?</p>`,
+  "p-gen-m1": String.raw`<p><strong>Pivô possível:</strong> \(m+1\). Antes de dividir, separe o caso em que ele zera.</p>`,
+  "p-gen-lambda": String.raw`<p><strong>Pivô possível:</strong> \(\lambda\). Dividir por \(\lambda\) só é permitido quando \(\lambda\neq0\).</p>`,
+  "p-gen-alpha1": String.raw`<p><strong>Pivô possível:</strong> \(\alpha+1\). Pergunta: quando \(\alpha+1=0\)?</p>`,
+  "p-gen-div": String.raw`<p><strong>Pivô possível:</strong> \(k-2\). O perigo é tentar dividir sem testar \(k=2\).</p>`,
+  "p-gen-case": String.raw`<p><strong>Casos:</strong> \(k-2=0\Rightarrow k=2\) e \(k-2\neq0\Rightarrow k\neq2\).</p>`,
+  "p-gen-sub": String.raw`<p><strong>Caso especial:</strong> \(k=2\), então \(k-2=0\). Não divida; substitua no sistema ou na matriz.</p>`,
+  "p-gen-zero-row": String.raw`<p><strong>Linha final:</strong> \([0,0|5]\). Tradução: \(0=5\).</p>`,
+  "p-gen-free": String.raw`<p><strong>Linha final:</strong> \([0,0|0]\), sem contradição, e existe variável sem pivô.</p>`,
+  "p-gen-det": String.raw`<p><strong>Determinante:</strong> \(\det(A)=(m-2)(m+1)\). Casos especiais vêm dos zeros dos fatores.</p>`
+};
+
+parameterQuestions.forEach((item) => {
+  if (item.id.startsWith("p-l11-1a")) item.context = lista11Ex1aSystem;
+  if (item.id.startsWith("p-l11-2")) item.context = lista11Ex2System;
+  if (item.id.startsWith("p-l11-3")) item.context = lista11Ex3System;
+  if (item.id.startsWith("p-l11-4")) item.context = lista11Ex4System;
+  if (generatedParameterContexts[item.id]) item.context = generatedParameterContexts[item.id];
+});
 
 const lista11FinalQuestions = [
   ...parameterQuestions.filter((item) => item.origin.startsWith("Lista 11")),
@@ -789,6 +905,7 @@ const phases = [
     title: "Solução de sistema",
     explain: "Um vetor só é solução se passa em todas as equações ao mesmo tempo.",
     why: "Acertar uma equação só não basta. Sistema é pacote fechado.",
+    context: lista10Ex2System,
     example: String.raw`Teste \((1,2,-3)\): a segunda passa, mas a primeira falha.`,
     question: "Se falha em uma equação, ainda é solução?",
     choices: ["Sim", "Não"],
@@ -801,10 +918,10 @@ const phases = [
     id: item.id,
     phase: "Lista 10 ex. 2",
     title: "Substituir vetor",
-    explain: "Substitua \(x_1,x_2,x_3\) nas duas equações. Só conclua depois da segunda.",
+    explain: String.raw`Substitua os valores do vetor nas duas equações: ${item.assignmentText}. Só conclua depois de testar as duas.`,
     why: "A prova cobra simultaneamente, não equação isolada.",
-    example: item.prompt,
-    question: "Qual é a conclusão?",
+    context: item.context,
+    question: item.prompt,
     choices: item.choices,
     answer: item.answer,
     feedbacks: item.feedbacks,
@@ -875,6 +992,7 @@ const phases = [
     title: "Homogêneo",
     explain: String.raw`Sistema homogêneo tem lado direito zero: \(A\vec{x}=\vec{0}\).`,
     why: "Tudo zero sempre funciona; por isso homogêneo nunca é impossível.",
+    context: lista11Ex5Homogeneous,
     example: String.raw`Na Lista 11 ex. 5, \(\det(A)=3\alpha\). O caso especial é \(\alpha=0\).`,
     question: "Homogêneo pode ser sem solução?",
     choices: ["Sim", "Não"],
@@ -1033,6 +1151,7 @@ function renderMission(mode, data, index, total, options = {}) {
         <div class="bar"><span style="width:${progress}%"></span></div>
       </div>
       ${sourceChip(data)}
+      ${contextBlock(data)}
       <p>${data.explain || data.body}</p>
       ${data.example || data.math ? `<div class="math-box">${data.example || data.math}</div>` : ""}
       <div class="choices">
@@ -1178,6 +1297,7 @@ function bossMode(key = "mixed", index = 0, score = 0, errors = []) {
   const set = bossSets[key];
   screen = { mode: key === "mixed" ? "finalBoss" : "boss", index, boss: key, score, errors, item: null };
   const item = set.qs[index];
+  const whyId = `why-boss-${item.id}`;
   setStage(`
     <section class="micro">
       <div class="module-header">
@@ -1186,10 +1306,13 @@ function bossMode(key = "mixed", index = 0, score = 0, errors = []) {
         <div class="bar"><span style="width:${((index + 1) / set.qs.length) * 100}%"></span></div>
       </div>
       ${sourceChip(item)}
+      ${contextBlock(item)}
       <div class="choices">
         <p><strong>${item.prompt}</strong></p>
         ${item.choices.map((choice, i) => `<button class="choice" data-boss-answer="${i}">${choice}</button>`).join("")}
       </div>
+      <button class="secondary" data-why="${whyId}">Por quê?</button>
+      <div id="${whyId}" class="feedback">${item.why || item.review || "Leia os dados, identifique o objeto matemático e só então escolha a alternativa."}</div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
         <button class="primary" data-next="boss" disabled>${index === set.qs.length - 1 ? "Ver desempenho" : "Próxima pergunta"}</button>
@@ -1238,6 +1361,7 @@ function pickInfiniteQuestion() {
 
 function infiniteMode(item = pickInfiniteQuestion()) {
   screen = { mode: "infinite", index: 0, boss: "infinite", score: 0, errors: [], item };
+  const whyId = `why-infinite-${item.id}`;
   setStage(`
     <section class="micro">
       <div class="module-header">
@@ -1246,10 +1370,13 @@ function infiniteMode(item = pickInfiniteQuestion()) {
         <div class="bar"><span style="width:${Math.min(100, state.streak * 10)}%"></span></div>
       </div>
       ${sourceChip(item)}
+      ${contextBlock(item)}
       <div class="choices">
         <p><strong>${item.prompt}</strong></p>
         ${item.choices.map((choice, i) => `<button class="choice" data-infinite-answer="${i}">${choice}</button>`).join("")}
       </div>
+      <button class="secondary" data-why="${whyId}">Por quê?</button>
+      <div id="${whyId}" class="feedback">${item.why || item.review || "A pergunta deve ser resolvida usando apenas os dados mostrados acima."}</div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
         <button class="primary" data-next="infinite" disabled>Próxima aleatória</button>
@@ -1324,7 +1451,7 @@ function answer(selected) {
     fb.innerHTML = correct ? "Acertou." : "Quase. Vou recomendar revisão, sem bloquear nada.";
   } else {
     const msg = correct
-      ? (item.feedback || item.f || "Certo.")
+      ? (item.feedbacks?.[selected] || item.feedback || item.f || "Certo.")
       : (item.feedbacks?.[selected] || item.wrong || item.feedback || item.f || "Revise a conta.");
     fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item)}`;
     correct ? complete(item.id) : miss(item.skill || "jornada");

@@ -345,6 +345,16 @@ p {
   border: 1px solid #ead8aa;
 }
 
+.exercise-data {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.exercise-data .math-box {
+  background: #f7fbff;
+  border-color: #c8d8e8;
+}
+
 .choices {
   display: grid;
   gap: 0.55rem;
