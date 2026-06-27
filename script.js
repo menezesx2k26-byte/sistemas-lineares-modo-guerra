@@ -759,7 +759,7 @@ const phases = [
     title: "Coeficiente e termo independente",
     explain: "Coeficiente multiplica variável. Termo independente fica do outro lado da igualdade.",
     why: "Sem isso, a matriz aumentada vira cópia aleatória de números.",
-    example: String.raw`Em \(3x_1+7x_2+2x_3=-19\), \(3,7,2\) são coeficientes e \(-19\) é termo independente.`,
+    example: String.raw`Em \(3x_1+7x_2+2x_3=-19\), os coeficientes são \(3,7,2\). O \(-19\) não é coeficiente: é o termo independente, porque fica do lado direito da igualdade.`,
     question: "Qual é o termo independente?",
     choices: ["7", "-19", "2"],
     answer: 1,
