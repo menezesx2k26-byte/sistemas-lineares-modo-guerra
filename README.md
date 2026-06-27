@@ -50,10 +50,12 @@ Depois abra o endereco mostrado pelo terminal.
 ## Decisoes didaticas e de design
 
 - A casca gamificada foi mantida; a refatoracao aprofundou principalmente `script.js`.
-- A Jornada agora usa uma trilha canonica `COURSE_PATH`, com 75 missoes em ordem linear, do fundamento ao boss final.
+- A Jornada agora usa uma trilha canonica `COURSE_PATH`, com 91 missoes em ordem linear, do fundamento ao boss final.
+- A trilha inclui 16 microaulas de formalizacao matematica para nomes como SPD, SPI, SI, matriz aumentada, forma matricial, conjunto solucao, solucao trivial, pivo, variavel livre e parametro.
 - O botao "Continuar jornada" sempre procura a proxima missao da campanha ainda nao concluida; se tudo foi concluido, mostra "Campanha concluida".
 - "Comecar do zero" reinicia apenas o progresso da campanha linear depois de confirmacao, sem apagar XP, medalhas ou historico dos modos auxiliares.
 - Lab, Duelos, Treino Infinito, Grimorio e Boss livre continuam existindo como modos auxiliares, mas nao controlam a ordem da Jornada.
+- O HUD tem alternancia de tema claro/escuro salva em `localStorage`, com contraste alto e cores vivas.
 - O conteudo longo fica no Grimorio. Jornada, Laboratorio e Boss mostram uma decisao por tela.
 - O Laboratorio reforca a automatizacao de operacoes de linha antes de exigir escalonamento completo.
 - O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.

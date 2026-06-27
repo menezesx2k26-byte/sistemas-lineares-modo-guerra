@@ -24,6 +24,7 @@ const defaultState = {
   lastMode: "home",
   diagnostic: null,
   bossUnlocked: false,
+  theme: "light",
   stats: { mistakes: {}, seen: {} }
 };
 
@@ -84,10 +85,29 @@ function complete(id) {
 }
 
 function renderHud() {
+  applyTheme();
   $("#xpStat").textContent = `${state.xp} XP`;
   $("#streakStat").textContent = `${state.streak} sequência`;
   $("#medalStat").textContent = `${state.medals.length} medalhas`;
+  const themeButton = $("[data-theme-toggle]");
+  if (themeButton) {
+    const isDark = state.theme === "dark";
+    themeButton.textContent = isDark ? "Claro" : "Escuro";
+    themeButton.setAttribute?.("aria-label", `Ativar tema ${isDark ? "claro" : "escuro"}`);
+  }
   $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === screen.mode));
+}
+
+function applyTheme() {
+  const theme = state.theme === "dark" ? "dark" : "light";
+  if (!document.documentElement) return;
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
+}
+
+function toggleTheme() {
+  state.theme = state.theme === "dark" ? "light" : "dark";
+  saveState();
 }
 
 function setStage(html) {
@@ -486,7 +506,7 @@ function linearQuestion(id, origin, equation, isLinear, reason, skill = "equaç�
       reason: "em equação linear, cada variável aparece com expoente 1, sem produto entre variáveis, raiz de variável ou variável no denominador.",
       account: `Equação analisada: ${equation}. ${reason}`,
       result: isLinear ? "linear" : "não linear",
-      interpretation: "só equações lineares entram nas técnicas de matriz aumentada e escalonamento."
+      interpretation: "só equações lineares entram nas técnicas dos próximos capítulos."
     }),
     skill,
     review: "Revisar equação linear: expoente 1, sem produto, sem raiz e sem variável no denominador."
@@ -851,7 +871,7 @@ while (lista11FinalQuestions.length < 50) {
 }
 
 const guided = [
-  { id: "g1", title: "Sistema I: montar a aumentada", body: "Antes de escalonar, traduza o sistema para matriz aumentada. Cada linha é uma equação.", math: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19], [5, 12, 5, -21]]), q: "O que fica depois da barra?", c: ["coeficientes", "lado direito", "pivôs"], a: 1, f: "Depois da barra ficam os termos independentes.", origin: "Lista 10 sistema I", skill: "matriz aumentada" },
+  { id: "g1", title: "Sistema I: montar a aumentada", body: "Antes de organizar as contas, traduza o sistema para matriz aumentada. Cada linha é uma equação.", math: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19], [5, 12, 5, -21]]), q: "O que fica depois da barra?", c: ["coeficientes", "lado direito", "nomes das linhas"], a: 1, f: "Depois da barra ficam os termos independentes.", origin: "Lista 10 sistema I", skill: "matriz aumentada" },
   { id: "g2", title: "Objetivo antes da operação", body: "Não aplicamos operação por decoração. Primeiro, diga o objetivo local.", math: matrixTex([[1, 2, -1, -10], [3, 7, 2, -19]]), q: "Qual número queremos zerar na linha 2?", c: ["3", "7", "-19"], a: 0, f: "Queremos zerar o 3 abaixo do pivô 1.", origin: "Lista 10 sistema I", skill: "pivô" },
   { id: "g3", title: "Escolher o pivô", body: "O pivô é o número de apoio. Aqui ele é o 1 da primeira linha.", math: String.raw`\[pivô=1,\quad número\ abaixo=3\]`, q: "Por que o multiplicador é 3?", c: [String.raw`\(3-3\cdot1=0\)`, String.raw`\(3+3\cdot1=6\)`, String.raw`\(1-3=-2\)`], a: 0, f: "O 3 foi escolhido para cancelar exatamente o 3 abaixo do pivô.", origin: "Lista 10 sistema I", skill: "zerar abaixo" },
   { id: "g4", title: String.raw`Calcular \(3L_1\)`, body: "Antes de subtrair, monte o bloco que será subtraído.", math: String.raw`\[L_1=[1,\ 2,\ -1\ |\ -10]\]`, q: String.raw`Quanto é \(3L_1\)?`, c: [String.raw`\([3,\ 6,\ -3\ |\ -30]\)`, String.raw`\([3,\ 6,\ -3\ |\ -10]\)`, String.raw`\([3,\ 5,\ 2\ |\ -19]\)`], a: 0, f: "O lado direito também multiplica: \(3\cdot(-10)=-30\).", origin: "Lista 10 sistema I", skill: "calcular múltiplo" },
@@ -1081,6 +1101,7 @@ function courseMission({
   feedback,
   feedbacks,
   fullSolution,
+  solutionLabel,
   why
 }) {
   return {
@@ -1102,6 +1123,7 @@ function courseMission({
     feedbacks,
     fullSolution,
     solution: fullSolution,
+    solutionLabel,
     why
   };
 }
@@ -1171,7 +1193,7 @@ function courseFromLab(courseId, chapter, item, overrides = {}) {
   });
 }
 
-const COURSE_PATH = [
+const COURSE_PATH_BASE = [
   courseMission({
     id: "course-c0-01-system-linear",
     chapter: COURSE_CHAPTERS[0],
@@ -1200,7 +1222,7 @@ const COURSE_PATH = [
     answer: 0,
     feedback: String.raw`\(x_2\) é uma variável. O 7 multiplica a variável e o -19 é o lado direito.`,
     fullSolution: String.raw`<p>As letras com índice, como \(x_1,x_2,x_3\), são as incógnitas. Os números que multiplicam essas letras são coeficientes.</p>`,
-    why: "A matriz aumentada só faz sentido quando sabemos o que vira coluna."
+    why: "A tabela com números do sistema só faz sentido quando sabemos o que vira coluna."
   }),
   courseMission({
     id: "course-c0-03-coefficient",
@@ -1228,9 +1250,9 @@ const COURSE_PATH = [
     question: "Qual é o termo independente?",
     choices: ["7", "-19", "2"],
     answer: 1,
-    feedback: "O -19 fica depois da igualdade. Na matriz aumentada, ele vai depois da barra.",
-    fullSolution: String.raw`<p>Os coeficientes ficam antes da barra: \([3,7,2|-19]\). O termo independente é \(-19\).</p>`,
-    why: "Esse é o ponto que precisa estar explícito antes de montar matriz aumentada."
+    feedback: "O -19 fica depois da igualdade. Mais tarde, ele vira o lado direito depois da barra.",
+    fullSolution: String.raw`<p>Os coeficientes são \(3,7,2\), e o termo independente é \(-19\). Quando criarmos a tabela com barra, esse \(-19\) ficará depois dela.</p>`,
+    why: "Esse é o ponto que precisa estar explícito antes de transformar o sistema em tabela."
   }),
   courseMission({
     id: "course-c0-05-solve-meaning",
@@ -1262,7 +1284,7 @@ const COURSE_PATH = [
     item,
     {
       explain: "Equação linear tem variáveis em grau 1, sem produto entre variáveis, sem raiz de variável e sem variável no denominador.",
-      why: "Só sistemas lineares entram na técnica de matriz aumentada e escalonamento."
+      why: "Só sistemas lineares entram nas técnicas dos próximos capítulos."
     }
   )),
 
@@ -1307,7 +1329,9 @@ const COURSE_PATH = [
   }),
   courseFromGuided("course-c3-19-augmented-matrix", COURSE_CHAPTERS[3], guided[0], {
     title: "Montar a matriz aumentada do Sistema I",
-    data: lista10SystemI + guided[0].math
+    data: lista10SystemI + guided[0].math,
+    explain: "Antes das contas de linha, traduza o sistema para matriz aumentada. Cada linha é uma equação.",
+    choices: ["coeficientes", "lado direito", "nomes das linhas"]
   }),
   courseMission({
     id: "course-c3-20-bar-meaning",
@@ -1318,7 +1342,7 @@ const COURSE_PATH = [
     data: matrixTex([[3, 7, 2, -19]]),
     explain: "A barra separa o lado esquerdo da equação do lado direito.",
     question: "O número depois da barra é:",
-    choices: ["termo independente", "coeficiente de \(x_3\)", "pivô"],
+    choices: ["termo independente", "coeficiente de \(x_3\)", "número de apoio"],
     answer: 0,
     feedback: "Depois da barra fica o lado direito da equação.",
     fullSolution: String.raw`<p>\([3,7,2|-19]\) traduz \(3x_1+7x_2+2x_3=-19\).</p>`,
@@ -1345,7 +1369,7 @@ const COURSE_PATH = [
     answer: 0,
     feedback: "Coeficientes nas três primeiras colunas; termos independentes depois da barra.",
     fullSolution: String.raw`<p>Cada linha da matriz é uma equação do sistema na mesma ordem em que foi escrita.</p>`,
-    why: "Esse é o ponto de entrada para escalonamento."
+    why: "Esse é o ponto de entrada para as operações de linha."
   }),
 
   courseMission({
@@ -1502,6 +1526,326 @@ const COURSE_PATH = [
   })
 ];
 
+function formalMission({
+  id,
+  chapter,
+  title,
+  skill,
+  data,
+  explain,
+  question,
+  choices,
+  answer,
+  feedback,
+  fullSolution,
+  why
+}) {
+  return courseMission({
+    id,
+    chapter,
+    title,
+    origin: "Nome oficial desbloqueado",
+    skill,
+    difficulty: 1,
+    type: "formalização",
+    data,
+    explain,
+    question,
+    choices,
+    answer,
+    feedback,
+    fullSolution,
+    solutionLabel: "Abrir verbete do Grimório",
+    why
+  });
+}
+
+const FORMAL_BEFORE = {
+  "course-c1-06-l10-1a": [
+    formalMission({
+      id: "course-formal-01-equation-linear",
+      chapter: COURSE_CHAPTERS[1],
+      title: "Nome oficial: equação linear",
+      skill: "equação linear formal",
+      data: String.raw`\[a_1x_1+a_2x_2+\cdots+a_nx_n=b\]`,
+      explain: String.raw`Tradução humana: é uma equação em que cada incógnita aparece só no grau 1. O nome oficial é equação linear.`,
+      question: String.raw`Na forma geral, quem são os coeficientes?`,
+      choices: [String.raw`\(a_1,a_2,\ldots,a_n\)`, String.raw`\(x_1,x_2,\ldots,x_n\)`, String.raw`\(b\)`],
+      answer: 0,
+      feedback: String.raw`Isso: os \(a_i\) multiplicam as incógnitas. O \(b\) é o termo independente.`,
+      fullSolution: String.raw`<p><strong>Incógnitas:</strong> \(x_1,x_2,\ldots,x_n\).</p><p><strong>Coeficientes:</strong> \(a_1,a_2,\ldots,a_n\).</p><p><strong>Termo independente:</strong> \(b\).</p><p><strong>Erro comum:</strong> chamar o lado direito de coeficiente. Ele não multiplica variável.</p>`,
+      why: "Nome oficial desbloqueado: agora a intuição tem crachá de professora exigente."
+    })
+  ],
+  "course-c2-12-vector-solution": [
+    formalMission({
+      id: "course-formal-02-system-linear",
+      chapter: COURSE_CHAPTERS[2],
+      title: "Nome oficial: sistema linear",
+      skill: "sistema linear formal",
+      data: String.raw`\[\begin{cases}
+a_{11}x_1+a_{12}x_2+\cdots+a_{1n}x_n=b_1\\
+a_{21}x_1+a_{22}x_2+\cdots+a_{2n}x_n=b_2\\
+\vdots\\
+a_{m1}x_1+a_{m2}x_2+\cdots+a_{mn}x_n=b_m
+\end{cases}\]`,
+      explain: String.raw`Tradução humana: são várias equações lineares jogando juntas. Aqui \(m\) é o número de equações e \(n\) é o número de incógnitas.`,
+      question: String.raw`Na notação formal, \(m\) indica:`,
+      choices: ["número de equações", "número de incógnitas", "termo independente"],
+      answer: 0,
+      feedback: String.raw`Certo. \(m\) conta as linhas/equações; \(n\) conta as incógnitas.`,
+      fullSolution: String.raw`<p>Uma solução precisa satisfazer as \(m\) equações simultaneamente. Acertar uma linha só ainda não resolve o sistema.</p><p><strong>Erro comum:</strong> testar apenas a primeira equação e concluir cedo demais.</p>`,
+      why: "A regra da campanha: uma solução só vence se passar por todas as portas."
+    }),
+    formalMission({
+      id: "course-formal-03-solution-set",
+      chapter: COURSE_CHAPTERS[2],
+      title: "Nome oficial: solução e conjunto solução",
+      skill: "conjunto solução",
+      data: String.raw`\[(x_1,x_2,\ldots,x_n)\quad\text{ou}\quad
+\vec{x}=\begin{pmatrix}x_1\\x_2\\\vdots\\x_n\end{pmatrix}\]
+\[S=\{(x_1,x_2,\ldots,x_n)\in\mathbb{R}^n:\text{ satisfaz o sistema}\}\]`,
+      explain: "Tradução humana: a solução é um vetor de valores. O conjunto solução é a caixa com todos os vetores que funcionam.",
+      question: "Um vetor solução precisa:",
+      choices: ["satisfazer todas as equações", "ter só números positivos", "ser igual aos coeficientes"],
+      answer: 0,
+      feedback: "Exato. Se falhar em uma equação, não pertence ao conjunto solução.",
+      fullSolution: String.raw`<p>Se há uma resposta só, \(S\) tem um único elemento. Se há parâmetro livre, \(S\) tem infinitos elementos. O caso de conjunto vazio será nomeado no capítulo de classificação.</p><p><strong>Erro comum:</strong> confundir o vetor solução com a matriz dos coeficientes.</p>`,
+      why: "Esse é o jeito formal de dizer: quais respostas realmente passam no sistema?"
+    })
+  ],
+  "course-c3-17-line-row": [
+    formalMission({
+      id: "course-formal-04-coefficient-matrix",
+      chapter: COURSE_CHAPTERS[3],
+      title: "Nome oficial: matriz dos coeficientes",
+      skill: "matriz dos coeficientes",
+      data: String.raw`\[A=\begin{pmatrix}
+a_{11}&a_{12}&\cdots&a_{1n}\\
+a_{21}&a_{22}&\cdots&a_{2n}\\
+\vdots&\vdots&\ddots&\vdots\\
+a_{m1}&a_{m2}&\cdots&a_{mn}
+\end{pmatrix}\]`,
+      explain: "Tradução humana: \(A\) guarda só os números que multiplicam as incógnitas.",
+      question: "A matriz \(A\) guarda:",
+      choices: ["coeficientes", "termos independentes", "operações de linha"],
+      answer: 0,
+      feedback: "Isso. O lado direito ainda não entrou em \(A\).",
+      fullSolution: String.raw`<p>Na equação \(3x_1+7x_2+2x_3=-19\), a parte de coeficientes é \([3,7,2]\). O \(-19\) fica fora de \(A\).</p><p><strong>Erro comum:</strong> colocar o lado direito dentro da matriz dos coeficientes.</p>`,
+      why: "Separar \(A\) de \(\vec{b}\) evita misturar papel de cada número."
+    }),
+    formalMission({
+      id: "course-formal-05-independent-vector",
+      chapter: COURSE_CHAPTERS[3],
+      title: "Nome oficial: vetor dos termos independentes",
+      skill: "vetor dos termos independentes",
+      data: String.raw`\[\vec{b}=\begin{pmatrix}b_1\\b_2\\\vdots\\b_m\end{pmatrix}\]`,
+      explain: String.raw`Tradução humana: \(\vec{b}\) guarda os lados direitos das equações, na mesma ordem das linhas.`,
+      question: String.raw`Se a segunda equação termina em \(=-19\), esse \(-19\) vai em:`,
+      choices: [String.raw`\(\vec{b}\)`, String.raw`\(A\)`, "uma coluna de incógnitas"],
+      answer: 0,
+      feedback: String.raw`Certo. Termo independente mora em \(\vec{b}\), não em \(A\).`,
+      fullSolution: String.raw`<p>Se há \(m\) equações, o vetor \(\vec{b}\) tem \(m\) entradas. Cada entrada corresponde ao lado direito de uma linha.</p><p><strong>Erro comum:</strong> copiar o sinal errado depois da igualdade.</p>`,
+      why: "A barra que vem daqui a pouco começa a fazer sentido quando \(A\) e \(\vec{b}\) já estão separados."
+    }),
+    formalMission({
+      id: "course-formal-06-matrix-form",
+      chapter: COURSE_CHAPTERS[3],
+      title: "Nome oficial: forma matricial",
+      skill: "forma matricial",
+      data: String.raw`\[A\vec{x}=\vec{b}\]`,
+      explain: String.raw`Tradução humana: \(A\) guarda coeficientes, \(\vec{x}\) guarda incógnitas e \(\vec{b}\) guarda os termos independentes.`,
+      question: String.raw`Na forma \(A\vec{x}=\vec{b}\), o vetor \(\vec{x}\) guarda:`,
+      choices: ["incógnitas", "termos independentes", "nomes das linhas"],
+      answer: 0,
+      feedback: String.raw`Isso. \(\vec{x}\) é a coluna das incógnitas.`,
+      fullSolution: String.raw`<p>A forma matricial é só uma embalagem compacta do sistema. Ela não muda o problema; apenas organiza os papéis.</p><p><strong>Erro comum:</strong> achar que \(A\vec{x}=\vec{b}\) é outro método. É a mesma informação escrita curto.</p>`,
+      why: "Essa notação aparece muito em prova; aqui ela vira tradução, não susto."
+    }),
+    formalMission({
+      id: "course-formal-07-augmented-matrix",
+      chapter: COURSE_CHAPTERS[3],
+      title: "Nome oficial: matriz aumentada",
+      skill: "matriz aumentada",
+      data: String.raw`\[[A|\vec{b}]\]
+\[\left[\begin{array}{ccc|c}
+a_{11}&a_{12}&a_{13}&b_1\\
+a_{21}&a_{22}&a_{23}&b_2
+\end{array}\right]\]`,
+      explain: "Tradução humana: antes da barra ficam os coeficientes; depois da barra fica o lado direito.",
+      question: "Depois da barra ficam:",
+      choices: ["termos independentes", "coeficientes das variáveis", "nomes das linhas"],
+      answer: 0,
+      feedback: "Certo. A barra não é enfeite: o lado direito vai para a guerra junto.",
+      fullSolution: String.raw`<p>Operações de linha mexem na linha inteira, inclusive depois da barra. Se você muda os coeficientes e esquece o lado direito, a equação deixa de ser equivalente.</p><p><strong>Erro comum:</strong> fazer a conta só antes da barra.</p>`,
+      why: "Esse é o portal entre equações e escalonamento."
+    })
+  ],
+  "course-c4-23-swap-rows": [
+    formalMission({
+      id: "course-formal-08-row-operations",
+      chapter: COURSE_CHAPTERS[4],
+      title: "Feitiços legais: operações elementares",
+      skill: "operações elementares",
+      data: String.raw`\[L_i\leftrightarrow L_j\]
+\[L_i\leftarrow cL_i,\quad c\neq0\]
+\[L_i\leftarrow L_i+cL_j\]`,
+      explain: String.raw`Nome oficial: operações elementares de linha. Tradução humana: formas permitidas de trocar uma equação por outra equivalente.`,
+      question: String.raw`Por que em \(L_i\leftarrow cL_i\) precisa \(c\neq0\)?`,
+      choices: ["para não apagar a informação", "para deixar mais bonito", "porque zero sempre ajuda"],
+      answer: 0,
+      feedback: "Certo. Multiplicar por zero destrói a equação.",
+      fullSolution: String.raw`<p>\(L_i\leftrightarrow L_j\): troca duas linhas.</p><p>\(L_i\leftarrow cL_i,\ c\neq0\): multiplica a linha inteira por constante não nula.</p><p>\(L_i\leftarrow L_i+cL_j\): soma múltiplo de outra linha.</p><p><strong>Erro comum:</strong> usar \(c=0\) e perder informação.</p>`,
+      why: "Essas são as únicas magias permitidas no duelo de linhas."
+    }),
+    formalMission({
+      id: "course-formal-08b-pivot-basic",
+      chapter: COURSE_CHAPTERS[4],
+      title: "Nome oficial: pivô",
+      skill: "pivô",
+      data: String.raw`\[[0,\ 4\ |\ 8]\]`,
+      explain: "Tradução humana: pivô é o número de apoio de uma linha ou coluna. Quando ele vale 4, podemos transformar em 1 dividindo a linha por 4.",
+      question: String.raw`Na linha \([0,4|8]\), o número de apoio é:`,
+      choices: ["4", "8", "0"],
+      answer: 0,
+      feedback: "Certo. O 4 é o pivô dessa linha; ele multiplica \(y\) na equação \(4y=8\).",
+      fullSolution: String.raw`<p><strong>Nome oficial:</strong> pivô.</p><p><strong>Tradução:</strong> número de apoio usado para organizar a linha.</p><p><strong>Exemplo:</strong> \([0,4|8]\) representa \(4y=8\). Multiplicar por \(\frac14\) deixa o pivô igual a 1.</p><p><strong>Erro comum:</strong> achar que o termo depois da barra é pivô. O 8 é lado direito.</p>`,
+      why: "Agora, quando o app disser pivô, ele não está invocando uma palavra misteriosa."
+    }),
+    formalMission({
+      id: "course-formal-09-arrow-meaning",
+      chapter: COURSE_CHAPTERS[4],
+      title: "A seta diz quem é substituído",
+      skill: "notação de linha",
+      data: String.raw`\[L_i\leftarrow L_i+cL_j\]`,
+      explain: String.raw`Tradução humana: a linha antes da seta é substituída. A linha usada como referência não muda, salvo se também aparecer antes da seta.`,
+      question: String.raw`Em \(L_2\leftarrow L_2-3L_1\), qual linha muda?`,
+      choices: [String.raw`\(L_2\)`, String.raw`\(L_1\)`, "as duas sempre"],
+      answer: 0,
+      feedback: String.raw`Isso. \(L_1\) serve de apoio; \(L_2\) recebe a nova linha.`,
+      fullSolution: String.raw`<p>Leia assim: “a nova \(L_2\) será a antiga \(L_2\) menos \(3\) vezes \(L_1\)”.</p><p><strong>Erro comum:</strong> alterar a linha de apoio sem motivo.</p>`,
+      why: "Seta de operação de linha é endereço de entrega: mostra quem recebe a nova linha."
+    })
+  ],
+  "course-c5-30-pivot": [
+    formalMission({
+      id: "course-formal-10-echelon-terms",
+      chapter: COURSE_CHAPTERS[5],
+      title: "Vocabulário da escada",
+      skill: "escalonamento formal",
+      data: String.raw`\[\left[\begin{array}{ccc|c}
+1&2&-1&-10\\
+0&1&5&11\\
+0&0&0&7
+\end{array}\right]\]`,
+      explain: "Nome oficial: forma escalonada. Tradução humana: uma escada de pivôs, com zeros abaixo deles.",
+      question: "Zerar abaixo do pivô significa:",
+      choices: ["fazer os números abaixo virarem 0", "apagar a linha inteira", "trocar o lado direito por 0"],
+      answer: 0,
+      feedback: "Certo. O pivô é o número de apoio; abaixo dele queremos zeros.",
+      fullSolution: String.raw`<p><strong>Pivô:</strong> primeiro número útil de uma linha.</p><p><strong>Linha nula:</strong> linha só com zeros.</p><p><strong>Variável com pivô:</strong> coluna que tem pivô.</p><p><strong>Variável livre:</strong> coluna sem pivô, quando não há contradição.</p><p><strong>Erro comum:</strong> achar que linha nula sempre é problema. \([0,0,0|0]\) não é contradição.</p>`,
+      why: "Antes de subir a escada, vale nomear os degraus."
+    })
+  ],
+  "course-c6-39-unique": [
+    formalMission({
+      id: "course-formal-11-spd",
+      chapter: COURSE_CHAPTERS[6],
+      title: "Classificação formal: SPD",
+      skill: "SPD",
+      data: String.raw`\[\left[\begin{array}{ccc|c}
+1&0&0&2\\
+0&1&0&3\\
+0&0&1&-5
+\end{array}\right]\]
+\[S=\{(2,3,-5)\}\]`,
+      explain: "Quando cada variável fica presa a um valor, o nome oficial é Sistema Possível Determinado, ou SPD.",
+      question: "SPD significa:",
+      choices: ["Sistema Possível Determinado", "Sistema Parcialmente Dividido", "Sistema Possível Indeterminado"],
+      answer: 0,
+      feedback: "Certo. Em português bruto: tem exatamente uma solução.",
+      fullSolution: String.raw`<p><strong>Tradução humana:</strong> uma resposta só.</p><p><strong>Sinal típico:</strong> pivô para cada variável.</p><p><strong>Notação:</strong> \(S=\{(2,3,-5)\}\).</p><p><strong>Erro comum:</strong> dizer apenas “tem resposta” sem afirmar que é única.</p>`,
+      why: "Determinado = destino fechado. Cada variável recebeu seu valor."
+    }),
+    formalMission({
+      id: "course-formal-12-spi",
+      chapter: COURSE_CHAPTERS[6],
+      title: "Classificação formal: SPI",
+      skill: "SPI",
+      data: String.raw`\[\left[\begin{array}{ccc|c}
+1&0&2&4\\
+0&1&-1&3\\
+0&0&0&0
+\end{array}\right]\]`,
+      explain: "Se não há contradição e sobra variável sem pivô, o nome oficial é Sistema Possível Indeterminado, ou SPI.",
+      question: String.raw`A linha \([0,0,0|0]\), sem contradição e com variável livre, indica:`,
+      choices: ["SPI", "SI", "SPD"],
+      answer: 0,
+      feedback: "Certo. Indeterminado não é impossível: é livre demais.",
+      fullSolution: String.raw`<p><strong>Tradução humana:</strong> infinitas soluções.</p><p><strong>Motivo:</strong> uma variável fica livre e vira parâmetro.</p><p><strong>Notação possível:</strong> \(S=\{(x,y,z)\in\mathbb{R}^3:\text{ depende de parâmetro}\}\).</p><p><strong>Erro comum:</strong> tratar \(0=0\) como problema. Ele só não prende variável.</p>`,
+      why: "Variável livre não é bagunça: é liberdade com crachá."
+    }),
+    formalMission({
+      id: "course-formal-13-si",
+      chapter: COURSE_CHAPTERS[6],
+      title: "Classificação formal: SI",
+      skill: "SI",
+      data: String.raw`\[\left[\begin{array}{ccc|c}
+1&2&-1&-10\\
+0&1&5&11\\
+0&0&0&7
+\end{array}\right]\]
+\[0=7,\qquad S=\varnothing\]`,
+      explain: "Se aparece uma linha impossível, o nome oficial é Sistema Impossível, ou SI.",
+      question: String.raw`A linha \([0,0,0|7]\) indica:`,
+      choices: ["SI", "SPI", "SPD"],
+      answer: 0,
+      feedback: String.raw`Certo. Ela significa \(0=7\), então \(S=\varnothing\).`,
+      fullSolution: String.raw`<p><strong>Tradução humana:</strong> as equações se contradizem.</p><p><strong>Notação:</strong> \(S=\varnothing\), conjunto solução vazio.</p><p><strong>Erro comum:</strong> achar que o 7 é resposta ou variável livre. Não é: ele está depois da barra numa linha sem variáveis.</p>`,
+      why: "Essa linha é o alarme de incêndio do sistema."
+    })
+  ],
+  "course-c7-48-homogeneous": [
+    formalMission({
+      id: "course-formal-14-homogeneous",
+      chapter: COURSE_CHAPTERS[7],
+      title: "Nome oficial: sistema homogêneo",
+      skill: "homogêneos formais",
+      data: String.raw`\[A\vec{x}=\vec{0}\]
+\[\vec{x}=\vec{0}\]`,
+      explain: "Tradução humana: todos os termos independentes são zero. Por isso, colocar todas as incógnitas iguais a zero sempre funciona.",
+      question: "A solução trivial é:",
+      choices: [String.raw`\(\vec{x}=\vec{0}\)`, String.raw`\(\vec{x}=\vec{b}\)`, "qualquer vetor"],
+      answer: 0,
+      feedback: String.raw`Certo. A trivial é o vetor zero.`,
+      fullSolution: String.raw`<p>Se \(\det(A)\neq0\), só existe a solução trivial. Se \(\det(A)=0\), podem existir soluções não triviais.</p><p><strong>Erro comum:</strong> dizer que homogêneo pode ser impossível. Ele sempre tem pelo menos \(\vec{x}=\vec{0}\).</p>`,
+      why: "Homogêneo nunca entra em pânico: o vetor zero já segura a porta."
+    })
+  ],
+  "course-c8-55-parameter": [
+    formalMission({
+      id: "course-formal-15-parameters",
+      chapter: COURSE_CHAPTERS[8],
+      title: "Nome oficial: parâmetro",
+      skill: "parâmetros formais",
+      data: String.raw`\[k-2=0\Rightarrow k=2\]
+\[\text{Caso 1: }k\neq2\qquad \text{Caso 2: }k=2\]`,
+      explain: String.raw`Parâmetro é uma letra cujo valor precisa ser discutido, como \(k\), \(m\), \(\lambda\) ou \(\alpha\).`,
+      question: String.raw`Antes de dividir por \(k-2\), você deve:`,
+      choices: ["separar os casos", "dividir direto", "trocar \(k\) por 0 sempre"],
+      answer: 0,
+      feedback: String.raw`Certo. Primeiro veja quando \(k-2\) zera.`,
+      fullSolution: String.raw`<p><strong>Caso geral:</strong> \(k-2\neq0\Rightarrow k\neq2\), pode dividir.</p><p><strong>Caso especial:</strong> \(k-2=0\Rightarrow k=2\), precisa substituir e analisar separadamente.</p><p><strong>Erro comum:</strong> dividir por expressão que pode ser zero e apagar justamente o caso importante.</p>`,
+      why: "Parâmetro é chefe secreto: antes de dividir, pergunta quando ele zera."
+    })
+  ]
+};
+
+const COURSE_PATH = COURSE_PATH_BASE.flatMap((mission) => [
+  ...(FORMAL_BEFORE[mission.id] || []),
+  mission
+]);
+
 const DIAGNOSTIC_TARGETS = {
   fund: "course-c0-03-coefficient",
   linear: "course-c1-06-l10-1a",
@@ -1517,7 +1861,7 @@ const diagnostic = [
   { target: "fund", q: String.raw`O termo independente em \(3x_1+7x_2+2x_3=-19\) é:`, c: ["2", "-19", "7"], a: 1 },
   { target: "linear", q: String.raw`\(x_1+4x_3x_4=20\) é linear?`, c: ["Sim", "Não"], a: 1 },
   { target: "system", q: "Uma solução de sistema precisa satisfazer:", c: ["uma equação", "todas as equações", "só a última"], a: 1 },
-  { target: "matrix", q: "Na matriz aumentada abaixo, a barra separa:", context: matrixTex([[1, -2, 8], [0, 3, -3]]), c: ["coeficientes e lado direito", "linhas e colunas", "pivôs e zeros"], a: 0 },
+  { target: "matrix", q: "Na matriz aumentada abaixo, a barra separa:", context: matrixTex([[1, -2, 8], [0, 3, -3]]), c: ["coeficientes e lado direito", "linhas e colunas", "zeros e sinais"], a: 0 },
   { target: "spell-scale", q: String.raw`Transformar \(4y=8\) em \(y=2\) é:`, c: [String.raw`multiplicar por \(\frac{1}{4}\)`, "multiplicar por 4", "multiplicar por 0"], a: 0 },
   { target: "parameters", q: String.raw`Antes de dividir por \(\lambda-1\), precisamos testar:`, c: [String.raw`\(\lambda=1\)`, String.raw`\(\lambda=-1\)`, "nada"], a: 0 },
   { target: "homogeneous", q: "Sistema homogêneo sempre tem:", c: ["a trivial", "contradição", "lado direito 7"], a: 0 }
@@ -1981,11 +2325,14 @@ function grimoire() {
   screen = { mode: "grimoire", index: 0, boss: "mixed", score: 0, errors: [], item: null };
   const cards = [
     ["Notação", String.raw`<ul><li>\(L_i\): linha \(i\).</li><li>\(L_j\): outra linha usada como apoio.</li><li>\([A|b]\): matriz dos coeficientes com a coluna do lado direito.</li></ul>`],
+    ["Equação e sistema formal", String.raw`<ul><li>Equação linear: \(a_1x_1+\cdots+a_nx_n=b\).</li><li>\(x_1,\ldots,x_n\): incógnitas.</li><li>\(a_1,\ldots,a_n\): coeficientes.</li><li>\(b\): termo independente.</li><li>Sistema linear: \(m\) equações com \(n\) incógnitas; a solução deve satisfazer todas ao mesmo tempo.</li></ul>`],
+    ["Solução e conjunto solução", String.raw`<ul><li>Solução como n-upla: \((x_1,x_2,\ldots,x_n)\).</li><li>Solução como vetor: \(\vec{x}=\begin{pmatrix}x_1\\x_2\\\vdots\\x_n\end{pmatrix}\).</li><li>Conjunto solução: \(S=\{(x_1,\ldots,x_n)\in\mathbb{R}^n:\text{satisfaz o sistema}\}\).</li><li>Sem solução: \(S=\varnothing\).</li></ul>`],
+    ["Matriz e forma matricial", String.raw`<ul><li>Matriz dos coeficientes: \(A=(a_{ij})\).</li><li>Vetor dos termos independentes: \(\vec{b}=(b_1,\ldots,b_m)^T\).</li><li>Forma matricial: \(A\vec{x}=\vec{b}\).</li><li>Matriz aumentada: \([A|\vec{b}]\). Antes da barra: coeficientes. Depois da barra: termos independentes.</li></ul>`],
     ["Tabela de operações", String.raw`<ul><li>\(L_i\leftrightarrow L_j\): troca a ordem das equações.</li><li>\(L_i\leftarrow cL_i\), \(c\neq0\): multiplica a linha inteira.</li><li>\(L_i\leftarrow L_i+cL_j\): soma múltiplo de outra linha.</li><li>\(c=0\) é proibido porque apaga informação.</li></ul>`],
     [String.raw`Exemplo \(L_2-3L_1\)`, String.raw`<p>Objetivo: zerar o 3 abaixo do pivô 1.</p><p>\(3L_1=[3,6,-3|-30]\).</p><p>\([3,7,2|-19]-[3,6,-3|-30]=[0,1,5|11]\).</p><p>A barra participa: \(-19-(-30)=11\).</p>`],
-    ["Classificação", String.raw`<ul><li>Pivô em todas as variáveis: solução única.</li><li>\([0,0,0|c]\), \(c\neq0\): nenhuma solução.</li><li>Sem contradição e com variável sem pivô: infinitas soluções.</li><li>\([0,0,0|0]\) sozinho não prova infinitas; precisa faltar pivô.</li></ul>`],
-    ["Homogêneos", String.raw`<ul><li>Lado direito zero: \(A\vec{x}=0\).</li><li>Sempre tem a trivial \(\vec{x}=0\).</li><li>\(\det(A)\neq0\): só trivial.</li><li>\(\det(A)=0\): há variáveis livres e soluções não triviais.</li><li>Lista 11 ex. 5: \(\det=3\alpha\), especial \(\alpha=0\), geral \((-t,t,t)\).</li><li>Lista 11 ex. 6: \(\det=3m(m-3)\), só trivial se \(m\neq0,3\).</li></ul>`],
-    ["Parâmetros", String.raw`<ul><li>Não divida por \(k-2\), \(m+1\), \(\lambda-1\) ou \(\alpha+1\) sem separar o zero.</li><li>Caso geral: expressão \(\neq0\), pode dividir.</li><li>Caso especial: expressão \(=0\), substitua e classifique.</li><li>Lista 11 ex. 1(a): \(\lambda\neq1\) única; \(\lambda=1\) nenhuma; infinitas nunca.</li><li>Lista 11 ex. 4: \(k\neq-3\) única; \(k=-3\) nenhuma; infinitas nunca.</li></ul>`],
+    ["Classificação formal", String.raw`<ul><li>SPD: Sistema Possível Determinado. Exatamente uma solução; pivô para cada variável. Exemplo: \(S=\{(2,3,-5)\}\).</li><li>SPI: Sistema Possível Indeterminado. Infinitas soluções; sem contradição e com variável livre.</li><li>SI: Sistema Impossível. Nenhuma solução; aparece contradição como \([0,0,0|7]\), isto é, \(0=7\). Notação: \(S=\varnothing\).</li><li>\([0,0,0|0]\) sozinho não prova infinitas; precisa faltar pivô.</li></ul>`],
+    ["Homogêneos", String.raw`<ul><li>Forma: \(A\vec{x}=\vec{0}\).</li><li>Sempre tem a solução trivial \(\vec{x}=\vec{0}\).</li><li>\(\det(A)\neq0\): só trivial.</li><li>\(\det(A)=0\): podem existir soluções não triviais.</li><li>Lista 11 ex. 5: \(\det=3\alpha\), especial \(\alpha=0\), geral \((-t,t,t)\).</li><li>Lista 11 ex. 6: \(\det=3m(m-3)\), só trivial se \(m\neq0,3\).</li></ul>`],
+    ["Parâmetros", String.raw`<ul><li>Parâmetro é uma letra cujo valor será discutido: \(k\), \(m\), \(\lambda\), \(\alpha\).</li><li>Não divida por \(k-2\), \(m+1\), \(\lambda-1\) ou \(\alpha+1\) sem separar o zero.</li><li>Exemplo: \(k-2=0\Rightarrow k=2\). Casos: \(k\neq2\) e \(k=2\).</li><li>Caso geral: expressão \(\neq0\), pode dividir.</li><li>Caso especial: expressão \(=0\), substitua e classifique.</li><li>Lista 11 ex. 1(a): \(\lambda\neq1\) única; \(\lambda=1\) nenhuma; infinitas nunca.</li><li>Lista 11 ex. 4: \(k\neq-3\) única; \(k=-3\) nenhuma; infinitas nunca.</li></ul>`],
     ["Lista 10 Sistema III", String.raw`<p>Marcado como <strong>conferir enunciado</strong>. A extração do PDF mostrou a segunda equação como \(-2x_1+5x-72x_3=27\), com possível erro de OCR. O app não inventa essa equação.</p>`],
     ["Erros comuns", String.raw`<ul><li>Esquecer o lado direito depois da barra.</li><li>Somar quando precisava subtrair.</li><li>Dividir por parâmetro que pode zerar.</li><li>Chamar \(0=0\) de contradição.</li><li>Achar que passar em uma equação basta.</li></ul>`],
     ["Checklist de prova", "<ul><li>Copiei sinais?</li><li>Montei [A|b] corretamente?</li><li>Escolhi pivô não nulo?</li><li>Mostrei a conta da linha inteira?</li><li>Classifiquei por pivô, contradição e variável livre?</li><li>Separei casos de parâmetro?</li></ul>"]
@@ -2044,7 +2391,7 @@ function answer(selected) {
     const msg = correct
       ? (item.feedbacks?.[selected] || item.feedback || item.f || "Certo.")
       : (item.feedbacks?.[selected] || item.wrong || item.feedback || item.f || "Revise a conta.");
-    fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item)}`;
+    fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item, item.solutionLabel || "Ver conta inteira")}`;
     correct ? complete(item.id) : miss(item.skill || "jornada");
   }
   fb.className = `feedback show ${correct ? "success" : "danger"}`;
@@ -2175,6 +2522,11 @@ function route(mode) {
 }
 
 document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-theme-toggle]")) {
+    toggleTheme();
+    return;
+  }
+
   const locked = event.target.closest("[data-locked]");
   if (locked) {
     setStage(`<section class="panel stack"><span class="pill">Bloqueado</span><h2>Ganhe alguns treinos primeiro.</h2><p>Libere o boss com 140 XP ou concluindo o exemplo guiado da Lista 10.</p><button class="primary" data-mode="lab">Ir ao laboratório</button></section>`);
