@@ -1,7 +1,7 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 
-const STORAGE_KEY = "sl-game-v2";
+const STORAGE_KEY = "sl-game-rpg-v2";
 
 const medals = {
   bar: "Copiou a barra direito",
