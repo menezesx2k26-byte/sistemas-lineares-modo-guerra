@@ -6,6 +6,7 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 
 - Home com jornada unica de prova: continuar no Modo Quadro, diagnostico, Boss Final e relatorio.
 - Modo Quadro como experiencia central: enunciado, sistema, matriz aumentada, decisao do aluno, diagnostico do erro e conclusao de prova.
+- Folha em Branco - Lista 11: modo de prova sem alternativas, com resposta aberta, ajuda progressiva, ritual de prova, cronometro e avaliacao por eixos.
 - Banco com 20 sistemas diferentes: 15 originais/eixos da Lista 11 e 5 derivados no mesmo estilo.
 - Metricas separadas: progresso do app, dominio estimado e confianca operacional.
 - Diagnostico duro por habilidade, sem porcentagem fake de dominio.
@@ -146,6 +147,31 @@ Cada sistema passa por seis passos no Modo Quadro:
 6. Conclusao escrita no modelo de prova.
 
 O Modo Quadro mostra enunciado, matriz aumentada, operacoes esperadas, decisao do aluno, diagnostico do erro e conclusao. Ele registra erro aritmetico, conceitual, organizacao, conclusao, parametro, homogeneo, SPI cedo demais, contradicao ignorada e variavel livre esquecida.
+
+## Folha em Branco - Lista 11
+
+Este modo simula a prova de verdade: o aluno ve apenas enunciado, matriz/matriz aumentada e um campo aberto para escrever o proximo passo. Nao ha alternativas, nem dica inicial, nem resposta final prematura.
+
+O fluxo de cada questao passa por leitura do pedido, identificacao do tipo de sistema, escolha de estrategia, ponto perigoso, execucao, interpretacao e conclusao. A correcao nao usa XP como indicador principal; ela avalia cinco eixos:
+
+- leitura do enunciado;
+- plano;
+- execucao;
+- interpretacao;
+- conclusao.
+
+O botao `Estou travado` libera ajuda em cinco niveis. Ajuda nivel 4 ou 5 permite continuar o treino, mas impede que aquela tentativa conte como dominio real sem dica. O cronometro de prova tambem registra se o aluno estourou o tempo e pergunta onde travou.
+
+Exercicios implementados no modo:
+
+- Lista 11 exercicio 2: parametro `m`, caso `m=-8`, resolucao de `m=2` com solucao `(1,-1,1)`.
+- Lista 11 exercicio 3: casos `\alpha=0`, `\alpha=1` e `\alpha=-1`, com SPD, SPI e SI.
+- Lista 11 exercicio 4: parametro `k`, caso `k=-3`, ausencia de SPI e solucao para `k=0`.
+- Lista 11 exercicio 5: homogeneo, solucao trivial, `\alpha=0`, solucao geral `t(-1,1,1)`.
+- Lista 11 exercicio 6: homogeneo com `m`, apenas trivial quando `m\neq0` e `m\neq3`.
+- Treino de continuacao: matriz parcialmente escalonada para o aluno decidir como continuar.
+
+Tambem existe o modo opcional `Minha folha ficou confusa`, que organiza a resposta em blocos: dados, matriz aumentada, operacoes, caso geral, caso especial, classificacao, solucao e conclusao.
 
 ## Modos auxiliares de prova
 

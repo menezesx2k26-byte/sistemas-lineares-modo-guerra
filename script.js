@@ -48,6 +48,7 @@ const defaultState = {
   solvedDerivedSystems: 0,
   bossFinalPassed: false,
   boardAttempts: [],
+  blankSheetAttempts: [],
   bossFinalAttempts: [],
   proofSkills: {
     matrixSetup: 0,
@@ -82,6 +83,7 @@ const defaultState = {
 
 let state = loadState();
 let screen = { mode: "home", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+let blankTimerHandle = null;
 
 function loadState() {
   try {
@@ -99,6 +101,7 @@ function loadState() {
       completedBoardModeSystems: Array.isArray(saved.completedBoardModeSystems) ? saved.completedBoardModeSystems : [],
       completedWithoutHints: Array.isArray(saved.completedWithoutHints) ? saved.completedWithoutHints : [],
       boardAttempts: Array.isArray(saved.boardAttempts) ? saved.boardAttempts : [],
+      blankSheetAttempts: Array.isArray(saved.blankSheetAttempts) ? saved.blankSheetAttempts : [],
       bossFinalAttempts: Array.isArray(saved.bossFinalAttempts) ? saved.bossFinalAttempts : [],
       proofSkills: { ...defaultState.proofSkills, ...(saved.proofSkills || {}) },
       errorProfile: { ...defaultState.errorProfile, ...(saved.errorProfile || {}) },
@@ -126,6 +129,10 @@ const PAGE_TITLES = {
   board: "Quadro de Sistemas Lineares | Modo Guerra",
   diagnostic: "Diagnostico de Sistemas Lineares | Modo Guerra",
   bossFinalBoard: "Boss Final de Sistemas Lineares | Modo Guerra",
+  blankSheet: "Folha em Branco - Lista 11 | Modo Guerra",
+  blankSheetCase: "Folha em Branco - Lista 11 | Modo Guerra",
+  blankSheetMessy: "Minha folha ficou confusa | Modo Guerra",
+  blankSheetResult: "Resultado da Folha em Branco | Modo Guerra",
   grimoire: "Grimorio de Sistemas Lineares | Modo Guerra",
   journey: "Trilha de Estudo de Sistemas Lineares | Modo Guerra",
   journeyMap: "Trilha de Estudo | Modo Guerra",
@@ -136,8 +143,9 @@ const PAGE_TITLES = {
 
 function pageTitleFor(mode = screen.mode) {
   if (typeof PROOF_MODES !== "undefined" && PROOF_MODES?.[mode]) return `${PROOF_MODES[mode].title} | Modo Guerra`;
+  if (PAGE_TITLES[mode]) return PAGE_TITLES[mode];
   if (mode?.endsWith?.("Result")) return "Resultado do treino | Modo Guerra";
-  return PAGE_TITLES[mode] || "Sistemas Lineares | Modo Guerra";
+  return "Sistemas Lineares | Modo Guerra";
 }
 
 function ensureSingleH1(html) {
@@ -147,6 +155,7 @@ function ensureSingleH1(html) {
 
 function updatePageMeta() {
   document.title = pageTitleFor();
+  document.body.dataset.focusMode = String(screen.mode || "").startsWith("blankSheet") ? "blank" : "";
   const main = $("#appStage");
   if (main) main.focus({ preventScroll: true });
 }
@@ -256,6 +265,10 @@ function renderHud() {
     lista11Total: "lista11Total",
     lista11TotalResult: "lista11Total",
     board: "board",
+    blankSheet: "board",
+    blankSheetCase: "board",
+    blankSheetMessy: "board",
+    blankSheetResult: "board",
     bossFinalBoard: "bossFinalBoard",
     readinessReport: "home",
     checklist: "grimoire"
@@ -3867,6 +3880,1102 @@ const LISTA11_SYSTEMS = [
   })
 ];
 
+const BLANK_RITUAL = [
+  "O que a questao pede?",
+  "Tem parametro?",
+  "E homogeneo?",
+  "Qual estrategia?",
+  "Qual valor zera algo?",
+  "Testei o caso especial?",
+  "Interpretei a matriz?",
+  "Escrevi conclusao?"
+];
+
+const BLANK_AXIS_LABELS = {
+  leitura: "Leitura do enunciado",
+  plano: "Plano",
+  execucao: "Execucao",
+  interpretacao: "Interpretacao",
+  conclusao: "Conclusao"
+};
+
+const BLANK_STUCK_REASONS = [
+  "Nao entendi o enunciado",
+  "Nao soube comecar",
+  "Travei no escalonamento",
+  "Esqueci caso especial",
+  "Nao soube classificar",
+  "Nao soube escrever conclusao"
+];
+
+const BLANK_SHEET_CASES = [
+  {
+    id: "blank-l11-ex2",
+    origin: "Lista 11 - exercicio 2",
+    title: "Exercicio 2 - parametro m",
+    timeMinutes: 12,
+    statement: String.raw`\[\begin{pmatrix}m&1&1\\2&-1&2\\4&-1&1\end{pmatrix}\vec{x}=\begin{pmatrix}2\\5\\6\end{pmatrix}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}m&1&1&2\\2&-1&2&5\\4&-1&1&6\end{array}\right]\]`,
+    examGoal: String.raw`Determinar quando ha solucao unica e resolver o caso \(m=2\).`,
+    finalModel: String.raw`Como \(\det(A)=m+8\), o sistema tem solucao unica para \(m\neq-8\). No caso \(m=2\), escalonando, obtemos \((x_1,x_2,x_3)=(1,-1,1)\).`,
+    stages: [
+      {
+        key: "pedido",
+        axis: "leitura",
+        title: "Entender o pedido",
+        prompt: "O que a questao esta pedindo antes de qualquer conta?",
+        must: [["solucao unica", "unica"], ["m"], ["m=2", "m 2", "resolver"]],
+        expected: "Ela pede duas coisas: discutir para quais valores de m existe solucao unica e resolver quando m=2.",
+        trap: "Sair escalonando m simbolico sem perceber que o item tambem pede um caso numerico.",
+        proof: "Leitura de prova: primeiro decido a unicidade por determinante; depois substituo m=2 e resolvo.",
+        next: "Identifique o tipo de sistema e o papel do parametro.",
+        helps: [
+          "Leia o verbo do enunciado antes de calcular.",
+          "Ha uma letra m dentro da matriz. Isso muda a classificacao.",
+          "A questao mistura discussao de m com resolucao para m=2.",
+          "Escreva: 'preciso achar m para solucao unica e depois resolver m=2'.",
+          "Proximo passo aceitavel: calcular det(A) para discutir unicidade."
+        ]
+      },
+      {
+        key: "tipo",
+        axis: "plano",
+        title: "Identificar o tipo",
+        prompt: "Que tipo de sistema e esse?",
+        must: [["parametro", "m"], ["nao homogeneo", "termo independente", "b"]],
+        expected: "E um sistema 3x3 nao homogeneo com parametro m na matriz dos coeficientes.",
+        trap: "Tratar como homogeneo. O vetor do lado direito e (2,5,6), nao zero.",
+        proof: "Sistema nao homogeneo: \(A\vec{x}=\vec{b}\), com \(\vec{b}\neq\vec{0}\).",
+        next: "Escolha a estrategia para solucao unica.",
+        helps: [
+          "Olhe para o lado direito.",
+          "Se o lado direito nao e zero, nao e homogeneo.",
+          "A letra m esta nos coeficientes, entao e parametro.",
+          "Classifique como 3x3 nao homogeneo com parametro m.",
+          "Proximo passo: usar determinante da matriz dos coeficientes."
+        ]
+      },
+      {
+        key: "estrategia",
+        axis: "plano",
+        title: "Escolher estrategia",
+        prompt: "Qual e a estrategia para decidir solucao unica?",
+        must: [["det", "determinante"], ["diferente de zero", "nao zero", "!= 0", "neq 0"]],
+        expected: "Em sistema quadrado, solucao unica ocorre quando det(A) e diferente de zero.",
+        trap: "Escalonar tudo sem usar o atalho legitimo do determinante para unicidade.",
+        proof: String.raw`Se \(\det(A)\neq0\), \(A\) e inversivel e ha SPD.`,
+        next: "Ache o valor que derruba o determinante.",
+        helps: [
+          "Sistema quadrado 3x3 permite olhar determinante para unicidade.",
+          "Solucao unica combina com det(A) diferente de zero.",
+          "O objeto certo e a matriz dos coeficientes, nao a coluna b.",
+          "Calcule/aceite: det(A)=m+8.",
+          "Separe m=-8 do caso m diferente de -8."
+        ]
+      },
+      {
+        key: "perigo",
+        axis: "execucao",
+        title: "Achar ponto perigoso",
+        prompt: "Qual valor de m precisa ser separado?",
+        must: [["m"], ["-8"]],
+        expected: String.raw`Como \(\det(A)=m+8\), o valor critico vem de \(m+8=0\Rightarrow m=-8\).`,
+        trap: "Responder m=-8 como solucao unica. Ele e justamente o valor que zera o determinante.",
+        proof: String.raw`Caso geral: \(m\neq-8\). Caso especial: \(m=-8\).`,
+        next: "Agora resolva o caso numerico pedido, m=2.",
+        helps: [
+          "Procure quando o determinante zera.",
+          "A expressao perigosa e m+8.",
+          "Resolva m+8=0.",
+          "m=-8 e o caso especial; fora dele ha unicidade.",
+          "Proximo: substituir m=2 na matriz e escalonar."
+        ]
+      },
+      {
+        key: "executar",
+        axis: "execucao",
+        title: "Executar m=2",
+        prompt: "Depois de substituir m=2, o que a conta deve produzir?",
+        must: [["1"], ["-1"], ["1"]],
+        expected: String.raw`Para \(m=2\), o escalonamento fornece \((x_1,x_2,x_3)=(1,-1,1)\).`,
+        trap: "Parar no det(A)=10. Isso prova unicidade, mas nao resolve o item que pediu a solucao.",
+        proof: String.raw`Com \(m=2\), \(\det(A)=10\neq0\), mas ainda escrevemos a solucao: \((1,-1,1)\).`,
+        next: "Interprete a classificacao do caso m=2.",
+        helps: [
+          "m=2 transforma o sistema em numerico.",
+          "Nao basta dizer que tem solucao unica.",
+          "A solucao esperada tem tres coordenadas.",
+          "Escalonando, chega em x1=1, x2=-1, x3=1.",
+          "Use isso na conclusao final."
+        ]
+      },
+      {
+        key: "interpretar",
+        axis: "interpretacao",
+        title: "Interpretar",
+        prompt: "Que classificacao formal aparece para m=2?",
+        must: [["spd", "possivel determinado", "solucao unica"]],
+        expected: "Para m=2 ha pivo para cada variavel, entao e SPD.",
+        trap: "Dizer apenas 'deu certo'. A prova quer o nome formal e o motivo.",
+        proof: "SPD porque existe exatamente uma solucao.",
+        next: "Escreva a conclusao final por casos.",
+        helps: [
+          "Uma unica solucao tem sigla formal.",
+          "SPD significa Sistema Possivel Determinado.",
+          "Pivo em todas as variaveis implica SPD.",
+          "Para m=2, a solucao unica e (1,-1,1).",
+          "Agora escreva a conclusao completa."
+        ]
+      },
+      {
+        key: "concluir",
+        axis: "conclusao",
+        title: "Conclusao de prova",
+        prompt: "Escreva a conclusao final como voce colocaria na prova.",
+        must: [["m"], ["-8"], ["diferente", "neq", "!="], ["1"], ["-1"]],
+        expected: String.raw`Para \(m\neq-8\), o sistema possui solucao unica. Para \(m=2\), \((x_1,x_2,x_3)=(1,-1,1)\).`,
+        trap: "Nao citar o caso geral ou esquecer a solucao do caso m=2.",
+        proof: String.raw`Conclusao: \(m\neq-8\Rightarrow\) SPD. Para \(m=2\), \(S=\{(1,-1,1)\}\).`,
+        next: "Feche a questao ou tente outra em folha em branco.",
+        helps: [
+          "Conclusao de prova precisa ter caso geral e caso pedido.",
+          "Inclua m diferente de -8.",
+          "Inclua a solucao para m=2.",
+          "Modelo: para m neq -8 ha solucao unica; para m=2, S={(1,-1,1)}.",
+          "Resolucao parcial liberada: copie o modelo e depois refaca sem ajuda."
+        ]
+      }
+    ]
+  },
+  {
+    id: "blank-l11-ex3",
+    origin: "Lista 11 - exercicio 3",
+    title: String.raw`Exercicio 3 - parametro \(\alpha\)`,
+    timeMinutes: 12,
+    statement: String.raw`\[\begin{cases}x_1+4x_2+\alpha x_3=6\\2x_1-x_2+2\alpha x_3=3\\\alpha x_1+3x_2+x_3=5\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&\alpha&6\\2&-1&2\alpha&3\\\alpha&3&1&5\end{array}\right]\]`,
+    examGoal: String.raw`Verificar por escalonamento os casos \(\alpha=0\), \(\alpha=1\) e \(\alpha=-1\).`,
+    finalModel: String.raw`O determinante e \(9(\alpha-1)(\alpha+1)\). Fora de \(\alpha=\pm1\), SPD. No item: \(\alpha=0\) da \((2,1,2)\), \(\alpha=1\) da SPI com \((2-t,1,t)\), \(\alpha=-1\) da SI.`,
+    stages: [
+      {
+        key: "pedido",
+        axis: "leitura",
+        title: "Entender o pedido",
+        prompt: "O que a questao quer que voce verifique?",
+        must: [["alpha", "alfa"], ["0"], ["1"], ["-1"]],
+        expected: String.raw`Ela pede testar os casos \(\alpha=0\), \(\alpha=1\) e \(\alpha=-1\), nao apenas decorar valores criticos.`,
+        trap: "Responder so 'valores criticos' e esquecer o caso alpha=0.",
+        proof: String.raw`Na prova: 'Analisarei separadamente \(\alpha=0\), \(\alpha=1\) e \(\alpha=-1\).'`,
+        next: "Descubra de onde saem os casos criticos.",
+        helps: [
+          "Veja quais valores o enunciado destacou.",
+          "O item quer verificacao por casos.",
+          "Alpha zero e caso numerico; alpha 1 e -1 sao singulares.",
+          "Escreva: vou testar alpha=0, alpha=1 e alpha=-1.",
+          "Proximo: relacione isso ao determinante."
+        ]
+      },
+      {
+        key: "estrategia",
+        axis: "plano",
+        title: "Estrategia",
+        prompt: "Como descobrir os valores que mudam a classificacao?",
+        must: [["det", "determinante"], ["alpha", "alfa"]],
+        expected: String.raw`Use o determinante da matriz dos coeficientes: \(\det(A)=9(\alpha-1)(\alpha+1)\).`,
+        trap: "Achar que alpha=1 e alpha=-1 sairam do nada.",
+        proof: String.raw`\(\det(A)=0\Rightarrow \alpha=1\) ou \(\alpha=-1\).`,
+        next: "Separe caso geral e casos especiais.",
+        helps: [
+          "Mudanca de classificacao em 3x3 quadrado costuma aparecer quando det zera.",
+          "O determinante ja foi trabalhado no Quadro.",
+          "A expressao fatorada mostra dois fatores.",
+          "det(A)=9(alpha-1)(alpha+1).",
+          "Valores criticos: alpha=1 e alpha=-1."
+        ]
+      },
+      {
+        key: "perigo",
+        axis: "plano",
+        title: "Ponto perigoso",
+        prompt: "O que podemos concluir quando alpha nao e 1 nem -1?",
+        must: [["spd", "possivel determinado", "solucao unica"], ["det", "diferente", "neq", "!="]],
+        expected: String.raw`Se \(\alpha\neq1\) e \(\alpha\neq-1\), entao \(\det(A)\neq0\), logo SPD.`,
+        trap: "Continuar discutindo posto sem necessidade no caso det diferente de zero.",
+        proof: String.raw`Caso geral: \(\alpha\neq1,-1\Rightarrow\det(A)\neq0\Rightarrow SPD.`,
+        next: "Agora teste os casos especiais, um por um.",
+        helps: [
+          "Fora dos zeros do determinante, a matriz tem pivos suficientes.",
+          "Det diferente de zero em sistema quadrado nao homogeneo da solucao unica.",
+          "O nome formal e SPD.",
+          "Escreva alpha neq 1 e alpha neq -1 implica SPD.",
+          "Proximo: alpha=1 nao pode ser decidido so pelo determinante."
+        ]
+      },
+      {
+        key: "alpha0",
+        axis: "execucao",
+        title: "Caso alpha=0",
+        prompt: "O que acontece no caso alpha=0?",
+        must: [["2"], ["1"], ["2"], ["spd", "solucao unica", "possivel determinado"]],
+        expected: String.raw`Para \(\alpha=0\), o sistema e SPD e a solucao e \((2,1,2)\).`,
+        trap: "Confundir alpha=0 com valor critico. Aqui det(A)=-9, entao ha solucao unica.",
+        proof: String.raw`Conclusao do caso: \(\alpha=0\Rightarrow S=\{(2,1,2)\}\).`,
+        next: "Teste alpha=1 e procure variavel livre.",
+        helps: [
+          "Substitua alpha por zero no sistema.",
+          "Com alpha=0, o determinante nao zera.",
+          "O escalonamento da x1=2, x2=1, x3=2.",
+          "Classificacao: SPD.",
+          "Use isso como primeiro caso da conclusao."
+        ]
+      },
+      {
+        key: "alpha1",
+        axis: "interpretacao",
+        title: "Caso alpha=1",
+        prompt: "Por que alpha=1 gera SPI?",
+        must: [["spi", "possivel indeterminado", "infinitas"], ["livre", "x3", "parametro"], ["sem contradicao", "nao ha contradicao"]],
+        expected: String.raw`Ao escalonar \(\alpha=1\), nao aparece contradicao e \(x_3\) fica livre. Logo SPI.`,
+        trap: "Dizer SPI so porque det(A)=0. O motivo real e nao haver contradicao e sobrar variavel livre.",
+        proof: String.raw`Para \(\alpha=1\): \((x_1,x_2,x_3)=(2-t,1,t)\).`,
+        next: "Teste alpha=-1 e procure contradicao.",
+        helps: [
+          "det zero nao decide SPI sozinho.",
+          "No caso alpha=1, duas linhas dizem x2=1.",
+          "Nao ha linha 0=numero nao zero.",
+          "Sobra x3 sem pivo, entao x3=t.",
+          "Conclusao: SPI, com (2-t,1,t)."
+        ]
+      },
+      {
+        key: "alphaMinus1",
+        axis: "interpretacao",
+        title: "Caso alpha=-1",
+        prompt: "Por que alpha=-1 gera SI?",
+        must: [["si", "impossivel", "sem solucao"], ["contradicao", "0=7", "x2"]],
+        expected: String.raw`Para \(\alpha=-1\), o escalonamento gera contradicao: a mesma variavel teria valores incompatíveis. Logo SI.`,
+        trap: "Chamar de SPI por causa de det(A)=0.",
+        proof: String.raw`Como aparece contradicao, \(posto(A)\neq posto(A|b)\), logo \(S=\varnothing\).`,
+        next: "Escreva a conclusao final por casos.",
+        helps: [
+          "Compare as linhas depois de zerar a primeira coluna.",
+          "Uma linha implica x2=1; outra implica x2=11/7.",
+          "Isso e contradicao.",
+          "Contradicao significa SI, nao SPI.",
+          "Use S vazio na conclusao."
+        ]
+      },
+      {
+        key: "concluir",
+        axis: "conclusao",
+        title: "Conclusao de prova",
+        prompt: "Escreva a conclusao completa do exercicio 3.",
+        must: [["alpha", "alfa"], ["0"], ["2"], ["1"], ["spi"], ["-1"], ["si"]],
+        expected: String.raw`Para \(\alpha=0\), SPD com \((2,1,2)\). Para \(\alpha=1\), SPI. Para \(\alpha=-1\), SI. No geral, fora de \(\pm1\), SPD.`,
+        trap: "Misturar alpha=0 com os casos singulares ou esquecer a justificativa.",
+        proof: String.raw`Modelo: \(\alpha=0\Rightarrow S=\{(2,1,2)\}\); \(\alpha=1\Rightarrow SPI\); \(\alpha=-1\Rightarrow SI\).`,
+        next: "Feche a questao ou treine continuacao.",
+        helps: [
+          "A conclusao precisa listar cada caso.",
+          "Inclua alpha=0 com a solucao.",
+          "Inclua alpha=1 como SPI.",
+          "Inclua alpha=-1 como SI.",
+          "Resolucao parcial liberada: copie o modelo e refaca sem ajuda depois."
+        ]
+      }
+    ]
+  },
+  {
+    id: "blank-l11-ex4",
+    origin: "Lista 11 - exercicio 4",
+    title: "Exercicio 4 - parametro k",
+    timeMinutes: 12,
+    statement: String.raw`\[\begin{cases}x_1+3x_2+x_3=5\\2x_1+4x_2+3x_3=5\\-x_1+x_2+kx_3=2\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&3&1&5\\2&4&3&5\\-1&1&k&2\end{array}\right]\]`,
+    examGoal: String.raw`Discutir o sistema em funcao de \(k\) e resolver para \(k=0\).`,
+    finalModel: String.raw`\(\det(A)=-2(k+3)\). Se \(k\neq-3\), SPD. Se \(k=-3\), SI. Nao ha k para SPI. Para \(k=0\), \((0,2,-1)\).`,
+    stages: [
+      {
+        key: "pedido",
+        axis: "leitura",
+        title: "Entender o pedido",
+        prompt: "O que voce precisa descobrir nessa questao?",
+        must: [["k"], ["classificar", "discutir", "spd", "spi", "si"], ["k=0", "0"]],
+        expected: "Discutir os valores de k e resolver o caso k=0.",
+        trap: "Resolver so k=0 e esquecer a discussao por valores de k.",
+        proof: "Primeiro classifico por k; depois substituo k=0 para obter a solucao.",
+        next: "Ache o valor critico de k.",
+        helps: [
+          "Leia se o item pede discutir ou resolver.",
+          "A letra k esta na matriz dos coeficientes.",
+          "Ha uma discussao geral e um caso k=0.",
+          "Escreva: discutir k e resolver k=0.",
+          "Proximo: det(A)."
+        ]
+      },
+      {
+        key: "critico",
+        axis: "plano",
+        title: "Valor critico",
+        prompt: "Qual valor de k precisa ser separado?",
+        must: [["k"], ["-3"]],
+        expected: String.raw`\(\det(A)=-2(k+3)\). O valor critico vem de \(k+3=0\Rightarrow k=-3\).`,
+        trap: "Achar que k=-3 automaticamente vira SPI.",
+        proof: String.raw`Caso geral: \(k\neq-3\). Caso especial: \(k=-3\).`,
+        next: "Classifique o caso geral.",
+        helps: [
+          "O perigo aparece quando o determinante zera.",
+          "A expressao e k+3.",
+          "Resolva k+3=0.",
+          "O caso especial e k=-3.",
+          "Agora separe k diferente de -3."
+        ]
+      },
+      {
+        key: "geral",
+        axis: "interpretacao",
+        title: "Caso geral",
+        prompt: "O que acontece quando k nao e -3?",
+        must: [["spd", "solucao unica", "possivel determinado"], ["det", "diferente", "neq", "!="]],
+        expected: String.raw`Se \(k\neq-3\), \(\det(A)\neq0\), entao SPD.`,
+        trap: "Continuar procurando SPI no caso em que a matriz e invertivel.",
+        proof: String.raw`Para \(k\neq-3\), o sistema e possivel determinado.`,
+        next: "Teste o caso k=-3.",
+        helps: [
+          "Fora do valor critico, o determinante nao zera.",
+          "Det diferente de zero em 3x3 quadrado da solucao unica.",
+          "Nome formal: SPD.",
+          "Escreva k neq -3 implica SPD.",
+          "Agora teste k=-3."
+        ]
+      },
+      {
+        key: "especial",
+        axis: "interpretacao",
+        title: "Caso especial",
+        prompt: "Por que k=-3 nao gera SPI?",
+        must: [["si", "impossivel", "sem solucao"], ["contradicao", "0=", "inconsistente"]],
+        expected: String.raw`Com \(k=-3\), a matriz aumentada fica inconsistente. Aparece contradicao; logo SI.`,
+        trap: "det(A)=0 nao garante SPI em sistema nao homogeneo.",
+        proof: String.raw`Para \(k=-3\), \(posto(A)\neq posto(A|b)\), portanto SI. Nao ha valor de k que gere SPI.`,
+        next: "Resolva o caso k=0.",
+        helps: [
+          "Det zero so manda investigar.",
+          "Sistema nao homogeneo pode virar SI.",
+          "No caso k=-3, aparece contradicao.",
+          "Contradicao significa SI.",
+          "Nao existe k para SPI neste exercicio."
+        ]
+      },
+      {
+        key: "k0",
+        axis: "execucao",
+        title: "Caso k=0",
+        prompt: "Qual e a solucao quando k=0?",
+        must: [["0"], ["2"], ["-1"]],
+        expected: String.raw`Para \(k=0\), a solucao e \((x_1,x_2,x_3)=(0,2,-1)\).`,
+        trap: "Dizer apenas SPD. O item pede a solucao.",
+        proof: String.raw`Com \(k=0\), \(S=\{(0,2,-1)\}\).`,
+        next: "Escreva a conclusao completa.",
+        helps: [
+          "Substitua k por zero.",
+          "Como k=0 nao e -3, ha solucao unica.",
+          "Mas a prova pediu resolver.",
+          "Escalonando, x1=0, x2=2, x3=-1.",
+          "Inclua isso na conclusao."
+        ]
+      },
+      {
+        key: "concluir",
+        axis: "conclusao",
+        title: "Conclusao",
+        prompt: "Escreva a conclusao de prova do exercicio 4.",
+        must: [["k"], ["-3"], ["spd"], ["si"], ["nao ha", "nenhum", "sem"], ["spi"], ["0"], ["2"], ["-1"]],
+        expected: String.raw`Se \(k\neq-3\), SPD. Se \(k=-3\), SI. Nao ha k para SPI. Para \(k=0\), \((0,2,-1)\).`,
+        trap: "Forcar SPI porque a questao pergunta classificacao por parametros.",
+        proof: String.raw`Conclusao organizada por casos: \(k\neq-3\Rightarrow SPD\); \(k=-3\Rightarrow SI\); para \(k=0\), \(S=\{(0,2,-1)\}\).`,
+        next: "Feche a questao.",
+        helps: [
+          "Conclusao precisa dizer todos os casos.",
+          "Inclua k diferente de -3.",
+          "Inclua k=-3 como SI.",
+          "Diga explicitamente que nao ha k para SPI.",
+          "Inclua a solucao do caso k=0."
+        ]
+      }
+    ]
+  },
+  {
+    id: "blank-l11-ex5",
+    origin: "Lista 11 - exercicio 5",
+    title: String.raw`Exercicio 5 - homogeneo com \(\alpha\)`,
+    timeMinutes: 8,
+    statement: String.raw`\[\begin{pmatrix}2&1&1\\1&\alpha&1\\1&-1&2\end{pmatrix}\vec{x}=\vec{0}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}2&1&1&0\\1&\alpha&1&0\\1&-1&2&0\end{array}\right]\]`,
+    examGoal: String.raw`Achar \(\alpha\) para infinitas solucoes e uma solucao nao trivial.`,
+    finalModel: String.raw`Como \(\det(A)=3\alpha\), ha infinitas solucoes quando \(\alpha=0\). A solucao geral e \(t(-1,1,1)\), e uma particular nao trivial e \((-1,1,1)\).`,
+    stages: [
+      {
+        key: "tipo",
+        axis: "leitura",
+        title: "Reconhecer homogeneo",
+        prompt: "Qual e a primeira observacao importante?",
+        must: [["homogeneo"], ["trivial", "zero"]],
+        expected: "E homogeneo, entao a solucao trivial sempre existe.",
+        trap: "Dizer que pode ser impossivel. Sistema homogeneo nunca e SI.",
+        proof: String.raw`Como \(A\vec{x}=\vec{0}\), \(\vec{x}=\vec{0}\) sempre resolve.`,
+        next: "Use o determinante para descobrir nao triviais.",
+        helps: [
+          "Olhe para o lado direito.",
+          "O vetor do lado direito e zero.",
+          "Isso define sistema homogeneo.",
+          "Todo homogeneo tem pelo menos a solucao trivial.",
+          "Agora procure quando existem outras solucoes."
+        ]
+      },
+      {
+        key: "det",
+        axis: "plano",
+        title: "Determinante",
+        prompt: "Quando aparecem infinitas solucoes?",
+        must: [["det", "determinante"], ["alpha", "alfa"], ["0"]],
+        expected: String.raw`\(\det(A)=3\alpha\). Para existir nao trivial, precisamos \(\det(A)=0\), entao \(\alpha=0\).`,
+        trap: "Responder alpha diferente de zero, que e quando so existe a trivial.",
+        proof: String.raw`\(\alpha=0\Rightarrow\) falta pivo \(\Rightarrow\) variavel livre.`,
+        next: "Escreva a solucao geral.",
+        helps: [
+          "Homogeneo quadrado usa det para trivial/nao trivial.",
+          "So trivial quando det diferente de zero.",
+          "Nao trivial aparece quando det zera.",
+          "det(A)=3alpha, logo alpha=0.",
+          "Agora escalone alpha=0."
+        ]
+      },
+      {
+        key: "solucao",
+        axis: "execucao",
+        title: "Solucao geral",
+        prompt: "Qual e a solucao geral quando alpha=0?",
+        must: [["t"], ["-1"], ["1"], ["1"]],
+        expected: String.raw`A solucao geral e \(t(-1,1,1)\).`,
+        trap: "Escolher t=0 e achar que nao existe solucao nao trivial.",
+        proof: String.raw`Com \(t=1\), obtemos a particular \((-1,1,1)\).`,
+        next: "Interprete trivial e nao trivial.",
+        helps: [
+          "No caso singular sobra variavel livre.",
+          "Chame a variavel livre de t.",
+          "O escalonamento leva a x1=-t, x2=t, x3=t.",
+          "Logo (x1,x2,x3)=t(-1,1,1).",
+          "Para particular nao trivial, use t=1."
+        ]
+      },
+      {
+        key: "concluir",
+        axis: "conclusao",
+        title: "Conclusao",
+        prompt: "Escreva a conclusao do exercicio 5.",
+        must: [["alpha", "alfa"], ["0"], ["trivial"], ["t"], ["-1"], ["1"], ["particular"]],
+        expected: String.raw`Para \(\alpha=0\), ha infinitas solucoes \(t(-1,1,1)\). Uma solucao nao trivial e \((-1,1,1)\). Para \(\alpha\neq0\), apenas a trivial.`,
+        trap: "Nao mencionar a trivial ou nao dar uma particular nao trivial.",
+        proof: String.raw`Modelo: \(\alpha=0\Rightarrow S=\{t(-1,1,1):t\in\mathbb{R}\}\), particular \((-1,1,1)\).`,
+        next: "Feche a questao.",
+        helps: [
+          "Conclusao de homogeneo deve falar trivial e nao trivial.",
+          "Inclua alpha=0.",
+          "Inclua a familia t(-1,1,1).",
+          "Escolha t=1 para particular.",
+          "Diga que para alpha neq 0 so ha a trivial."
+        ]
+      }
+    ]
+  },
+  {
+    id: "blank-l11-ex6",
+    origin: "Lista 11 - exercicio 6",
+    title: "Exercicio 6 - homogeneo com m",
+    timeMinutes: 8,
+    statement: String.raw`\[\begin{pmatrix}1&2&2\\m-1&1&m-2\\m+1&m-1&2\end{pmatrix}\vec{x}=\vec{0}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&2&2&0\\m-1&1&m-2&0\\m+1&m-1&2&0\end{array}\right]\]`,
+    examGoal: String.raw`Determinar quando existe apenas a solucao trivial.`,
+    finalModel: String.raw`Como \(\det(A)=3m(m-3)\), existe apenas a solucao trivial quando \(m\neq0\) e \(m\neq3\).`,
+    stages: [
+      {
+        key: "tipo",
+        axis: "leitura",
+        title: "Reconhecer a pergunta",
+        prompt: "O que a questao pergunta num sistema homogeneo?",
+        must: [["trivial"], ["homogeneo"]],
+        expected: "Ela quer saber quando o homogeneo tem apenas a solucao trivial.",
+        trap: "Procurar lado direito diferente de zero. Aqui ele e zero.",
+        proof: String.raw`No homogeneo, SI nao entra: a decisao e 'so trivial' ou 'nao trivial'.`,
+        next: "Use determinante.",
+        helps: [
+          "Olhe o vetor do lado direito.",
+          "Ele e zero, entao e homogeneo.",
+          "Homogeneo sempre tem a trivial.",
+          "A pergunta e quando nao existem outras.",
+          "Proximo: det(A) diferente de zero."
+        ]
+      },
+      {
+        key: "det",
+        axis: "plano",
+        title: "Determinante",
+        prompt: "Qual condicao garante apenas a trivial?",
+        must: [["det", "determinante"], ["diferente", "neq", "!="], ["zero", "0"]],
+        expected: String.raw`Apenas trivial ocorre quando \(\det(A)\neq0\).`,
+        trap: "Responder os valores que zeram o determinante, que sao justamente os casos com nao triviais.",
+        proof: String.raw`Aqui \(\det(A)=3m(m-3)\).`,
+        next: "Aplique a condicao em m.",
+        helps: [
+          "Em homogeneo quadrado, det diferente de zero prende tudo no zero.",
+          "Det zero libera variavel livre.",
+          "A pergunta pede apenas trivial.",
+          "Entao queremos det(A) diferente de zero.",
+          "Use det(A)=3m(m-3)."
+        ]
+      },
+      {
+        key: "valores",
+        axis: "interpretacao",
+        title: "Valores de m",
+        prompt: "Para quais valores de m ha apenas a trivial?",
+        must: [["m"], ["0"], ["3"], ["diferente", "neq", "!="]],
+        expected: String.raw`Como \(3m(m-3)\neq0\), precisamos \(m\neq0\) e \(m\neq3\).`,
+        trap: "Dizer m=0 ou m=3. Esses sao os valores que geram solucoes nao triviais.",
+        proof: String.raw`Valores proibidos para apenas trivial: \(m=0\) e \(m=3\).`,
+        next: "Escreva a conclusao.",
+        helps: [
+          "Resolva quando o produto nao zera.",
+          "O produto zera em m=0 ou m=3.",
+          "Para ser diferente de zero, m nao pode ser esses valores.",
+          "Resposta: m neq 0 e m neq 3.",
+          "Agora escreva em frase de prova."
+        ]
+      },
+      {
+        key: "concluir",
+        axis: "conclusao",
+        title: "Conclusao",
+        prompt: "Escreva a conclusao de prova do exercicio 6.",
+        must: [["m"], ["0"], ["3"], ["trivial"], ["diferente", "neq", "!="]],
+        expected: String.raw`O sistema admite apenas a solucao trivial quando \(m\neq0\) e \(m\neq3\). Para \(m=0\) ou \(m=3\), existem solucoes nao triviais.`,
+        trap: "Nao dizer o que acontece nos valores excluidos.",
+        proof: String.raw`Modelo: \(\det(A)=3m(m-3)\). Assim, \(\det(A)\neq0\) se \(m\neq0,3\); logo apenas a trivial.`,
+        next: "Feche a questao.",
+        helps: [
+          "Conclusao precisa responder exatamente o que foi pedido.",
+          "A frase-chave e 'apenas a solucao trivial'.",
+          "Inclua m diferente de 0 e diferente de 3.",
+          "Diga que m=0 ou m=3 geram nao triviais.",
+          "Pronto: essa e a conclusao aceitavel."
+        ]
+      }
+    ]
+  },
+  {
+    id: "blank-continuacao-alpha1",
+    origin: "Treino de continuacao - Lista 11 ex. 3",
+    title: "Continue daqui - alpha=1",
+    timeMinutes: 6,
+    statement: String.raw`No caso \(\alpha=1\), depois de duas operacoes, voce chegou em:`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&1&6\\0&-9&0&-9\\0&-1&0&-1\end{array}\right]\]`,
+    examGoal: "Continuar a leitura da matriz parcialmente escalonada.",
+    finalModel: String.raw`As duas ultimas linhas sao equivalentes e indicam \(x_2=1\). Nao ha contradicao, falta pivo em \(x_3\), entao \(x_3=t\) e o sistema e SPI.`,
+    stages: [
+      {
+        key: "proximoPivo",
+        axis: "execucao",
+        title: "Continuar daqui",
+        prompt: "Qual e o proximo passo logico?",
+        must: [["comparar", "zerar", "usar"], ["linha 2", "l2", "-9", "linha 3", "l3", "-1"]],
+        expected: "Compare as linhas 2 e 3 ou use uma para zerar a outra. Elas dizem a mesma equacao.",
+        trap: "Declarar SPI sem verificar se ha contradicao.",
+        proof: String.raw`Como \([0,-9,0|-9]\) e \([0,-1,0|-1]\) sao multiplas, nao ha contradicao.`,
+        next: "Interprete variavel livre.",
+        helps: [
+          "A matriz ja esta quase escalonada.",
+          "Olhe para as duas ultimas linhas.",
+          "Elas sao multiplas?",
+          "Ambas indicam x2=1.",
+          "Agora procure variavel sem pivo."
+        ]
+      },
+      {
+        key: "interpretar",
+        axis: "interpretacao",
+        title: "Interpretar",
+        prompt: "O que essa matriz indica?",
+        must: [["spi", "infinitas", "possivel indeterminado"], ["x3", "livre"]],
+        expected: "Indica SPI, porque nao ha contradicao e x3 fica livre.",
+        trap: "Achar que a linha repetida e erro. Ela e dependencia, nao contradicao.",
+        proof: String.raw`Com \(x_3=t\), temos \((x_1,x_2,x_3)=(2-t,1,t)\).`,
+        next: "Escreva a conclusao.",
+        helps: [
+          "Nao apareceu 0=c.",
+          "Faltou pivo na coluna x3.",
+          "Variavel sem pivo vira parametro.",
+          "Parametro livre gera infinitas solucoes.",
+          "Conclusao: SPI."
+        ]
+      },
+      {
+        key: "concluir",
+        axis: "conclusao",
+        title: "Conclusao",
+        prompt: "Como voce escreveria a conclusao?",
+        must: [["spi", "infinitas"], ["x3", "t"], ["2-t", "2 - t"]],
+        expected: String.raw`Para \(\alpha=1\), o sistema e SPI e \((x_1,x_2,x_3)=(2-t,1,t)\).`,
+        trap: "Dizer 'tem linha repetida' sem transformar isso em conclusao formal.",
+        proof: "Modelo: sem contradicao e com variavel livre, portanto SPI.",
+        next: "Fechar treino de continuacao.",
+        helps: [
+          "Use a palavra formal SPI.",
+          "Explique sem contradicao.",
+          "Explique x3 livre.",
+          "Escreva a familia.",
+          "Resolucao parcial liberada."
+        ]
+      }
+    ]
+  }
+];
+
+function normalizeBlankText(text = "") {
+  return String(text)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\\alpha|α/g, "alpha")
+    .replace(/\\lambda|λ/g, "lambda")
+    .replace(/\\neq|≠|!=/g, " diferente ")
+    .replace(/\\vec/g, " vec ")
+    .replace(/[{}()[\],.;:]/g, " ")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+}
+
+function blankTermMatches(text, terms = []) {
+  const normalized = normalizeBlankText(text);
+  return terms.some((term) => normalized.includes(normalizeBlankText(term)));
+}
+
+function evaluateBlankStep(stage, rawText) {
+  const text = normalizeBlankText(rawText);
+  if (!text || text.length < 4) {
+    return {
+      ok: false,
+      missing: ["Explique seu proximo passo em uma frase curta."],
+      feedback: "Ainda nao da para avaliar. Na prova, pensamento escondido nao ganha ponto: escreva o que voce faria e por que."
+    };
+  }
+  const missing = (stage.must || []).filter((group) => !blankTermMatches(text, group));
+  const ok = missing.length === 0;
+  return {
+    ok,
+    missing,
+    feedback: ok
+      ? `<strong>Professor:</strong> agora sim. ${stage.expected}<br><strong>Por que:</strong> ${stage.proof}<br><strong>Armadilha:</strong> ${stage.trap}<br><strong>Proximo passo:</strong> ${stage.next}`
+      : `<strong>Professor:</strong> ideia ainda incompleta. Faltou aparecer: ${missing.map((group) => group[0]).join(", ")}.<br><strong>Alerta:</strong> ${stage.trap}<br><strong>Como melhorar:</strong> ${stage.expected}`
+  };
+}
+
+function newBlankAttempt(caseIndex) {
+  const item = BLANK_SHEET_CASES[caseIndex] || BLANK_SHEET_CASES[0];
+  return {
+    caseId: item.id,
+    history: [],
+    axes: { leitura: 0, plano: 0, execucao: 0, interpretacao: 0, conclusao: 0 },
+    stageComplete: false,
+    lastFeedback: "",
+    helpLevel: 0,
+    usedDeepHelp: false,
+    timerStart: null,
+    timedOut: false,
+    stuckReason: ""
+  };
+}
+
+function blankTimerExpired(attempt, item) {
+  if (!attempt?.timerStart) return false;
+  return Date.now() - attempt.timerStart > item.timeMinutes * 60 * 1000;
+}
+
+function blankTimerPanel(item, attempt) {
+  const running = !!attempt.timerStart;
+  const elapsed = running ? Math.floor((Date.now() - attempt.timerStart) / 60000) : 0;
+  const expired = blankTimerExpired(attempt, item);
+  return `
+    <aside class="timer-panel ${expired ? "danger" : ""}">
+      <strong>Cronometro de prova</strong>
+      <p>${running ? `Rodando: ${elapsed} min de ${item.timeMinutes} min.` : `Tempo sugerido: ${item.timeMinutes} min.`}</p>
+      ${running ? "" : `<button class="secondary" type="button" data-blank-timer>Ativar cronometro</button>`}
+      ${expired ? `
+        <div class="stuck-reasons">
+          <p><strong>Tempo estourado.</strong> Onde voce travou?</p>
+          ${BLANK_STUCK_REASONS.map((reason) => `<button class="secondary" type="button" data-blank-stuck-reason="${reason}">${reason}</button>`).join("")}
+        </div>
+      ` : ""}
+    </aside>
+  `;
+}
+
+function ritualPanel() {
+  return `
+    <aside class="ritual-panel" aria-label="Ritual de prova">
+      <strong>Ritual de prova</strong>
+      <ol>${BLANK_RITUAL.map((item) => `<li>${item}</li>`).join("")}</ol>
+    </aside>
+  `;
+}
+
+function blankHelpPanel(stage, attempt) {
+  if (!attempt.helpLevel) return "";
+  const helps = stage.helps.slice(0, attempt.helpLevel);
+  return `
+    <section class="blank-help" role="status" aria-live="polite">
+      <strong>Ajuda progressiva ${attempt.helpLevel}/5</strong>
+      <ol>${helps.map((help, index) => `<li><span>Nivel ${index + 1}</span>${help}</li>`).join("")}</ol>
+      ${attempt.helpLevel >= 4 ? `<p><strong>Nota honesta:</strong> esta questao nao conta como dominio real sem dica, porque o app ja entregou parte do caminho.</p>` : ""}
+    </section>
+  `;
+}
+
+function blankHistoryPanel(history = []) {
+  return `
+    <section class="blank-history">
+      <h3>Historico da sua folha</h3>
+      ${history.length ? `
+        <ol>${history.map((entry) => `
+          <li class="${entry.ok ? "ok" : "warn"}">
+            <strong>${entry.stage}</strong>
+            <p>${entry.text}</p>
+            <small>${entry.ok ? "aceito" : "precisa ajustar"}</small>
+          </li>
+        `).join("")}</ol>
+      ` : `<p>Ainda sem acao registrada. Escreva o primeiro passo antes de pedir correcao.</p>`}
+    </section>
+  `;
+}
+
+function blankAxisPanel(axes = {}) {
+  return `
+    <section class="axis-panel" aria-label="Avaliacao por eixo">
+      ${Object.entries(BLANK_AXIS_LABELS).map(([key, label]) => `
+        <div>
+          <strong>${Math.min(100, axes[key] || 0)}%</strong>
+          <span>${label}</span>
+        </div>
+      `).join("")}
+    </section>
+  `;
+}
+
+function blankSheetHome() {
+  if (blankTimerHandle) {
+    clearTimeout(blankTimerHandle);
+    blankTimerHandle = null;
+  }
+  screen = { mode: "blankSheet", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  const attemptCount = state.blankSheetAttempts?.length || 0;
+  setStage(`
+    <section class="blank-shell">
+      <header class="blank-hero">
+        <span class="pill">Modo prova</span>
+        <h2>Folha em Branco - Lista 11</h2>
+        <p>Sem alternativas. Sem dica inicial. Voce recebe o enunciado, escreve o proximo passo e o app corrige o raciocinio como professor de prova.</p>
+      </header>
+      <section class="blank-rules">
+        <article><strong>Como funciona</strong><p>Responda em texto curto: plano, conta, caso especial, interpretacao e conclusao.</p></article>
+        <article><strong>Dominio real</strong><p>So conta se voce avanca sem ajuda profunda, separa casos e escreve conclusao.</p></article>
+        <article><strong>Tentativas</strong><p>${attemptCount} tentativa(s) registradas neste modo. XP nao e usado como medida principal aqui.</p></article>
+      </section>
+      <div class="blank-case-grid">
+        ${BLANK_SHEET_CASES.map((item, index) => `
+          <button class="blank-case-card" type="button" data-blank-start="${index}">
+            <span>${item.origin}</span>
+            <strong>${item.title}</strong>
+            <small>${item.examGoal}</small>
+            <em>${item.timeMinutes} min sugeridos</em>
+          </button>
+        `).join("")}
+      </div>
+      <div class="actions">
+        <button class="secondary" type="button" data-blank-messy="1">Minha folha ficou confusa</button>
+        <button class="secondary" type="button" data-mode="home">Voltar ao menu</button>
+      </div>
+    </section>
+  `);
+}
+
+function startBlankCase(caseIndex = 0) {
+  const safeIndex = Math.max(0, Math.min(Number(caseIndex) || 0, BLANK_SHEET_CASES.length - 1));
+  screen = {
+    mode: "blankSheetCase",
+    index: 0,
+    caseIndex: safeIndex,
+    boss: "mixed",
+    score: 0,
+    errors: [],
+    item: null,
+    blank: newBlankAttempt(safeIndex)
+  };
+  renderBlankStage();
+}
+
+function renderBlankStage() {
+  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
+  const stage = item.stages[screen.index] || item.stages[0];
+  const attempt = screen.blank || newBlankAttempt(screen.caseIndex);
+  const progress = Math.round(((screen.index + 1) / item.stages.length) * 100);
+  const expired = blankTimerExpired(attempt, item);
+  if (expired) attempt.timedOut = true;
+  setStage(`
+    <section class="blank-shell blank-workspace">
+      <header class="blank-top">
+        <div>
+          <span class="pill">Folha em Branco</span>
+          <h2>${item.title}</h2>
+          <p>${item.origin} - etapa ${screen.index + 1}/${item.stages.length}: ${stage.title}</p>
+        </div>
+        <div class="progress-block">
+          <span>Progresso da questao: ${progress}%</span>
+          <div class="bar"><span style="width:${progress}%"></span></div>
+        </div>
+      </header>
+      <div class="blank-layout">
+        <main class="blank-main">
+          <article class="blank-paper">
+            <h3>Enunciado cru</h3>
+            <p><strong>Pedido:</strong> ${item.examGoal}</p>
+            <div class="math-box">${item.statement}</div>
+            <div class="math-box">${item.matrix}</div>
+          </article>
+
+          <article class="blank-paper focus-panel">
+            <h3>${stage.title}</h3>
+            <p class="blank-prompt">${stage.prompt}</p>
+            <form class="blank-response" data-blank-form>
+              <label for="blankStep">O que voce faria agora?</label>
+              <textarea id="blankStep" name="blankStep" rows="4" placeholder="Ex.: calcular det(A), separar m=-8 e depois testar m=2"></textarea>
+              <div class="actions">
+                <button class="primary" type="submit">Registrar proximo passo</button>
+                <button class="secondary" type="button" data-blank-stuck>Estou travado</button>
+              </div>
+            </form>
+            ${blankHelpPanel(stage, attempt)}
+            <div id="blankFeedback" class="feedback ${attempt.lastFeedback ? "show" : ""} ${attempt.stageComplete ? "success" : "danger"}" role="status" aria-live="polite">${attempt.lastFeedback || "Sem correcao ainda. Primeiro tente escrever seu plano."}</div>
+            <div class="actions">
+              <button class="primary" type="button" data-blank-next ${attempt.stageComplete ? "" : "disabled"}>${screen.index >= item.stages.length - 1 ? "Fechar questao" : "Proxima etapa"}</button>
+              <button class="secondary" type="button" data-blank-messy="${screen.caseIndex}">Minha folha ficou confusa</button>
+              <button class="secondary" type="button" data-mode="blankSheet">Escolher outra questao</button>
+            </div>
+          </article>
+        </main>
+        <aside class="blank-side">
+          ${ritualPanel()}
+          ${blankTimerPanel(item, attempt)}
+          ${blankAxisPanel(attempt.axes)}
+          ${blankHistoryPanel(attempt.history)}
+        </aside>
+      </div>
+    </section>
+  `);
+}
+
+function submitBlankStep(rawText) {
+  if (screen.mode !== "blankSheetCase") return;
+  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
+  const stage = item.stages[screen.index] || item.stages[0];
+  const attempt = screen.blank || newBlankAttempt(screen.caseIndex);
+  const result = evaluateBlankStep(stage, rawText);
+  if (blankTimerExpired(attempt, item)) attempt.timedOut = true;
+  attempt.stageComplete = result.ok;
+  attempt.lastFeedback = result.feedback;
+  attempt.history = [
+    ...attempt.history,
+    { stage: stage.title, text: rawText.trim() || "(sem resposta)", ok: result.ok }
+  ].slice(-24);
+  if (result.ok) {
+    attempt.axes[stage.axis] = Math.min(100, (attempt.axes[stage.axis] || 0) + 25);
+  } else {
+    recordProofError(stage.axis === "execucao" ? "arithmetic" : stage.axis === "conclusao" ? "conclusion" : "conceptual");
+  }
+  screen.blank = attempt;
+  renderBlankStage();
+}
+
+function blankRequestHelp() {
+  if (screen.mode !== "blankSheetCase") return;
+  const attempt = screen.blank || newBlankAttempt(screen.caseIndex);
+  attempt.helpLevel = Math.min(5, (attempt.helpLevel || 0) + 1);
+  if (attempt.helpLevel >= 4) attempt.usedDeepHelp = true;
+  if (attempt.helpLevel >= 5) {
+    const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
+    const stage = item.stages[screen.index] || item.stages[0];
+    attempt.stageComplete = true;
+    attempt.lastFeedback = `<strong>Ajuda nivel 5 liberada.</strong> ${stage.expected}<br><strong>Modelo de prova:</strong> ${stage.proof}<br>Refaca depois sem ajuda para contar como dominio real.`;
+  }
+  state.hintsUsed += 1;
+  saveState();
+  screen.blank = attempt;
+  renderBlankStage();
+}
+
+function blankNextStep() {
+  if (screen.mode !== "blankSheetCase") return;
+  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
+  if (screen.index >= item.stages.length - 1) return blankSheetResult();
+  screen.index += 1;
+  screen.blank.stageComplete = false;
+  screen.blank.lastFeedback = "";
+  screen.blank.helpLevel = 0;
+  renderBlankStage();
+}
+
+function startBlankTimer() {
+  if (screen.mode !== "blankSheetCase") return;
+  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
+  if (blankTimerHandle) clearTimeout(blankTimerHandle);
+  screen.blank.timerStart = Date.now();
+  blankTimerHandle = setTimeout(() => {
+    if (screen.mode === "blankSheetCase" && screen.blank?.timerStart) {
+      screen.blank.timedOut = true;
+      renderBlankStage();
+    }
+  }, item.timeMinutes * 60 * 1000);
+  renderBlankStage();
+}
+
+function blankRecordStuckReason(reason) {
+  if (screen.mode !== "blankSheetCase") return;
+  screen.blank.stuckReason = reason;
+  screen.blank.usedDeepHelp = true;
+  screen.blank.lastFeedback = `<strong>Travamento registrado:</strong> ${reason}. Recomendacao: volte ao Modo Quadro para esse eixo antes de contar dominio real.`;
+  renderBlankStage();
+}
+
+function blankSheetResult() {
+  if (blankTimerHandle) {
+    clearTimeout(blankTimerHandle);
+    blankTimerHandle = null;
+  }
+  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
+  const attempt = screen.blank || newBlankAttempt(screen.caseIndex);
+  const average = Math.round(Object.values(attempt.axes).reduce((sum, value) => sum + value, 0) / Object.keys(BLANK_AXIS_LABELS).length);
+  const realMastery = average >= 80 && !attempt.usedDeepHelp && !attempt.timedOut && !attempt.stuckReason;
+  const result = {
+    date: new Date().toISOString(),
+    caseId: item.id,
+    title: item.title,
+    axes: attempt.axes,
+    average,
+    realMastery,
+    usedDeepHelp: !!attempt.usedDeepHelp,
+    timedOut: !!attempt.timedOut,
+    stuckReason: attempt.stuckReason || ""
+  };
+  const caseIndex = screen.caseIndex || 0;
+  state.blankSheetAttempts = [...(state.blankSheetAttempts || []), result].slice(-40);
+  if (realMastery && !state.completedWithoutHints.includes(`blank-${item.id}`)) state.completedWithoutHints.push(`blank-${item.id}`);
+  saveState();
+  screen = { mode: "blankSheetResult", index: 0, boss: "mixed", score: average, errors: [], item: null };
+  setStage(`
+    <section class="panel stack readiness-report">
+      <span class="pill">Resultado - Folha em Branco</span>
+      <h2>${realMastery ? "Dominio real validado nesta questao" : "Resposta treinada, mas ainda nao blindada"}</h2>
+      <p>${realMastery ? "Voce iniciou sem dica profunda, passou pelos eixos principais e fechou a conclusao." : "Voce praticou a questao, mas ainda houve ajuda profunda, tempo estourado ou eixo fraco. Isso e treino, nao dominio real."}</p>
+      ${blankAxisPanel(attempt.axes)}
+      <div class="feedback show">
+        <strong>Modelo final de prova</strong>
+        <p>${item.finalModel}</p>
+      </div>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${average}%</strong><small>media dos eixos</small></div>
+        <div class="mission-card"><strong>${attempt.usedDeepHelp ? "sim" : "nao"}</strong><small>usou ajuda profunda</small></div>
+        <div class="mission-card"><strong>${attempt.timedOut ? "sim" : "nao"}</strong><small>estourou tempo</small></div>
+      </div>
+      <div class="actions">
+        <button class="primary" type="button" data-mode="blankSheet">Resolver outra em folha branca</button>
+        <button class="secondary" type="button" data-blank-start="${caseIndex}">Refazer esta questao</button>
+        <button class="secondary" type="button" data-mode="board">Voltar ao Modo Quadro</button>
+      </div>
+    </section>
+  `);
+}
+
+function startBlankMessy(caseIndex = 1) {
+  const safeIndex = Math.max(0, Math.min(Number(caseIndex) || 0, BLANK_SHEET_CASES.length - 1));
+  const item = BLANK_SHEET_CASES[safeIndex] || BLANK_SHEET_CASES[1];
+  screen = { mode: "blankSheetMessy", index: 0, caseIndex: safeIndex, boss: "mixed", score: 0, errors: [], item: null };
+  const blocks = [
+    ["dados", "Dados do sistema"],
+    ["matriz", "Matriz aumentada"],
+    ["operacoes", "Operacoes elementares"],
+    ["geral", "Caso geral"],
+    ["especial", "Caso especial"],
+    ["classificacao", "Classificacao"],
+    ["solucao", "Solucao"],
+    ["conclusao", "Conclusao"]
+  ];
+  setStage(`
+    <section class="blank-shell">
+      <header class="blank-top">
+        <div>
+          <span class="pill">Organizacao de prova</span>
+          <h2>Minha folha ficou confusa</h2>
+          <p>${item.origin} - ${item.title}</p>
+        </div>
+      </header>
+      <article class="blank-paper">
+        <h3>Questao em organizacao</h3>
+        <p>${item.examGoal}</p>
+        <div class="math-box">${item.statement}</div>
+        <div class="math-box">${item.matrix}</div>
+      </article>
+      <form class="messy-form" data-messy-form>
+        <p><strong>Conta certa em folha confusa ainda perde ponto.</strong> Preencha os blocos que voce colocaria na prova.</p>
+        <div class="messy-grid">
+          ${blocks.map(([key, label]) => `
+            <label>
+              <span>${label}</span>
+              <textarea name="${key}" rows="3" placeholder="${label}..."></textarea>
+            </label>
+          `).join("")}
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">Auditar minha folha</button>
+          <button class="secondary" type="button" data-mode="blankSheet">Voltar ao modo Folha</button>
+        </div>
+      </form>
+      <div id="messyFeedback" class="feedback" role="status" aria-live="polite"></div>
+    </section>
+  `);
+}
+
+function submitMessyForm(form) {
+  const data = new FormData(form);
+  const filled = ["dados", "matriz", "operacoes", "geral", "especial", "classificacao", "solucao", "conclusao"].filter((key) => String(data.get(key) || "").trim().length > 6);
+  const conclusion = normalizeBlankText(data.get("conclusao") || "");
+  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[1];
+  const hasConclusion = conclusion.includes("spd") || conclusion.includes("spi") || conclusion.includes("si") || conclusion.includes("trivial");
+  const ok = filled.length >= 6 && hasConclusion;
+  state.blankSheetAttempts = [
+    ...(state.blankSheetAttempts || []),
+    { date: new Date().toISOString(), caseId: item.id, mode: "messy", filled: filled.length, organized: ok }
+  ].slice(-40);
+  saveState();
+  const fb = $("#messyFeedback");
+  fb.innerHTML = `
+    <strong>${ok ? "Folha auditavel." : "Folha ainda perigosa."}</strong>
+    <p>Blocos preenchidos: ${filled.length}/8. ${hasConclusion ? "Conclusao formal detectada." : "Faltou conclusao formal."}</p>
+    <p><strong>Modelo compacto:</strong> ${item.finalModel}</p>
+    <p>${ok ? "Agora a conta tem trilha de auditoria." : "Antes de refazer conta, organize dados, matriz, caso geral, caso especial e conclusao."}</p>
+  `;
+  fb.className = `feedback show ${ok ? "success" : "danger"}`;
+  typeset();
+}
+
 const ESCALONAMENTO_SEM_QUADRO = [
   courseMission({
     id: "mode-esq-01-row-op",
@@ -4450,6 +5559,7 @@ function home() {
         <p>Proximo sistema recomendado: <strong>Sistema ${String(currentSystem.number).padStart(2, "0")} - ${currentSystem.title}</strong>.</p>
         <div class="board-main-actions" aria-label="Acoes principais">
           ${menuButton("Continuar no Quadro", "Seu progresso: resolver o proximo sistema com conta e conclusao", "board")}
+          ${menuButton("Folha em Branco", "Lista 11 como prova: sem alternativas, com raciocinio escrito", "blankSheet")}
           ${menuButton("Diagnostico", "Descubra seu ponto de partida", "diagnostic")}
           ${menuButton("Boss", "Desafio final", "bossFinalBoard")}
           ${menuButton("Grimorio", "Teoria, formulas e exemplos", "grimoire")}
@@ -4462,6 +5572,7 @@ function home() {
           ${menuButton("Escalonamento rapido", "Apoio operacional curto", "escalonamentoSemQuadro")}
           ${menuButton("Discussao SPD/SPI/SI", "Apoio de classificacao", "discussaoSistemas")}
           ${menuButton("Lista 11 Total", "Revisao misturada", "lista11Total")}
+          ${menuButton("Minha folha ficou confusa", "Organizar resposta de prova em blocos", "blankSheetMessy")}
           ${menuButton("Grimorio", "Consulta rapida", "grimoire")}
           ${menuButton("Relatorio", "Prontidao real para prova", "readinessReport")}
         </div>
@@ -6261,6 +7372,8 @@ function route(mode) {
   if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
   if (mode === "resetDiagnostic") return resetDiagnosticOnly();
+  if (mode === "blankSheet") return blankSheetHome();
+  if (mode === "blankSheetMessy") return startBlankMessy(1);
   if (mode === "board") {
     if (uniqueCount(state.completedBoardModeSystems || []) >= LISTA11_SYSTEMS.length) return readinessReport();
     const position = nextBoardPosition();
@@ -6322,6 +7435,24 @@ document.addEventListener("click", (event) => {
 
   const pocketStart = event.target.closest("[data-pocket-start]");
   if (pocketStart) return pocketMode(Number(pocketStart.dataset.pocketStart), 0, 0, []);
+
+  const blankStart = event.target.closest("[data-blank-start]");
+  if (blankStart) return startBlankCase(Number(blankStart.dataset.blankStart));
+
+  const blankStuck = event.target.closest("[data-blank-stuck]");
+  if (blankStuck) return blankRequestHelp();
+
+  const blankNext = event.target.closest("[data-blank-next]");
+  if (blankNext) return blankNextStep();
+
+  const blankTimer = event.target.closest("[data-blank-timer]");
+  if (blankTimer) return startBlankTimer();
+
+  const blankStuckReason = event.target.closest("[data-blank-stuck-reason]");
+  if (blankStuckReason) return blankRecordStuckReason(blankStuckReason.dataset.blankStuckReason);
+
+  const blankMessy = event.target.closest("[data-blank-messy]");
+  if (blankMessy) return startBlankMessy(Number(blankMessy.dataset.blankMessy));
 
   const boardGo = event.target.closest("[data-board-go]");
   if (boardGo) {
@@ -6395,6 +7526,20 @@ document.addEventListener("change", (event) => {
   const boxes = $$(".checklist input");
   const done = boxes.filter((box) => box.checked).length;
   $("#checkBar").style.width = `${(done / boxes.length) * 100}%`;
+});
+
+document.addEventListener("submit", (event) => {
+  const blankForm = event.target.closest("[data-blank-form]");
+  if (blankForm) {
+    event.preventDefault();
+    return submitBlankStep(new FormData(blankForm).get("blankStep") || "");
+  }
+
+  const messyForm = event.target.closest("[data-messy-form]");
+  if (messyForm) {
+    event.preventDefault();
+    return submitMessyForm(messyForm);
+  }
 });
 
 home();

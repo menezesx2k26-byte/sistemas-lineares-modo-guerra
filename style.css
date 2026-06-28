@@ -1485,6 +1485,275 @@ button,
   font-size: 1rem;
 }
 
+body[data-focus-mode="blank"] .stats {
+  display: none;
+}
+
+.blank-shell {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.blank-hero,
+.blank-top,
+.blank-paper,
+.ritual-panel,
+.timer-panel,
+.blank-help,
+.blank-history,
+.axis-panel,
+.blank-rules article {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.blank-hero,
+.blank-top,
+.blank-paper,
+.ritual-panel,
+.timer-panel,
+.blank-help,
+.blank-history {
+  padding: 1rem;
+}
+
+.blank-hero,
+.blank-top {
+  display: grid;
+  gap: 0.65rem;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--gold)), var(--surface));
+}
+
+.blank-hero h2,
+.blank-top h2 {
+  margin-top: 0.2rem;
+  font-size: clamp(1.55rem, 7vw, 2.7rem);
+}
+
+.blank-rules,
+.blank-case-grid,
+.blank-main,
+.blank-side,
+.messy-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.blank-rules article {
+  padding: 0.85rem;
+}
+
+.blank-rules strong,
+.ritual-panel strong,
+.timer-panel strong,
+.blank-history h3,
+.blank-paper h3 {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--blue);
+  font-size: 0.85rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.blank-case-card {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 132px;
+  padding: 0.95rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(23, 33, 46, 0.08);
+  text-align: left;
+}
+
+.blank-case-card span,
+.blank-case-card em {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.blank-case-card strong {
+  font-size: 1.05rem;
+}
+
+.blank-layout {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.blank-main {
+  min-width: 0;
+}
+
+.blank-paper {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.blank-prompt {
+  padding: 0.8rem;
+  border-radius: 10px;
+  background: var(--data-bg);
+  border: 1px solid var(--data-line);
+  font-weight: 850;
+}
+
+.blank-response {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.blank-response label,
+.messy-form label span {
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.blank-response textarea,
+.messy-form textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 0.8rem;
+  color: var(--ink);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.blank-response textarea:focus-visible,
+.messy-form textarea:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.ritual-panel {
+  position: sticky;
+  top: 5rem;
+}
+
+.ritual-panel ol,
+.blank-help ol,
+.blank-history ol {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.ritual-panel li,
+.blank-history li {
+  line-height: 1.4;
+}
+
+.timer-panel {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.timer-panel.danger {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.stuck-reasons {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.blank-help {
+  border-left: 6px solid var(--gold);
+  background: var(--warning-bg);
+}
+
+.blank-help li span {
+  display: block;
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.blank-history {
+  box-shadow: none;
+}
+
+.blank-history li {
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.blank-history li.ok {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.blank-history li.warn {
+  border-color: var(--gold);
+  background: var(--warning-bg);
+}
+
+.blank-history small {
+  display: inline-block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.axis-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding: 0.8rem;
+  box-shadow: none;
+}
+
+.axis-panel div {
+  padding: 0.65rem;
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.axis-panel strong {
+  display: block;
+  color: var(--green);
+  font-size: 1.2rem;
+}
+
+.axis-panel span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.messy-form {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.messy-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
 @media (min-width: 760px) {
   .stage {
     padding: 1.1rem 1.1rem calc(5.2rem + env(safe-area-inset-bottom));
@@ -1545,5 +1814,20 @@ button,
 
   .skill-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .blank-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    align-items: start;
+  }
+
+  .blank-rules,
+  .blank-case-grid,
+  .messy-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .blank-top {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
   }
 }

@@ -29,7 +29,11 @@ assert(script.includes("Feedback por objetivo"), "diagnostic result gives format
 assert(script.includes("errorSummaryBlock") && script.includes("Pontos de revisao do diagnostico"), "diagnostic has accessible review summary");
 assert(script.includes("reviewLinkBlock"), "exercise feedback links to Grimoire review");
 assert(script.includes('role="status" aria-live="polite"'), "dynamic feedback uses aria-live");
+assert(script.includes("Folha em Branco - Lista 11") && script.includes("BLANK_SHEET_CASES"), "blank sheet exam mode exists");
+assert(script.includes("data-blank-form") && script.includes("Estou travado"), "blank sheet mode uses open response and progressive help");
+assert(script.includes("Ritual de prova") && script.includes("blankSheetAttempts"), "blank sheet mode tracks exam ritual and attempts");
 assert(css.includes(".skip-link") && css.includes(":focus-visible"), "visible focus and skip link styles exist");
 assert(css.includes(".stepper-step") && css.includes(".info-card"), "study stepper and info cards are styled");
+assert(css.includes(".blank-shell") && css.includes(".ritual-panel"), "blank sheet mode styles exist");
 
 if (process.exitCode) process.exit(process.exitCode);
