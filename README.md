@@ -4,7 +4,11 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 
 ## O que o app treina
 
-- Jornada Modo Guerra como caminho principal: diagnostico, entrada automatica no nivel certo, missoes, discussao de sistemas, simulado e relatorio.
+- Home com tres modos principais, sem dashboard poluido:
+  - Escalonamento Sem Quadro;
+  - Discussao de Sistemas Lineares;
+  - Lista 11 Total.
+- Diagnostico duro por habilidade, sem porcentagem fake de dominio.
 - Laboratorio com 59 desafios de operacoes de linha.
 - Chapeu Seletor com 12 questoes que mede conceito de sistema, matriz ampliada, escalonamento, aritmetica, classificacao, homogeneos, determinante, parametros e discussao de sistemas.
 - Quadro de Bolso com 3 escalonamentos 3x3 guiados em passos curtos para celular, sem exigir digitar matriz inteira.
@@ -61,7 +65,8 @@ Depois abra o endereco mostrado pelo terminal.
 - A refatoracao `ux-didactic-refactor` simplifica a Home, transforma a Jornada em superficie de curso limpo e organiza o Laboratorio por habilidade.
 - A atualizacao adaptativa troca "fundamento como pedagio" por recomendacao: quem acerta o basico entra automaticamente mais adiante na Jornada.
 - O Diagnostico salva um `userProfile` com nivel, habilidades, pontos fracos, fase inicial recomendada e ultima recomendacao.
-- A Home agora evita painel poluido: mostra uma acao principal, status do tutor, ponto fraco detectado e deixa modos auxiliares recolhidos em "Academia opcional".
+- A Home agora evita painel poluido: mostra apenas tres cards grandes de treino de prova e uma area pequena de status.
+- O app nao mostra dominio alto so por acerto conceitual: a confianca operacional fica limitada a 80% sem escalonamento completo, 85% sem discussao com parametro e 90% sem simulado misto.
 - O conteudo longo fica no Grimorio. Jornada, Laboratorio e Boss mostram uma decisao por tela.
 - O Laboratorio reforca a automatizacao de operacoes de linha antes de exigir escalonamento completo.
 - O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.
@@ -103,12 +108,37 @@ Referencias oficiais:
 ## Atualizacao adaptativa
 
 - Reducao de repeticao: fundamentos continuam disponiveis na Jornada, mas o Diagnostico pode marca-los como revisao opcional e recomendar trilhas avancadas.
-- Recomendacao: `recommendNextMode(...)` considera erros do diagnostico, progresso salvo e habilidades fracas. Erros de sinal/pivo mandam ao Quadro de Bolso; erros de parametro mandam a Parametros; erros de classificacao mandam ao Classificador; acerto quase perfeito libera escalonamento completo.
-- Atalhos avancados: Home exibe Escalonamento completo, Parametros, Boss Lista 11 e Quadro de Bolso sem esconder tudo em menu secundario.
+- Recomendacao: `recommendNextMode(...)` considera erros do diagnostico, progresso salvo e habilidades fracas. Erros de sinal/pivo mandam para treino operacional; erros de parametro mandam para discussao por casos; acerto conceitual alto ainda nao libera dominio sem execucao completa.
+- Home recalibrada: a tela principal mostra somente Escalonamento Sem Quadro, Discussao de Sistemas Lineares e Lista 11 Total.
 - Quadro de Bolso: resolve escalonamentos 3x3 em decisoes pequenas, como escolher pivo, calcular `3L_2`, conferir termo independente e classificar SPD/SPI/SI.
 - Escalonamentos completos adicionados: Sistema I da Lista 10 terminando em SI, sistema com pivo 3 sem fracao terminando em SPD, e sistema gerado equivalente terminando em SPI.
 - Parametros ficaram acessiveis diretamente pela Home e pela recomendacao do diagnostico.
 - Boss Lista 11 pode ser iniciado mesmo antes dos 140 XP; o app ainda avisa que e recomendado treinar antes.
+
+## Tres modos de prova
+
+### Escalonamento Sem Quadro
+
+Treina pivo, escolha de linha, operacao elementar, aritmetica de sinais, lado direito depois da barra, fracao inevitavel, parametro simples e classificacao final. O celular quebra o escalonamento em decisoes pequenas; nao exige digitar uma matriz inteira.
+
+### Discussao de Sistemas Lineares
+
+Treina SPD/SPI/SI, linha contraditoria, variavel livre, determinante como radar, parametro, caso geral, caso especial, homogeneo e escrita da conclusao. Frase central: determinante diferente de zero resolve: SPD; determinante zero nao resolve tudo, ele manda investigar.
+
+### Lista 11 Total
+
+Simula a lista dificil: primeiro identifica o tipo da questao, depois escolhe o primeiro passo, resolve com ajuda progressiva e fecha com conclusao completa. Mistura parametro, homogeneo, determinante, variavel livre, classificacao e escrita formal.
+
+## Diagnostico sem 97 fake
+
+- `rawPercent` guarda a pontuacao bruta do Chapeu Seletor.
+- `percent` guarda a confianca operacional ajustada por requisitos praticos.
+- `masteryCap()` impede dominio inflado:
+  - maximo de 80% se o aluno ainda nao concluiu escalonamento completo;
+  - maximo de 85% se ainda nao discutiu sistema com parametro;
+  - maximo de 90% se ainda nao fez simulado misto.
+- Usar dica registra sinal de pressa/fragilidade naquela habilidade.
+- O perfil salvo e por habilidade, nao por porcentagem geral.
 
 ## Jornada unica adaptativa
 

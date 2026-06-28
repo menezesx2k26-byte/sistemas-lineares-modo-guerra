@@ -30,6 +30,12 @@ const defaultState = {
   lastRecommendation: null,
   adaptiveQueue: [],
   history: [],
+  modeProgress: {
+    escalonamentoSemQuadro: 0,
+    discussaoSistemas: 0,
+    lista11Total: 0
+  },
+  lista11TotalAttempts: [],
   bossUnlocked: false,
   theme: "light",
   optionalReview: { foundations: false },
@@ -49,6 +55,8 @@ function loadState() {
       stats: { ...defaultState.stats, ...(saved.stats || {}) },
       skillScores: { ...defaultState.skillScores, ...(saved.skillScores || {}) },
       errorTypes: { ...defaultState.errorTypes, ...(saved.errorTypes || {}) },
+      modeProgress: { ...defaultState.modeProgress, ...(saved.modeProgress || {}) },
+      lista11TotalAttempts: Array.isArray(saved.lista11TotalAttempts) ? saved.lista11TotalAttempts : [],
       adaptiveQueue: Array.isArray(saved.adaptiveQueue) ? saved.adaptiveQueue : [],
       history: Array.isArray(saved.history) ? saved.history : []
     };
@@ -127,6 +135,12 @@ function renderHud() {
     homogeneousTrack: "infinite",
     parametersTrack: "infinite",
     lista11Boss: "infinite",
+    escalonamentoSemQuadro: "escalonamentoSemQuadro",
+    escalonamentoSemQuadroResult: "escalonamentoSemQuadro",
+    discussaoSistemas: "discussaoSistemas",
+    discussaoSistemasResult: "discussaoSistemas",
+    lista11Total: "lista11Total",
+    lista11TotalResult: "lista11Total",
     checklist: "grimoire"
   }[screen.mode] || screen.mode;
   $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === activeMode));
@@ -476,6 +490,54 @@ const ERROR_TYPE_LABELS = {
   conclusao: "erro de escrita da conclusao"
 };
 
+function hasCompletedFullEscalation(currentState = state) {
+  return (currentState.completed || []).some((id) =>
+    id === "pocket-lista10-si-finish"
+    || id === "pocket-pivot3-spd-finish"
+    || id === "pocket-generated-spi-finish"
+    || id.startsWith("mode-escalonamento-sem-quadro-finish")
+  );
+}
+
+function hasCompletedParameterDiscussion(currentState = state) {
+  return (currentState.completed || []).some((id) =>
+    id.startsWith("course-discussion-")
+    || id.startsWith("mode-discussao-sistemas-finish")
+    || id === "course-c8-65-lista11-4"
+  );
+}
+
+function hasCompletedMixedSimulado(currentState = state) {
+  return (currentState.completed || []).some((id) =>
+    id.startsWith("mode-lista11-total-finish")
+    || id === "course-c10-74-boss-mixed"
+    || id === "course-c10-75-campaign-complete"
+  );
+}
+
+function masteryCap(currentState = state) {
+  let cap = 100;
+  if (!hasCompletedFullEscalation(currentState)) cap = Math.min(cap, 80);
+  if (!hasCompletedParameterDiscussion(currentState)) cap = Math.min(cap, 85);
+  if (!hasCompletedMixedSimulado(currentState)) cap = Math.min(cap, 90);
+  return cap;
+}
+
+function adjustedConfidence(rawPercent, currentState = state) {
+  return Math.min(rawPercent, masteryCap(currentState));
+}
+
+function currentFocusText(currentState = state) {
+  const mistakes = currentState.stats?.mistakes || {};
+  const ordered = Object.entries(mistakes).sort((a, b) => b[1] - a[1]).map(([skill]) => correctionKeyFor(skill));
+  const focus = [...new Set(ordered)].filter(Boolean);
+  if (focus.length) return focus.slice(0, 2).join(" e ");
+  if (!hasCompletedFullEscalation(currentState)) return "escalonamento e aritmetica de linhas";
+  if (!hasCompletedParameterDiscussion(currentState)) return "discussao com parametro";
+  if (!hasCompletedMixedSimulado(currentState)) return "Lista 11 Total";
+  return "manter velocidade e revisar erros";
+}
+
 function diagnosticMisses(result = state.diagnostic) {
   return new Set(result?.misses || result?.weakTargets || []);
 }
@@ -586,13 +648,16 @@ function buildDiagnosticResult(answers = []) {
     .filter(([, value]) => value.wrong > 0)
     .map(([skill]) => skill);
   const weakTargets = answers.filter((answer) => !answer.correct).map((answer) => answer.target);
-  const percent = total ? Math.round((score / total) * 100) : 0;
-  const route = recommendRoute({ score, total, percent, weakPoints, weakTargets, bySkill });
+  const rawPercent = total ? Math.round((score / total) * 100) : 0;
+  const percent = adjustedConfidence(rawPercent);
+  const route = recommendRoute({ score, total, percent, rawPercent, weakPoints, weakTargets, bySkill });
   const result = {
     date: new Date().toISOString(),
     score,
     total,
+    rawPercent,
     percent,
+    cap: masteryCap(),
     strengths,
     weaknesses: weakPoints,
     weakPoints,
@@ -617,6 +682,7 @@ function buildDiagnosticResult(answers = []) {
 function recommendRoute(result) {
   const weak = new Set(result.weakPoints || []);
   const percent = result.percent ?? 0;
+  const rawPercent = result.rawPercent ?? percent;
   const route = (missionKey, label, message, level, phase) => ({
     recommendedMode: "recommendedJourney",
     recommendedMissionId: DIAGNOSTIC_ROUTE_MISSIONS[missionKey],
@@ -628,7 +694,7 @@ function recommendRoute(result) {
       nivel1: "Nivel 1 - iniciante operacional",
       nivel2: "Nivel 2 - entende, mas se perde na conta",
       nivel3: "Nivel 3 - intermediario fragil",
-      nivel4: "Nivel 4 - quase prova"
+      nivel4: "Nivel 4 - simulado misto"
     }[level],
     recommendedStartPhase: phase
   });
@@ -654,8 +720,17 @@ function recommendRoute(result) {
   if (weak.has("parametros") || weak.has("discussaoSistema") || weak.has("escritaConclusao")) {
     return route("discussao", "Discussao de sistemas por casos", "Voce ja pode ir para a parte que derruba em prova: valor critico, caso geral, caso especial e conclusao completa.", "nivel3", 8);
   }
+  if (rawPercent >= 90 && !hasCompletedFullEscalation()) {
+    return route("escalonamento", "Escalonamento Sem Quadro", "Voce entende varias ideias, mas ainda nao provou execucao completa. Conceito bom; treino operacional agora.", "nivel2", 3);
+  }
+  if (rawPercent >= 90 && !hasCompletedParameterDiscussion()) {
+    return route("discussao", "Discussao de sistemas por casos", "Voce nao esta zerado, mas tambem nao esta 97%. Falta discutir casos com parametro e conclusao escrita.", "nivel3", 8);
+  }
+  if (rawPercent >= 90 && !hasCompletedMixedSimulado()) {
+    return route("simulado", "Lista 11 Total", "Agora falta provar sob pressao: identificar, comecar, resolver e concluir questoes misturadas.", "nivel4", 9);
+  }
   if (percent >= 90) {
-    return route("simulado", "Simulado modo prova", "Voce nao precisa ficar preso no tutorial. Vamos para questoes misturadas e escrita de conclusao.", "nivel4", 9);
+    return route("simulado", "Simulado modo prova", "Voce demonstrou execucao, discussao e simulado. Agora e revisao de erro fino.", "nivel4", 9);
   }
   return route("escalonamento", "Escalonamento sem se perder", "Diagnostico misto: vamos fortalecer a execucao antes de discutir parametro pesado.", percent <= 65 ? "nivel1" : "nivel2", percent <= 65 ? 2 : 3);
 }
@@ -2879,77 +2954,617 @@ const infinitePool = [
   ...parameterQuestions
 ];
 
+const ESCALONAMENTO_SEM_QUADRO = [
+  courseMission({
+    id: "mode-esq-01-row-op",
+    chapter: "Nivel 1 - operacoes isoladas",
+    title: "Calcular uma operacao de linha inteira",
+    origin: "Gerada no escopo Lista 10",
+    skill: "aritmetica de linhas",
+    difficulty: 1,
+    data: String.raw`<p>\(L_1=[1,\ 2,\ -1\ |\ 3]\)</p><p>\(L_2=[3,\ 1,\ 4\ |\ 5]\)</p>`,
+    explain: "Antes de escalonar uma matriz toda, treine uma linha. A operacao muda cada entrada, inclusive depois da barra.",
+    question: String.raw`Calcule \(L_2\leftarrow L_2-3L_1\).`,
+    choices: [
+      String.raw`\([0,\ -5,\ 7\ |\ -4]\)`,
+      String.raw`\([0,\ -5,\ 7\ |\ 5]\)`,
+      String.raw`\([0,\ 5,\ 1\ |\ -4]\)`
+    ],
+    answer: 0,
+    feedback: "Certo. Voce atualizou a linha inteira, inclusive o termo independente.",
+    feedbacks: [
+      "Certo. Estrategia e conta bateram.",
+      "Voce acertou os coeficientes, mas perdeu o termo independente: 5 - 3*3 = -4.",
+      "Erro de sinal no segundo e terceiro termos. A operacao e entrada por entrada."
+    ],
+    fullSolution: String.raw`<p>\(3L_1=[3,6,-3|9]\).</p><p>\(L_2-3L_1=[3,1,4|5]-[3,6,-3|9]=[0,-5,7|-4]\).</p>`,
+    why: "Esse treino separa erro operacional de erro conceitual."
+  }),
+  courseMission({
+    id: "mode-esq-02-pivot-choice",
+    chapter: "Nivel 2 - escolha de pivo",
+    title: "Escolher pivo confortavel",
+    origin: "Gerada",
+    skill: "escolha de pivo",
+    difficulty: 1,
+    data: matrixTex([[3, 1, -1, 4], [1, 5, 2, 8], [-2, 3, 1, 0]]),
+    explain: "Se existe linha com 1 na primeira coluna, ela costuma ser o pivo mais limpo.",
+    question: "Qual linha voce colocaria como primeira para comecar melhor?",
+    choices: ["Linha 1, porque ja esta em cima", "Linha 2, porque tem pivo 1", "Linha 3, porque tem negativo"],
+    answer: 1,
+    feedback: "Boa. Se existe pivo 1, nao precisa sofrer com pivo 3.",
+    feedbacks: [
+      "Funciona, mas cria fracao/conta maior cedo demais. Melhor usar a linha 2 com pivo 1.",
+      "Boa. Pivo 1 economiza vida em prova.",
+      "Negativo nao e problema, mas aqui o 1 e mais confortavel."
+    ],
+    fullSolution: String.raw`<p>Trocar \(L_1\leftrightarrow L_2\) nao muda as solucoes. So coloca a equacao mais conveniente no topo.</p>`,
+    why: "Escolher pivo bom e organizacao, nao frescura."
+  }),
+  courseMission({
+    id: "mode-esq-03-zero-first-column",
+    chapter: "Nivel 3 - zerar primeira coluna",
+    title: "Escolher a operacao que zera",
+    origin: "Lista 10 sistema I",
+    skill: "escalonamento",
+    difficulty: 2,
+    data: String.raw`<p>\(L_1=[1,2,-1|-10]\)</p><p>\(L_2=[3,7,2|-19]\)</p>`,
+    explain: "Objetivo: zerar o 3 abaixo do pivo 1. A operacao nasce da conta 3 - 3*1 = 0.",
+    question: "Qual operacao zera o primeiro termo da linha 2?",
+    choices: [
+      String.raw`\(L_2\leftarrow L_2-3L_1\)`,
+      String.raw`\(L_2\leftarrow L_2+3L_1\)`,
+      String.raw`\(L_1\leftarrow L_1-3L_2\)`
+    ],
+    answer: 0,
+    feedback: String.raw`Certo. \(3-3\cdot1=0\).`,
+    feedbacks: [
+      String.raw`Certo. \(3-3\cdot1=0\).`,
+      String.raw`Erro de sinal: \(3+3\cdot1=6\), nao zero.`,
+      String.raw`Linha errada: quem precisa mudar e \(L_2\), nao \(L_1\).`
+    ],
+    fullSolution: String.raw`<p>\(3L_1=[3,6,-3|-30]\).</p><p>\(L_2-3L_1=[0,1,5|11]\).</p>`,
+    why: "Primeiro objetivo, depois operacao. Isso reduz chute."
+  }),
+  courseMission({
+    id: "mode-esq-04-independent-term",
+    chapter: "Nivel 3 - zerar primeira coluna",
+    title: "Conferir o termo depois da barra",
+    origin: "Lista 10 sistema I",
+    skill: "aritmetica de linhas",
+    difficulty: 2,
+    data: String.raw`<p>\([3,7,2|-19]-[3,6,-3|-30]\)</p>`,
+    explain: "O termo independente vai para a guerra junto. Aqui o lado direito e -19 - (-30).",
+    question: String.raw`Quanto vale \(-19-(-30)\)?`,
+    choices: ["11", "-49", "-11"],
+    answer: 0,
+    feedback: "Certo. Subtrair numero negativo vira somar.",
+    feedbacks: [
+      "Certo. Esse 11 aparece depois da barra.",
+      "Isso seria -19 - 30. Aqui e -19 - (-30).",
+      "Faltou somar 30 depois de tirar o parenteses."
+    ],
+    fullSolution: String.raw`<p>\(-19-(-30)=-19+30=11\).</p><p>Nova linha: \([0,1,5|11]\).</p>`,
+    why: "Muita gente sabe a operacao e perde a questao na barra."
+  }),
+  courseMission({
+    id: "mode-esq-05-2x2-complete",
+    chapter: "Nivel 4 - escalonamento 2x2",
+    title: "Escalonamento completo 2x2",
+    origin: "Gerada",
+    skill: "escalonamento",
+    difficulty: 2,
+    data: String.raw`\[\begin{cases}x+2y=7\\3x-y=5\end{cases}\]`,
+    explain: "Monte a matriz e zere o 3 abaixo do pivo 1.",
+    question: String.raw`Depois de \(L_2\leftarrow L_2-3L_1\), qual fica a segunda linha?`,
+    choices: [String.raw`\([0,-7|-16]\)`, String.raw`\([0,5|16]\)`, String.raw`\([0,-7|16]\)`],
+    answer: 0,
+    feedback: "Certo. Agora a matriz ja esta escalonada.",
+    feedbacks: [
+      "Certo. \(3-3=0\), \(-1-6=-7\), \(5-21=-16\).",
+      "Sinal errado no coeficiente de y e no lado direito.",
+      "Coeficiente certo, mas lado direito errado: 5 - 21 = -16."
+    ],
+    fullSolution: String.raw`<p>\([3,-1|5]-3[1,2|7]=[3,-1|5]-[3,6|21]=[0,-7|-16]\).</p>`,
+    why: "2x2 completo treina o esqueleto sem afogar no tamanho."
+  }),
+  courseMission({
+    id: "mode-esq-06-pivot-not-one",
+    chapter: "Nivel 5 - 3x3 sem fracao cedo",
+    title: "Pivo diferente de 1: evitar fracao cedo",
+    origin: "Lista 10 sistema II",
+    skill: "escolha de pivo",
+    difficulty: 3,
+    data: matrixTex([[3, 1, -1, -10], [2, -1, -1, 6], [-4, 2, -5, 20]]),
+    explain: "Com pivo 3 e alvo 2, da para zerar sem fracao usando p*linha alvo - a*linha pivo.",
+    question: String.raw`Qual operacao zera o 2 abaixo do pivo 3 sem fracao?`,
+    choices: [
+      String.raw`\(L_2\leftarrow3L_2-2L_1\)`,
+      String.raw`\(L_2\leftarrow2L_2-3L_1\)`,
+      String.raw`\(L_2\leftarrow L_2-\frac{3}{2}L_1\)`
+    ],
+    answer: 0,
+    feedback: String.raw`Certo. \(3\cdot2-2\cdot3=0\).`,
+    feedbacks: [
+      String.raw`Certo. \(3\cdot2-2\cdot3=0\).`,
+      String.raw`Da \(2\cdot2-3\cdot3=-5\), nao zero.`,
+      "Essa fracao nem e a proporcao certa para zerar o 2 usando pivo 3."
+    ],
+    fullSolution: String.raw`<p>\(3L_2=[6,-3,-3|18]\).</p><p>\(2L_1=[6,2,-2|-20]\).</p><p>\(3L_2-2L_1=[0,-5,-1|38]\).</p>`,
+    why: "Operacao valida nao basta; em prova, operacao limpa reduz erro."
+  }),
+  courseMission({
+    id: "mode-esq-07-fraction-inevitable",
+    chapter: "Nivel 6 - fracao inevitavel",
+    title: "Quando a fracao aparece",
+    origin: "Gerada",
+    skill: "aritmetica de linhas",
+    difficulty: 3,
+    data: String.raw`<p>\(L_1=[2,1|5]\), \(L_2=[1,3|4]\)</p>`,
+    explain: "Se voce decide manter o pivo 2, zerar o 1 abaixo pode exigir fracao. A fracao nao e proibida; so precisa ser controlada.",
+    question: String.raw`Qual operacao zera o 1 abaixo do pivo 2?`,
+    choices: [
+      String.raw`\(L_2\leftarrow L_2-\frac12L_1\)`,
+      String.raw`\(L_2\leftarrow L_2-2L_1\)`,
+      String.raw`\(L_1\leftarrow L_1-\frac12L_2\)`
+    ],
+    answer: 0,
+    feedback: String.raw`Certo. \(1-\frac12\cdot2=0\).`,
+    fullSolution: String.raw`<p>\(\frac12L_1=[1,\frac12|\frac52]\).</p><p>\(L_2-\frac12L_1=[0,\frac52|\frac32]\).</p>`,
+    why: "Fracao inevitavel nao e derrota; e so uma conta que exige organizacao."
+  }),
+  courseMission({
+    id: "mode-esq-08-param-simple",
+    chapter: "Nivel 7 - parametro simples",
+    title: "Pivo com parametro",
+    origin: "Gerada no escopo Lista 11",
+    skill: "parametros",
+    difficulty: 3,
+    data: String.raw`<p>Durante o escalonamento apareceu um pivo \(k-2\).</p>`,
+    explain: "Antes de dividir por um pivo com parametro, pergunte quando ele zera.",
+    question: String.raw`Qual separacao de casos e correta?`,
+    choices: [
+      String.raw`\(k\neq2\) e \(k=2\)`,
+      String.raw`\(k\neq-2\) e \(k=-2\)`,
+      "dividir direto por \(k-2\)"
+    ],
+    answer: 0,
+    feedback: "Certo. Valor critico primeiro, divisao depois.",
+    fullSolution: String.raw`<p>\(k-2=0\Rightarrow k=2\). Se \(k\neq2\), pode dividir. Se \(k=2\), substitua e investigue.</p>`,
+    why: "Parametro e onde muita questao de prova pega quem automatizou sem pensar."
+  }),
+  courseMission({
+    id: "mode-esq-09-final-classify",
+    chapter: "Nivel 8 - classificar depois",
+    title: "Ler o fim do escalonamento",
+    origin: "Lista 10 sistema I",
+    skill: "classificacao",
+    difficulty: 3,
+    data: matrixTex([[1, 2, -1, -10], [0, 1, 5, 11], [0, 0, 0, 7]]),
+    explain: "Escalonamento so termina quando voce interpreta a matriz final.",
+    question: "Como classificamos esse sistema?",
+    choices: ["SI", "SPI", "SPD"],
+    answer: 0,
+    feedback: "Certo. A ultima linha diz 0 = 7.",
+    fullSolution: String.raw`<p>\([0,0,0|7]\Rightarrow0=7\). Contradicao. Logo o sistema e impossivel, \(S=\varnothing\).</p>`,
+    why: "Sem classificacao final, a conta nao vira resposta."
+  })
+];
+
+const DISCUSSAO_SISTEMAS = [
+  courseMission({
+    id: "mode-disc-01-algorithm",
+    chapter: "Discussao - algoritmo mental",
+    title: "Discutir e classificar por casos",
+    origin: "Fundamento de prova",
+    skill: "discussao de sistemas",
+    difficulty: 2,
+    data: "<p>Discutir = dizer para quais valores o sistema e SPD, SPI ou SI.</p>",
+    explain: "Determinante diferente de zero resolve: SPD. Determinante zero nao resolve tudo; ele manda investigar.",
+    question: "Quando det(A)=0 em sistema com parametro, o que fazer?",
+    choices: ["substituir e investigar", "concluir SPI direto", "concluir SI direto"],
+    answer: 0,
+    feedback: "Certo. Valor critico nao e resposta final.",
+    fullSolution: "<p>Algoritmo: tem parametro? matriz quadrada? calcule determinante. Caso geral com det diferente de zero: SPD. Caso especial com det zero: substitua e escalone.</p>",
+    why: "Essa e a espinha dorsal da discussao de sistemas."
+  }),
+  courseMission({
+    id: "mode-disc-02-spd",
+    chapter: "Discussao sem parametro",
+    title: "Matriz final com SPD",
+    origin: "Gerada",
+    skill: "classificacao",
+    difficulty: 1,
+    data: matrixTex([[1, 2, -1, 3], [0, 1, 4, 2], [0, 0, 1, 5]]),
+    explain: "Ha pivo em todas as variaveis e nao ha contradicao.",
+    question: "Classificacao correta:",
+    choices: ["SPD", "SPI", "SI"],
+    answer: 0,
+    feedback: "Certo. Tres pivos para tres incognitas.",
+    fullSolution: "<p>Frase-modelo: como ha pivo em todas as variaveis, o sistema e possivel determinado.</p>",
+    why: "SPD exige solucao unica, nao so ausencia de erro."
+  }),
+  courseMission({
+    id: "mode-disc-03-si",
+    chapter: "Discussao sem parametro",
+    title: "Linha contraditoria",
+    origin: "Gerada",
+    skill: "classificacao",
+    difficulty: 1,
+    data: matrixTex([[1, 2, -1, 3], [0, 1, 4, 2], [0, 0, 0, 5]]),
+    explain: "A ultima linha diz 0 = 5. Isso e contradicao.",
+    question: "Classificacao correta:",
+    choices: ["SI", "SPI", "SPD"],
+    answer: 0,
+    feedback: "Certo. Linha contraditoria gera sistema impossivel.",
+    fullSolution: String.raw`<p>Frase-modelo: como apareceu uma linha contraditoria, o sistema e impossivel, \(S=\varnothing\).</p>`,
+    why: "Contradicao vem antes de falar em variavel livre."
+  }),
+  courseMission({
+    id: "mode-disc-04-spi",
+    chapter: "Discussao sem parametro",
+    title: "Variavel livre sem contradicao",
+    origin: "Gerada",
+    skill: "variavel livre",
+    difficulty: 2,
+    data: matrixTex([[1, 2, -1, 3], [0, 1, 4, 2], [0, 0, 0, 0]]),
+    explain: "A ultima linha e 0=0. Nao prende variavel. Se falta pivo, sobra variavel livre.",
+    question: "Classificacao correta:",
+    choices: ["SPI", "SI", "SPD"],
+    answer: 0,
+    feedback: "Certo. Sem contradicao e com variavel livre: SPI.",
+    fullSolution: "<p>Frase-modelo: como nao ha contradicao e existe variavel livre, o sistema e possivel indeterminado.</p>",
+    why: "0=0 nao e alarme; e uma linha que nao traz informacao nova."
+  }),
+  courseMission({
+    id: "mode-disc-05-det-critical",
+    chapter: "Discussao com parametro",
+    title: "Valor critico do determinante",
+    origin: "Gerada no escopo Lista 11",
+    skill: "determinante",
+    difficulty: 2,
+    data: String.raw`\[\det(A)=a-2\]`,
+    explain: "O valor critico e onde o determinante zera.",
+    question: "Qual e o valor critico?",
+    choices: [String.raw`\(a=2\)`, String.raw`\(a=-2\)`, String.raw`\(a\neq2\)`],
+    answer: 0,
+    feedback: "Certo. Esse valor separa caso geral e caso especial.",
+    fullSolution: String.raw`<p>\(a-2=0\Rightarrow a=2\). Para \(a\neq2\), det(A) nao zera e o sistema e SPD.</p>`,
+    why: "Achar valor critico e comeco da discussao, nao final."
+  }),
+  courseMission({
+    id: "mode-disc-06-general-case",
+    chapter: "Discussao com parametro",
+    title: "Caso geral",
+    origin: "Gerada no escopo Lista 11",
+    skill: "parametros",
+    difficulty: 2,
+    data: String.raw`\[\det(A)=a-2\]`,
+    explain: "Para a diferente do valor critico, o determinante e diferente de zero.",
+    question: String.raw`Se \(a\neq2\), entao o sistema e:`,
+    choices: ["SPD", "SPI", "SI"],
+    answer: 0,
+    feedback: "Certo. Determinante diferente de zero resolve: SPD.",
+    fullSolution: String.raw`<p>Frase-modelo: para \(a\neq2\), \(\det(A)\neq0\), portanto o sistema e possivel determinado.</p>`,
+    why: "Esse caso costuma ser rapido. A investigacao pesada fica no valor critico."
+  }),
+  courseMission({
+    id: "mode-disc-07-special-case",
+    chapter: "Discussao com parametro",
+    title: "Caso especial",
+    origin: "Gerada no escopo Lista 11",
+    skill: "discussao de sistemas",
+    difficulty: 3,
+    data: String.raw`<p>Para \(a=2\), depois de substituir, apareceu:</p>\[[0,\ 0,\ 0\ |\ 5]\]`,
+    explain: "Agora a matriz ampliada decide. Aqui apareceu contradicao.",
+    question: String.raw`Para \(a=2\), a classificacao e:`,
+    choices: ["SI", "SPI", "SPD"],
+    answer: 0,
+    feedback: "Certo. A linha 0=5 torna o sistema impossivel.",
+    fullSolution: String.raw`<p>Conclusao completa: para \(a\neq2\), SPD. Para \(a=2\), SI.</p>`,
+    why: "det(A)=0 apenas manda investigar; a linha final decide."
+  }),
+  courseMission({
+    id: "mode-disc-08-write",
+    chapter: "Escrita da discussao",
+    title: "Completar a conclusao",
+    origin: "Gerada no escopo Lista 11",
+    skill: "escrita da conclusao",
+    difficulty: 3,
+    data: String.raw`<p>Dado: \(\det(A)=3a-6\).</p>`,
+    explain: "A resposta boa fala do caso geral e do caso especial.",
+    question: "Qual frase esta completa?",
+    choices: [
+      "a = 2",
+      "Se a diferente de 2, SPD. Se a = 2, substituir e escalonar para decidir entre SPI e SI.",
+      "det(A)=0, logo SPI"
+    ],
+    answer: 1,
+    feedback: "Certo. Voce discutiu os dois caminhos.",
+    feedbacks: [
+      "Incompleto. Voce achou o valor critico, mas nao discutiu o sistema.",
+      "Certo. Caso geral e caso especial aparecem.",
+      "Erro conceitual: det(A)=0 nao implica SPI automaticamente."
+    ],
+    fullSolution: String.raw`<p>Modelo: se \(a\neq2\), entao \(\det(A)\neq0\), logo SPD. Se \(a=2\), entao \(\det(A)=0\), entao precisamos substituir no sistema e escalonar.</p>`,
+    why: "A professora cobra discussao, nao so valor critico."
+  }),
+  courseMission({
+    id: "mode-disc-09-homogeneous",
+    chapter: "Homogeneos na discussao",
+    title: "Homogeneo: lado direito zero",
+    origin: "Lista 11",
+    skill: "homogeneos",
+    difficulty: 2,
+    data: String.raw`\[A\vec{x}=\vec{0}\]`,
+    explain: "No sistema homogeneo, quem e zero e o vetor do lado direito; a matriz dos coeficientes pode ter qualquer numero.",
+    question: String.raw`Se \(\det(A)\neq0\), o homogeneo tem:`,
+    choices: ["somente a trivial", "nenhuma solucao", "sempre infinitas solucoes"],
+    answer: 0,
+    feedback: "Certo. det(A) diferente de zero prende tudo na solucao zero.",
+    fullSolution: String.raw`<p>Se \(\det(A)=0\), podem existir solucoes nao triviais. Se \(\det(A)\neq0\), so \(\vec{x}=\vec{0}\).</p>`,
+    why: "Homogeneo nunca e SI de cara porque a trivial sempre funciona."
+  })
+];
+
+const LISTA11_TOTAL = [
+  courseMission({
+    id: "mode-l11-01-identify-param",
+    chapter: "Bloco 1 - identificar o monstro",
+    title: "Que tipo de questao e essa?",
+    origin: "Lista 11 ex. 1(a)",
+    skill: "interpretacao de enunciado",
+    difficulty: 2,
+    data: String.raw`\[\begin{cases}\lambda x+2y=\lambda-1\\2x+4y=3\lambda\end{cases}\]`,
+    explain: "Nao tente resolver tudo no primeiro olhar. Primeiro descubra o tipo da questao.",
+    question: "Que tipo de monstro e esse?",
+    choices: ["discussao com parametro", "homogeneo", "so matriz aumentada"],
+    answer: 0,
+    feedback: "Certo. Tem lambda e a classificacao depende do valor dele.",
+    fullSolution: "<p>Primeiro passo provavel: montar matriz dos coeficientes e olhar o determinante.</p>",
+    why: "Identificar o tipo corta o panico pela metade."
+  }),
+  courseMission({
+    id: "mode-l11-02-first-step",
+    chapter: "Bloco 2 - primeiro passo",
+    title: "Escolher o primeiro passo",
+    origin: "Lista 11 ex. 1(a)",
+    skill: "primeiro passo",
+    difficulty: 2,
+    data: String.raw`\[\begin{cases}\lambda x+2y=\lambda-1\\2x+4y=3\lambda\end{cases}\]`,
+    explain: "A matriz dos coeficientes e quadrada. Determinante e bom radar.",
+    question: "Qual e o primeiro passo mais produtivo?",
+    choices: ["calcular determinante da matriz dos coeficientes", "chutar x=0", "concluir SPI"],
+    answer: 0,
+    feedback: "Certo. O determinante separa caso geral e caso especial.",
+    fullSolution: String.raw`<p>\(A=\begin{pmatrix}\lambda&2\\2&4\end{pmatrix}\), entao \(\det(A)=4\lambda-4=4(\lambda-1)\).</p>`,
+    why: "Lista 11 pune quem pula a etapa de identificar a ferramenta."
+  }),
+  courseMission({
+    id: "mode-l11-03-det-case",
+    chapter: "Bloco 3 - resolver curto",
+    title: "Caso geral do lambda",
+    origin: "Lista 11 ex. 1(a)",
+    skill: "determinante",
+    difficulty: 3,
+    data: String.raw`\[\det(A)=4(\lambda-1)\]`,
+    explain: "Quando o determinante nao zera, o sistema quadrado e SPD.",
+    question: String.raw`Para qual caso o sistema e SPD sem investigar mais?`,
+    choices: [String.raw`\(\lambda\neq1\)`, String.raw`\(\lambda=1\)`, "nenhum"],
+    answer: 0,
+    feedback: "Certo. Determinante diferente de zero resolve: SPD.",
+    fullSolution: String.raw`<p>Se \(\lambda\neq1\), \(\det(A)\neq0\). Logo, SPD.</p>`,
+    why: "O caso geral geralmente e a parte limpa."
+  }),
+  courseMission({
+    id: "mode-l11-04-critical-case",
+    chapter: "Bloco 5 - parametro",
+    title: "Caso critico do lambda",
+    origin: "Lista 11 ex. 1(a)",
+    skill: "discussao de sistemas",
+    difficulty: 3,
+    data: String.raw`<p>Substitua \(\lambda=1\):</p>\[\begin{cases}x+2y=0\\2x+4y=3\end{cases}\]`,
+    explain: "Agora compare as linhas: a segunda esquerda e o dobro da primeira, mas o lado direito nao e.",
+    question: String.raw`Para \(\lambda=1\), o sistema e:`,
+    choices: ["SI", "SPI", "SPD"],
+    answer: 0,
+    feedback: "Certo. As equacoes se contradizem.",
+    fullSolution: String.raw`<p>Multiplicando a primeira por 2: \(2x+4y=0\), mas a segunda diz \(2x+4y=3\). Contradicao. Logo SI.</p>`,
+    why: "O valor critico nao era resposta final; ele abriu a investigacao."
+  }),
+  courseMission({
+    id: "mode-l11-05-homogeneous-type",
+    chapter: "Bloco 1 - identificar o monstro",
+    title: "Reconhecer homogeneo",
+    origin: "Lista 11 ex. 5",
+    skill: "homogeneos",
+    difficulty: 2,
+    data: String.raw`\[\begin{pmatrix}2&1&1\\1&\alpha&1\\1&-1&2\end{pmatrix}\vec{x}=\vec{0}\]`,
+    explain: "O lado direito e o vetor zero. Isso e homogeneo.",
+    question: "Qual afirmacao e verdadeira?",
+    choices: ["sempre existe a solucao trivial", "pode ser impossivel", "os coeficientes precisam ser zero"],
+    answer: 0,
+    feedback: "Certo. Homogeneo sempre aceita vetor zero.",
+    fullSolution: String.raw`<p>Erro comum: achar que a matriz dos coeficientes precisa ser zero. Nao precisa; o lado direito e que e \(\vec{0}\).</p>`,
+    why: "Homogeneo entra muito na Lista 11."
+  }),
+  courseMission({
+    id: "mode-l11-06-alpha-discussion",
+    chapter: "Bloco 5 - parametro",
+    title: "Alpha e solucao nao trivial",
+    origin: "Lista 11 ex. 5",
+    skill: "parametros",
+    difficulty: 3,
+    data: String.raw`<p>No exercicio homogeneo da Lista 11, o valor especial e \(\alpha=0\).</p>`,
+    explain: "Em homogeneo quadrado, det(A)!=0 significa so trivial; det(A)=0 abre possibilidade de solucao nao trivial.",
+    question: String.raw`Para \(\alpha=0\), o que devemos procurar?`,
+    choices: ["solucao nao trivial/variavel livre", "contradicao obrigatoria", "termo independente 7"],
+    answer: 0,
+    feedback: "Certo. Em homogeneo, det zero pode liberar variavel livre.",
+    fullSolution: "<p>Como o sistema e homogeneo, ele nao vira SI. No caso especial, escalone e encontre a familia de solucoes.</p>",
+    why: "Aqui det(A)=0 nao e fim; e convite para achar solucao nao trivial."
+  }),
+  courseMission({
+    id: "mode-l11-07-m-system",
+    chapter: "Bloco 5 - parametro",
+    title: "Sistema com m: trivial ou nao",
+    origin: "Lista 11 ex. 6",
+    skill: "determinante",
+    difficulty: 3,
+    data: String.raw`\[\begin{pmatrix}1&2&2\\m-1&1&m-2\\m+1&m-1&2\end{pmatrix}\vec{x}=\vec{0}\]`,
+    explain: "Pergunta de homogeneo com parametro: quando det(A) e diferente de zero, so existe a trivial.",
+    question: "Para concluir que so existe a trivial, precisamos de:",
+    choices: [String.raw`\(\det(A)\neq0\)`, String.raw`\(\det(A)=0\)`, "linha contraditoria"],
+    answer: 0,
+    feedback: "Certo. Determinante diferente de zero prende a solucao no vetor zero.",
+    fullSolution: String.raw`<p>Se \(\det(A)=0\), investigue solucoes nao triviais. Se \(\det(A)\neq0\), acabou: so trivial.</p>`,
+    why: "A pergunta nao e resolver tudo; e discutir valores."
+  }),
+  courseMission({
+    id: "mode-l11-08-write-final",
+    chapter: "Bloco 6 - mini-simulado",
+    title: "Conclusao final por casos",
+    origin: "Gerada equivalente Lista 11",
+    skill: "escrita da conclusao",
+    difficulty: 3,
+    data: String.raw`<p>Resultado da discussao:</p><p>Para \(k\neq1\), \(\det(A)\neq0\). Para \(k=1\), apareceu \([0,0,0|4]\).</p>`,
+    explain: "A resposta final precisa falar de todos os casos.",
+    question: "Qual conclusao serve para prova?",
+    choices: [
+      "k = 1",
+      "Para k diferente de 1, SPD. Para k = 1, SI.",
+      "det(A)=0"
+    ],
+    answer: 1,
+    feedback: "Certo. Agora voce escreveu a discussao, nao so o valor critico.",
+    feedbacks: [
+      "Incompleto. Valor critico sozinho nao classifica o sistema.",
+      "Certo. Caso geral e caso especial estao classificados.",
+      "Incompleto. Falta dizer SPD/SPI/SI."
+    ],
+    fullSolution: String.raw`<p>Para \(k\neq1\), \(\det(A)\neq0\), logo SPD. Para \(k=1\), a linha \([0,0,0|4]\) da contradicao, logo SI.</p>`,
+    why: "Lista 11 Total exige conclusao completa."
+  })
+];
+
+const PROOF_MODES = {
+  escalonamentoSemQuadro: {
+    title: "Escalonamento Sem Quadro",
+    subtitle: "Treino de pivo, linhas, conta e organizacao.",
+    finishId: "mode-escalonamento-sem-quadro-finish",
+    done: "Escalonamento treinado sem depender de lousa.",
+    items: ESCALONAMENTO_SEM_QUADRO
+  },
+  discussaoSistemas: {
+    title: "Discussao de Sistemas Lineares",
+    subtitle: "SPD, SPI, SI, determinante, parametro e conclusao escrita.",
+    finishId: "mode-discussao-sistemas-finish",
+    done: "Discussao por casos treinada.",
+    items: DISCUSSAO_SISTEMAS
+  },
+  lista11Total: {
+    title: "Lista 11 Total",
+    subtitle: "Identificar, comecar, resolver e concluir no modo prova.",
+    finishId: "mode-lista11-total-finish",
+    done: "Lista 11 Total concluida.",
+    items: LISTA11_TOTAL
+  }
+};
+
 function home() {
   screen = { mode: "home", index: 0, boss: "mixed", score: 0, errors: [], item: null };
-  const next = nextMission();
-  const completedCount = getCourseCompletedCount();
-  const nextMissionItem = getNextCourseMission();
-  const recommendation = recommendNextMode();
-  const hasDiagnostic = !!state.diagnostic?.recommendedMode;
-  const profile = state.userProfile;
-  const weakPoints = profile?.weakPoints?.length ? profile.weakPoints.map(skillLabel).join(", ") : "ainda nao medido";
-  const phaseText = profile?.recommendedStartPhase != null ? `Fase ${profile.recommendedStartPhase}` : "Triagem pendente";
-  const primaryLabel = hasDiagnostic ? "Continuar proxima missao" : "Fazer Chapeu Seletor";
-  const basicsNote = state.optionalReview.foundations
-    ? `<p class="tiny"><strong>Fundamentos:</strong> revisao opcional. O diagnostico liberou entrada mais avancada, mas o mapa permite revisar.</p>`
-    : "";
-  const chapterTitle = nextMissionItem?.chapter || "Campanha concluída";
+  const focus = currentFocusText();
+  const confidence = state.diagnostic ? adjustedConfidence(state.diagnostic.rawPercent ?? state.diagnostic.percent ?? 0) : null;
+  const cards = Object.entries(PROOF_MODES).map(([mode, data]) => proofModeCard(mode, data)).join("");
   setStage(`
-    <section class="home-shell single-journey">
+    <section class="home-shell proof-home">
       <div class="hero course-hero">
         <img src="assets/study-map-banner.png" alt="">
         <div class="hero-content">
-          <p class="eyebrow">Jornada Modo Guerra</p>
+          <p class="eyebrow">Tutor de prova</p>
           <h1>Sistemas Lineares</h1>
-          <p>Uma campanha unica: diagnostico, entrada automatica no nivel certo, treino, discussao de sistemas e simulado.</p>
+          <p>Menos porcentagem bonita. Mais escalonamento, discussao e Lista 11.</p>
         </div>
       </div>
-      <article class="current-mission">
-        <span class="eyebrow">${hasDiagnostic ? "Proxima missao recomendada" : "Entrada da campanha"}</span>
-        <h2>${recommendation.title}</h2>
-        <p>${recommendation.reason}</p>
-        ${recommendation.missionTitle ? `<p class="tiny"><strong>Missao alvo:</strong> ${recommendation.missionTitle}</p>` : ""}
-        <div class="bar"><span style="width:${Math.round((completedCount / COURSE_PATH.length) * 100)}%"></span></div>
-        <div class="actions">
-          <button class="primary big-cta" data-mode="${recommendation.mode}">${primaryLabel}</button>
-          <button class="secondary" data-mode="journeyMap">Mapa discreto</button>
-          <button class="secondary" data-mode="grimoire">Grimorio</button>
-        </div>
-        ${basicsNote}
-      </article>
-      <article class="coach-panel">
-        <span class="eyebrow">Status do tutor</span>
-        <div class="mission-list compact">
-          <div class="mission-card"><strong>${phaseText}</strong><small>entrada recomendada</small></div>
-          <div class="mission-card"><strong>${profile?.label || "Sem diagnostico"}</strong><small>perfil atual</small></div>
-          <div class="mission-card"><strong>${weakPoints}</strong><small>ponto fraco monitorado</small></div>
-        </div>
-      </article>
+      <div class="proof-mode-grid" aria-label="Modos principais">${cards}</div>
       <div class="status-strip" aria-label="Status do estudante">
-        <span>${state.xp} XP</span>
-        <span>${state.streak} sequência</span>
-        <span>${state.medals.length} medalhas</span>
-        <span>${chapterTitle}: ${next.label}</span>
+        <span>Foco atual: ${focus}</span>
+        <span>${confidence === null ? "Diagnostico duro pendente" : `Confianca operacional: ${confidence}%`}</span>
+        <span>Sem teto fake: cap ${masteryCap()}%</span>
       </div>
       <details class="extras-panel">
-        <summary>Academia opcional e ajustes</summary>
+        <summary>Ajustes e consulta</summary>
         <div class="menu-grid compact-menu">
-          ${menuButton("Comecar do zero", "Reinicia so a Jornada", "startJourney")}
-          ${menuButton("Refazer diagnostico", "Recalibrar perfil", "diagnostic")}
-          ${menuButton("Quadro de Bolso", "Escalonar uma conta por tela", "pocketHome")}
-          ${menuButton("Laboratorio", "Operacoes de linha", "lab")}
-          ${menuButton("Treino livre", "Questoes misturadas", "infinite")}
-          ${menuButton("Boss Lista 11", `${bossSets.mixed.qs.length} questoes reais/geradas`, "lista11Boss")}
-          ${hasDiagnostic ? menuButton("Resetar diagnostico", "Apaga so o perfil do Chapeu", "resetDiagnostic") : ""}
+          ${menuButton("Chapeu Seletor duro", "Diagnostico por habilidade, sem 97 fake", "diagnostic")}
+          ${menuButton("Grimorio", "Consulta rapida", "grimoire")}
+          ${menuButton("Resetar diagnostico", "Apaga so o perfil", "resetDiagnostic")}
         </div>
-        <div class="medal-list compact-medals">${Object.entries(medals).map(([key, label]) => `<div class="medal ${state.medals.includes(key) ? "earned" : ""}">${label}</div>`).join("")}</div>
       </details>
     </section>
   `);
 }
 
+function proofModeCard(mode, data) {
+  const done = state.modeProgress?.[mode] || 0;
+  const total = data.items.length;
+  const progress = Math.round((Math.min(done, total) / total) * 100);
+  return `
+    <button class="proof-card" data-mode="${mode}">
+      <span class="eyebrow">${done >= total ? "concluido" : `progresso ${done}/${total}`}</span>
+      <strong>${data.title}</strong>
+      <small>${data.subtitle}</small>
+      <span class="bar"><span style="width:${progress}%"></span></span>
+    </button>
+  `;
+}
+
 function menuButton(title, sub, mode, locked = false) {
   return `<button class="game-button ${locked ? "locked" : ""}" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
+}
+
+function proofMode(mode, index = state.modeProgress?.[mode] || 0) {
+  const config = PROOF_MODES[mode];
+  if (!config) return home();
+  const safeIndex = Math.max(0, Math.min(index, config.items.length - 1));
+  if ((state.modeProgress?.[mode] || 0) >= config.items.length) return proofModeResult(mode);
+  screen = { mode, index: safeIndex, boss: "mixed", score: 0, errors: [], item: null };
+  renderMission(mode, config.items[safeIndex], safeIndex, config.items.length, {
+    kicker: config.title,
+    doneLabel: "Ver resultado do modo"
+  });
+}
+
+function proofModeResult(mode) {
+  const config = PROOF_MODES[mode];
+  if (!config) return home();
+  screen = { mode: `${mode}Result`, index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  complete(config.finishId);
+  if (mode === "lista11Total") {
+    state.lista11TotalAttempts.push({ date: new Date().toISOString(), completed: config.items.length });
+    state.lista11TotalAttempts = state.lista11TotalAttempts.slice(-12);
+    saveState();
+  }
+  setStage(`
+    <section class="panel stack">
+      <span class="pill">${config.title}</span>
+      <h2>${config.done}</h2>
+      <p>Isso conta mais que acertar pergunta conceitual: voce treinou execucao em passos reais.</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${config.items.length}</strong><small>decisoes treinadas</small></div>
+        <div class="mission-card"><strong>${currentFocusText()}</strong><small>proximo foco sugerido</small></div>
+      </div>
+      <div class="actions">
+        <button class="primary" data-mode="home">Voltar aos 3 modos</button>
+        <button class="secondary" data-mode="${mode}Reset">Refazer este modo</button>
+        <button class="secondary" data-mode="grimoire">Abrir Grimorio</button>
+      </div>
+    </section>
+  `);
+}
+
+function advanceProofProgress(mode, index) {
+  state.modeProgress[mode] = Math.max(state.modeProgress?.[mode] || 0, index + 1);
+  if (mode === "lista11Total") state.lastMode = "lista11Total";
 }
 
 function courseIds() {
@@ -3160,7 +3775,9 @@ function showDiagnosticResult(result) {
     <section class="panel stack diagnostic-report">
       <span class="pill">Resultado do Chapeu Seletor</span>
       <h2>${result.levelLabel || "Rota calibrada"}</h2>
-      <p><strong>Voce acertou ${result.score} de ${result.total}.</strong> ${result.message}</p>
+      <p><strong>Voce acertou ${result.score} de ${result.total}.</strong> Isso mede leitura rapida, nao dominio de prova.</p>
+      <p class="tiny"><strong>Confianca operacional estimada:</strong> ${result.percent}% (limite atual: ${result.cap}%). Voce nao esta zerado, mas tambem nao esta 97% enquanto nao provar escalonamento completo, discussao com parametro e simulado misto.</p>
+      <p>${result.message}</p>
       <div class="mission-list">
         <div class="mission-card"><strong>Pontos fortes</strong><small>${strong}</small></div>
         <div class="mission-card"><strong>Pontos a treinar</strong><small>${weak}</small></div>
@@ -3853,11 +4470,7 @@ function checklist() {
 }
 
 function answer(selected) {
-  const item = screen.mode === "journey" ? COURSE_PATH[screen.index]
-    : screen.mode === "guided" ? guided[screen.index]
-      : screen.mode === "diagnostic" ? diagnostic[screen.index]
-        : screen.mode === "adaptive" ? CORRECTIVE_MISSIONS[screen.skillKey]
-        : null;
+  const item = currentAnswerItem();
   if (!item) return;
   const correctAnswer = item.answer ?? item.a;
   const correct = selected === correctAnswer;
@@ -3885,6 +4498,7 @@ function answer(selected) {
     fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item, item.solutionLabel || "Ver conta inteira")}`;
     if (correct) {
       recordPerformance({ skill: item.skill || "jornada", correct: true, source: screen.mode || "jornada" });
+      if (PROOF_MODES[screen.mode]) advanceProofProgress(screen.mode, screen.index);
       complete(item.id);
       if (screen.mode === "adaptive") {
         state.adaptiveQueue = (state.adaptiveQueue || []).filter((key) => key !== screen.skillKey);
@@ -3897,6 +4511,15 @@ function answer(selected) {
   fb.className = `feedback show ${correct ? "success" : "danger"}`;
   if (correct || screen.mode === "diagnostic") enableNextButtons();
   typeset();
+}
+
+function currentAnswerItem() {
+  if (screen.mode === "journey") return COURSE_PATH[screen.index];
+  if (screen.mode === "guided") return guided[screen.index];
+  if (screen.mode === "diagnostic") return diagnostic[screen.index];
+  if (screen.mode === "adaptive") return CORRECTIVE_MISSIONS[screen.skillKey];
+  if (PROOF_MODES[screen.mode]) return PROOF_MODES[screen.mode].items[screen.index];
+  return null;
 }
 
 function answerLab(selected) {
@@ -3996,11 +4619,17 @@ function next(kind) {
   }
   if (kind === "infinite") return infiniteMode();
   if (kind === "adaptive") return journey(getNextCourseMissionIndex());
+  if (PROOF_MODES[kind]) {
+    const total = PROOF_MODES[kind].items.length;
+    if (screen.index >= total - 1) return proofModeResult(kind);
+    return proofMode(kind, screen.index + 1);
+  }
 }
 
 function repeat(kind) {
   if (kind === "journey") return journey(screen.index);
   if (kind === "adaptive") return adaptiveMission(screen.skillKey);
+  if (PROOF_MODES[kind]) return proofMode(kind, screen.index);
   if (kind === "lab") return labMode(screen.index);
   if (kind === "pocket") return pocketMode(screen.boardIndex, screen.index, screen.score, screen.errors);
   if (kind === "guided") return guidedMode(screen.index);
@@ -4025,6 +4654,15 @@ function route(mode) {
   if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
   if (mode === "resetDiagnostic") return resetDiagnosticOnly();
+  if (PROOF_MODES[mode]) return proofMode(mode);
+  if (mode.endsWith("Reset")) {
+    const proofModeName = mode.replace("Reset", "");
+    if (PROOF_MODES[proofModeName]) {
+      state.modeProgress[proofModeName] = 0;
+      saveState();
+      return proofMode(proofModeName, 0);
+    }
+  }
   if (mode === "escalation") return escalationTrack();
   if (mode === "pocketHome") return pocketHome();
   if (mode === "classificationTrack") return bossMode("classify", 0, 0, []);
@@ -4090,6 +4728,15 @@ document.addEventListener("click", (event) => {
   if (why) {
     const panel = document.getElementById(why.dataset.why);
     panel.classList.toggle("show");
+    if (panel.classList.contains("show")) {
+      state.hintsUsed += 1;
+      const activeItem = PROOF_MODES[screen.mode]?.items?.[screen.index]
+        || (screen.mode === "journey" ? COURSE_PATH[screen.index] : null)
+        || (screen.mode === "adaptive" ? CORRECTIVE_MISSIONS[screen.skillKey] : null)
+        || screen.item;
+      if (activeItem?.skill) recordPerformance({ skill: activeItem.skill, correct: false, errorType: "pressa", source: "dica" });
+      saveState();
+    }
     return;
   }
 
