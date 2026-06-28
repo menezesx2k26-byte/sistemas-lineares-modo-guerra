@@ -222,8 +222,29 @@ function enableNextButtons() {
 
 function sourceChip(item) {
   const origin = item.origin || item.origem;
-  const skill = item.skill || item.habilidade;
+  const skill = humanSkillLabel(item.skill || item.habilidade);
   return `<div class="meta-row">${origin ? `<span class="source-chip">${origin}</span>` : ""}${skill ? `<span class="source-chip soft">${skill}</span>` : ""}${item.difficulty ? `<span class="source-chip soft">nível ${item.difficulty}</span>` : ""}</div>`;
+}
+
+function humanSkillLabel(skill = "") {
+  const labels = {
+    matrixSetup: "Matriz aumentada",
+    pivotChoice: "Escolha de pivo",
+    rowOperations: "Operacoes de linha",
+    rows: "Operacoes com linhas",
+    arithmeticControl: "Controle aritmetico",
+    parameterCaseSplit: "Separacao de casos",
+    determinantUse: "Determinante",
+    rankDiscussion: "Discussao por posto",
+    homogeneousSystems: "Sistemas homogeneos",
+    writtenConclusion: "Conclusao de prova",
+    level1: "Nivel 1 - Sobrevivencia",
+    level2: "Nivel 2 - Escalonamento basico",
+    level3: "Nivel 3 - Discussao de sistemas",
+    missionType: "Tipo de missao",
+    "interpretacao de enunciado": "Interpretacao do enunciado"
+  };
+  return labels[skill] || (typeof DIAGNOSTIC_SKILL_LABELS !== "undefined" ? DIAGNOSTIC_SKILL_LABELS[skill] : null) || skill;
 }
 
 function solutionBlock(item, label = "Ver conta inteira") {
@@ -235,6 +256,33 @@ function contextBlock(item) {
   const data = item.context || item.data || item.dados;
   if (!data) return "";
   return `<div class="exercise-data"><span class="source-chip soft">Dados</span><div class="math-box">${data}</div></div>`;
+}
+
+function questionSnapshotBlock(item, label = "Ver questao cobrada agora") {
+  const question = item.question || item.q || item.prompt || "";
+  const choices = item.choices || item.c || [];
+  const statement = item.statement || item.enunciado || "";
+  const matrix = item.matrix || "";
+  const data = item.context || item.data || item.dados || "";
+  const mission = item.mission || item.strategy || item.typeLabel || item.type || "";
+  if (!question && !statement && !matrix && !data && !mission) return "";
+  const dataParts = [
+    statement ? `<div><span class="step-label">Enunciado</span><div class="math-box compact">${statement}</div></div>` : "",
+    matrix ? `<div><span class="step-label">Matriz</span><div class="math-box compact">${matrix}</div></div>` : "",
+    data && data !== statement && data !== matrix ? `<div><span class="step-label">Dados</span><div class="math-box compact">${data}</div></div>` : ""
+  ].join("");
+  return `
+    <details class="question-review">
+      <summary>${label}</summary>
+      <div class="question-review-body">
+        ${sourceChip(item)}
+        ${mission ? `<p><strong>Missao real:</strong> ${mission}</p>` : ""}
+        ${dataParts}
+        ${question ? `<p><strong>Pergunta:</strong> ${question}</p>` : ""}
+        ${choices.length ? `<ol class="question-options">${choices.map((choice) => `<li>${choice}</li>`).join("")}</ol>` : ""}
+      </div>
+    </details>
+  `;
 }
 
 function chapterNumber(chapter = "") {
@@ -274,7 +322,7 @@ function commonErrorFor(item) {
 
 function conceptCard(item) {
   const intuition = item.explain || item.body || "Leia os dados primeiro e traduza o objetivo em português simples.";
-  const formal = item.formalName || item.type || item.skill || "conceito";
+  const formal = item.formalName || item.type || humanSkillLabel(item.skill) || "conceito";
   const notation = item.example || item.math || "";
   return `
     <article class="concept-card">
@@ -298,6 +346,7 @@ function exerciseCard(item, attr = "data-answer") {
   return `
     <article class="exercise-card">
       <span class="step-label">Pergunta rápida</span>
+      ${questionSnapshotBlock(item)}
       <p><strong>${question}</strong></p>
       <div class="choices">
         ${choices.map((choice, i) => `<button class="choice" ${attr}="${i}">${choice}</button>`).join("")}
@@ -3164,6 +3213,17 @@ function lista11System({
   conclusion,
   proofConclusion,
   commonError,
+  deepExplanation = "",
+  fullBoardSolution = "",
+  whyLayers = "",
+  miniTest = "",
+  parameterStatus = "none",
+  parameterName = "",
+  parameterValue = "",
+  mission = "",
+  firstOperation = "",
+  firstOperationWrongChoices = [],
+  firstOperationFeedbacks = [],
   difficulty = 2,
   tags = [],
   boardMode = "guiado"
@@ -3184,6 +3244,17 @@ function lista11System({
     conclusion,
     proofConclusion,
     commonError,
+    deepExplanation,
+    fullBoardSolution,
+    whyLayers,
+    miniTest,
+    parameterStatus,
+    parameterName,
+    parameterValue,
+    mission,
+    firstOperation,
+    firstOperationWrongChoices,
+    firstOperationFeedbacks,
     difficulty,
     tags,
     kind: tags[0] || "lista11",
@@ -3302,17 +3373,113 @@ const LISTA11_SYSTEMS = [
     id: "s07-l11-3-alpha-geral",
     number: 7,
     origin: "Lista 11 - exercicio 3 geral",
-    title: "Discussao geral com alpha",
+    title: String.raw`Discussao geral com \(\alpha\)`,
     statement: String.raw`\[\begin{cases}x_1+4x_2+\alpha x_3=6\\2x_1-x_2+2\alpha x_3=3\\\alpha x_1+3x_2+x_3=5\end{cases}\]`,
     matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&\alpha&6\\2&-1&2\alpha&3\\\alpha&3&1&5\end{array}\right]\]`,
-    typeLabel: "Sistema 3x3 nao homogeneo com parametro alpha.",
-    strategy: "Calcular determinante e discutir os casos alpha=1 e alpha=-1.",
+    typeLabel: String.raw`Sistema 3x3 nao homogeneo com parametro \(\alpha\).`,
+    strategy: String.raw`Calcular determinante e discutir os casos \(\alpha=1\) e \(\alpha=-1\).`,
     determinant: String.raw`\(\det(A)=9(\alpha-1)(\alpha+1)\).`,
     critical: String.raw`Valores criticos: \(\alpha=1\) e \(\alpha=-1\).`,
-    care: "Dois valores criticos significam dois casos especiais separados.",
+    care: "Os valores criticos saem de det(A)=0. Fora deles ha SPD; dentro deles voce precisa escalonar para decidir SPI ou SI.",
     conclusion: String.raw`Se \(\alpha\neq1,-1\), SPD. Se \(\alpha=1\), SPI. Se \(\alpha=-1\), SI.`,
     proofConclusion: String.raw`Para \(\alpha\neq1,-1\), \(\det(A)\neq0\), logo SPD. Substituindo os valores criticos: \(\alpha=1\) gera SPI e \(\alpha=-1\) gera SI.`,
     commonError: "Testar apenas um dos valores criticos.",
+    deepExplanation: String.raw`
+      <p>A matriz dos coeficientes e \(A=\begin{pmatrix}1&4&\alpha\\2&-1&2\alpha\\\alpha&3&1\end{pmatrix}\).</p>
+      <p>O determinante e \(\det(A)=9(\alpha-1)(\alpha+1)\).</p>
+      <p>Logo \(\det(A)=0\) quando \(\alpha=1\) ou \(\alpha=-1\). Esses sao os valores criticos.</p>
+      <p>Se \(\alpha\neq1\) e \(\alpha\neq-1\), entao \(\det(A)\neq0\). Ha pivo para todas as variaveis, portanto o sistema e SPD.</p>
+      <p>Se \(\alpha=1\) ou \(\alpha=-1\), o determinante zera. Isso nao decide SPI automaticamente: precisa testar cada caso por escalonamento.</p>
+    `,
+    fullBoardSolution: String.raw`
+      <div class="deep-solution">
+        <h4>1. Matriz dos coeficientes</h4>
+        \[
+        A=\begin{pmatrix}
+        1&4&\alpha\\
+        2&-1&2\alpha\\
+        \alpha&3&1
+        \end{pmatrix}
+        \]
+        <h4>2. Determinante e valores criticos</h4>
+        \[
+        \det(A)=9(\alpha-1)(\alpha+1)
+        \]
+        <p>Portanto \(\det(A)=0\) para \(\alpha=1\) ou \(\alpha=-1\).</p>
+
+        <h4>3. Caso \(\alpha\neq1\) e \(\alpha\neq-1\)</h4>
+        <p>Nesse caso \(\det(A)\neq0\). A matriz dos coeficientes e invertivel, ha pivo para cada variavel e o sistema tem solucao unica.</p>
+        <p><strong>Conclusao:</strong> SPD.</p>
+
+        <h4>4. Caso \(\alpha=1\)</h4>
+        \[
+        \left[\begin{array}{ccc|c}
+        1&4&1&6\\
+        2&-1&2&3\\
+        1&3&1&5
+        \end{array}\right]
+        \]
+        <p>\(L_2\leftarrow L_2-2L_1\):</p>
+        \[
+        [2,-1,2|3]-2[1,4,1|6]=[0,-9,0|-9]
+        \]
+        <p>\(L_3\leftarrow L_3-L_1\):</p>
+        \[
+        [1,3,1|5]-[1,4,1|6]=[0,-1,0|-1]
+        \]
+        <p>As duas linhas dizem a mesma coisa: \(x_2=1\). Nao ha contradicao, mas falta pivo para \(x_3\). Entao \(x_3=t\), \(x_2=1\), \(x_1=2-t\).</p>
+        \[
+        (x_1,x_2,x_3)=(2-t,1,t)
+        \]
+        <p><strong>Conclusao:</strong> SPI.</p>
+
+        <h4>5. Caso \(\alpha=-1\)</h4>
+        \[
+        \left[\begin{array}{ccc|c}
+        1&4&-1&6\\
+        2&-1&-2&3\\
+        -1&3&1&5
+        \end{array}\right]
+        \]
+        <p>\(L_2\leftarrow L_2-2L_1\):</p>
+        \[
+        [2,-1,-2|3]-2[1,4,-1|6]=[0,-9,0|-9]
+        \]
+        <p>\(L_3\leftarrow L_3+L_1\):</p>
+        \[
+        [-1,3,1|5]+[1,4,-1|6]=[0,7,0|11]
+        \]
+        <p>A primeira linha implica \(x_2=1\). A segunda implica \(x_2=11/7\). A mesma variavel teria que ter dois valores diferentes. Isso e contradicao.</p>
+        <p>Continuando o escalonamento, aparece uma linha do tipo \([0,0,0|c]\), com \(c\neq0\).</p>
+        <p><strong>Conclusao:</strong> SI.</p>
+
+        <h4>6. Conclusao final de prova</h4>
+        <p>Para \(\alpha\neq1\) e \(\alpha\neq-1\), o sistema e SPD. Para \(\alpha=1\), o sistema e SPI. Para \(\alpha=-1\), o sistema e SI.</p>
+      </div>
+    `,
+    whyLayers: String.raw`
+      <div class="why-layers">
+        <h4>Camada 1 — Traducao humana</h4>
+        <p>Voce nao esta procurando decorar \(\alpha=1\) e \(\alpha=-1\). Voce esta procurando quando o sistema perde pivo.</p>
+        <h4>Camada 2 — Conta no quadro</h4>
+        <p>O determinante e \(\det(A)=9(\alpha-1)(\alpha+1)\). Ele zera em \(\alpha=1\) e \(\alpha=-1\).</p>
+        <h4>Camada 3 — Relacao com SPD/SPI/SI</h4>
+        <p>Se \(\det(A)\neq0\), ha pivo em todas as variaveis: SPD. Se \(\det(A)=0\), precisa escalonar o caso para decidir entre SPI e SI.</p>
+        <h4>Camada 4 — Erro comum</h4>
+        <p>O erro e concluir SPI automaticamente so porque \(\det(A)=0\). No caso \(\alpha=-1\), isso da SI.</p>
+        <h4>Camada 5 — Mini-teste</h4>
+        <p>Por que \(\alpha=-1\) nao e SPI?</p>
+        <p><strong>Resposta:</strong> porque aparece contradicao no escalonamento.</p>
+      </div>
+    `,
+    miniTest: String.raw`
+      <div class="mini-test">
+        <h4>Mini-teste</h4>
+        <p><strong>Por que \(\alpha=-1\) nao e SPI?</strong></p>
+        <p>A) Porque \(\det(A)\neq0\). B) Porque aparece contradicao no escalonamento. C) Porque todo sistema com parametro e SI.</p>
+        <p><strong>Resposta:</strong> B. \(\det(A)=0\) apenas avisa que precisamos investigar; quem decide entre SPI e SI e o escalonamento/posto.</p>
+      </div>
+    `,
     difficulty: 3,
     tags: ["parametro", "determinante", "classificacao", "conclusao", "lista11-total"]
   }),
@@ -3320,17 +3487,90 @@ const LISTA11_SYSTEMS = [
     id: "s08-l11-3a-alpha0",
     number: 8,
     origin: "Lista 11 - exercicio 3(a)",
-    title: "Resolver alpha=0",
+    title: String.raw`Resolver \(\alpha=0\)`,
     statement: String.raw`\[\begin{cases}x_1+4x_2=6\\2x_1-x_2=3\\3x_2+x_3=5\end{cases}\]`,
     matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&0&6\\2&-1&0&3\\0&3&1&5\end{array}\right]\]`,
     typeLabel: "Sistema numerico 3x3 com solucao unica.",
-    strategy: "Escalonar e depois conferir a solucao.",
+    strategy: String.raw`Neste item, estamos no caso \(\alpha=0\). O parametro ja foi substituido; agora a missao e resolver por escalonamento.`,
     determinant: String.raw`Com \(\alpha=0\), \(\det(A)=-9\neq0\).`,
-    critical: "Nao ha caso critico: alpha ja foi fixado em 0.",
-    care: "Mesmo sabendo que e SPD, ainda precisa resolver se o enunciado pede solucao.",
+    critical: String.raw`Nao ha valor critico para discutir nesta tela: \(\alpha\) ja foi fixado em \(0\).`,
+    care: "A partir daqui nao discuta parametro. Escolha pivo, opere a linha inteira e resolva o sistema numerico.",
     conclusion: String.raw`SPD, com \((x_1,x_2,x_3)=(2,1,2)\).`,
-    proofConclusion: String.raw`A solucao obtida e \((2,1,2)\). Ha pivo para cada variavel, portanto o sistema e SPD.`,
-    commonError: "Parar no determinante e esquecer que a pergunta pediu resolver.",
+    proofConclusion: String.raw`Para \(\alpha=0\), o escalonamento fornece \((x_1,x_2,x_3)=(2,1,2)\). Como ha pivo para cada variavel, o sistema possui solucao unica; logo, e SPD.`,
+    commonError: String.raw`Falar de parametro livre. Neste item, \(\alpha=0\) ja foi substituido; a tarefa agora e escalonar.`,
+    parameterStatus: "fixed",
+    parameterName: String.raw`\(\alpha\)`,
+    parameterValue: "0",
+    mission: String.raw`Resolver o caso \(\alpha=0\) por escalonamento e concluir SPD.`,
+    firstOperation: String.raw`\(L_2\leftarrow L_2-2L_1\)`,
+    firstOperationWrongChoices: [
+      String.raw`\(L_2\leftarrow L_2+2L_1\)`,
+      String.raw`\(L_3\leftarrow L_3-\alpha L_1\)`,
+      "Nao preciso mexer no lado direito da barra."
+    ],
+    firstOperationFeedbacks: [
+      String.raw`Correto. O pivo da primeira coluna e \(1\) na linha 1, e queremos zerar o \(2\) da linha 2: \(2-2\cdot1=0\).`,
+      String.raw`Sinal errado. \(L_2+2L_1\) faria \(2+2\cdot1=4\), entao nao zera a primeira entrada da linha 2.`,
+      String.raw`Erro de leitura. Neste item \(\alpha=0\), entao nao usamos \(\alpha L_1\) como se ainda fosse discussao simbolica.`,
+      "Erro de organizacao. Em matriz aumentada, a operacao vale para a linha inteira, inclusive depois da barra."
+    ],
+    fullBoardSolution: String.raw`
+      <div class="deep-solution">
+        <h4>1. Caso cobrado</h4>
+        <p>Estamos no caso \(\alpha=0\). O sistema geral ja virou sistema numerico.</p>
+        \[
+        \begin{cases}
+        x_1+4x_2=6\\
+        2x_1-x_2=3\\
+        3x_2+x_3=5
+        \end{cases}
+        \]
+        <h4>2. Matriz aumentada</h4>
+        \[
+        \left[\begin{array}{ccc|c}
+        1&4&0&6\\
+        2&-1&0&3\\
+        0&3&1&5
+        \end{array}\right]
+        \]
+        <h4>3. Primeira operacao</h4>
+        <p>Objetivo: zerar o \(2\) abaixo do pivo \(1\).</p>
+        \[
+        L_2\leftarrow L_2-2L_1
+        \]
+        \[
+        [2,-1,0|3]-2[1,4,0|6]=[2,-1,0|3]-[2,8,0|12]=[0,-9,0|-9]
+        \]
+        \[
+        \left[\begin{array}{ccc|c}
+        1&4&0&6\\
+        0&-9&0&-9\\
+        0&3&1&5
+        \end{array}\right]
+        \]
+        <h4>4. Leitura das linhas</h4>
+        <p>Da segunda linha: \(-9x_2=-9\), entao \(x_2=1\).</p>
+        <p>Da terceira linha: \(3x_2+x_3=5\). Como \(x_2=1\), temos \(3(1)+x_3=5\), entao \(x_3=2\).</p>
+        <p>Da primeira linha: \(x_1+4x_2=6\). Como \(x_2=1\), \(x_1+4=6\), entao \(x_1=2\).</p>
+        <h4>5. Conclusao de prova</h4>
+        <p>Para \(\alpha=0\), obtemos \((x_1,x_2,x_3)=(2,1,2)\). Ha pivo para cada variavel, portanto o sistema possui solucao unica. Logo, e SPD.</p>
+      </div>
+    `,
+    whyLayers: String.raw`
+      <div class="why-layers">
+        <h4>Camada 1 - Traducao humana</h4>
+        <p>Nesta tela nao estamos mais discutindo \(\alpha\). O item ja mandou testar \(\alpha=0\), entao virou conta de escalonamento.</p>
+        <h4>Camada 2 - Conta no quadro</h4>
+        <p>A primeira operacao natural e \(L_2\leftarrow L_2-2L_1\), porque \(2-2\cdot1=0\).</p>
+        <h4>Camada 3 - Relacao com SPD</h4>
+        <p>A conta termina com uma solucao unica \((2,1,2)\). Uma solucao unica recebe o nome formal SPD.</p>
+        <h4>Camada 4 - Erro comum</h4>
+        <p>Tratar este item como discussao simbolica. O parametro ja foi fixado.</p>
+        <h4>Camada 5 - Mini-teste</h4>
+        <p>Depois de fixar \(\alpha=0\), voce procura valores criticos ou escalona?</p>
+        <p><strong>Resposta:</strong> escalona, porque o sistema ja e numerico.</p>
+      </div>
+    `,
     difficulty: 2,
     tags: ["escalonamento", "classificacao", "conclusao", "lista11-total"]
   }),
@@ -3338,7 +3578,7 @@ const LISTA11_SYSTEMS = [
     id: "s09-l11-3b-alpha1",
     number: 9,
     origin: "Lista 11 - exercicio 3(b)",
-    title: "Caso alpha=1: SPI",
+    title: String.raw`Caso \(\alpha=1\): SPI`,
     statement: String.raw`\[\begin{cases}x_1+4x_2+x_3=6\\2x_1-x_2+2x_3=3\\x_1+3x_2+x_3=5\end{cases}\]`,
     matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&1&6\\2&-1&2&3\\1&3&1&5\end{array}\right]\]`,
     typeLabel: "Sistema numerico singular com infinitas solucoes.",
@@ -3356,7 +3596,7 @@ const LISTA11_SYSTEMS = [
     id: "s10-l11-3c-alpha-minus1",
     number: 10,
     origin: "Lista 11 - exercicio 3(c)",
-    title: "Caso alpha=-1: SI",
+    title: String.raw`Caso \(\alpha=-1\): SI`,
     statement: String.raw`\[\begin{cases}x_1+4x_2-x_3=6\\2x_1-x_2-2x_3=3\\-x_1+3x_2+x_3=5\end{cases}\]`,
     matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&-1&6\\2&-1&-2&3\\-1&3&1&5\end{array}\right]\]`,
     typeLabel: "Sistema numerico singular impossivel.",
@@ -3410,10 +3650,10 @@ const LISTA11_SYSTEMS = [
     id: "s13-l11-5a-alpha-hom",
     number: 13,
     origin: "Lista 11 - exercicio 5(a)",
-    title: "Homogeneo: valor de alpha",
+    title: String.raw`Homogeneo: valor de \(\alpha\)`,
     statement: String.raw`\[\begin{pmatrix}2&1&1\\1&\alpha&1\\1&-1&2\end{pmatrix}\vec{x}=\begin{pmatrix}0\\0\\0\end{pmatrix}\]`,
     matrix: String.raw`\[\left[\begin{array}{ccc|c}2&1&1&0\\1&\alpha&1&0\\1&-1&2&0\end{array}\right]\]`,
-    typeLabel: "Sistema homogeneo 3x3 com parametro alpha.",
+    typeLabel: String.raw`Sistema homogeneo 3x3 com parametro \(\alpha\).`,
     strategy: "Calcular determinante e zerar para obter infinitas solucoes.",
     determinant: String.raw`\(\det(A)=3\alpha\).`,
     critical: String.raw`Infinitas solucoes quando \(\alpha=0\).`,
@@ -4202,12 +4442,102 @@ function boardLevelForSystem(systemIndex) {
   return "Correcao de professor";
 }
 
+function boardNextStepText(stepIndex) {
+  return [
+    "Agora escolha a estrategia antes de operar.",
+    "Agora coloque no quadro o determinante/caso critico ou a primeira conta relevante.",
+    "Agora investigue o caso especial; nao pare no determinante.",
+    "Agora classifique por posto, contradicao ou variavel livre.",
+    "Agora escreva a conclusao no modelo de prova.",
+    "Agora refaca sem olhar a conta inteira."
+  ][stepIndex] || "Continue a resolucao no quadro.";
+}
+
+function boardNotesFor(system) {
+  const parameterLine = system.parameterStatus === "fixed"
+    ? "Neste item, o parametro ja foi substituido. Agora e sistema numerico, lousa e escalonamento."
+    : system.parameterStatus === "symbolic" || system.tags.includes("parametro")
+      ? "Se aparecer parametro livre, separe caso antes de dividir."
+      : "Use a matriz aumentada para decidir SPD, SPI ou SI.";
+  return [
+    "Escreva cada operacao antes da conta.",
+    "Atualize a linha inteira, inclusive depois da barra.",
+    parameterLine
+  ].map((line) => `<li>${line}</li>`).join("");
+}
+
+function boardDefaultFullSolution(system) {
+  return String.raw`
+    <div class="deep-solution">
+      <h4>1. Matriz aumentada</h4>
+      <div class="math-box">${system.matrix}</div>
+      <h4>2. Estrategia</h4>
+      <p>${system.strategy}</p>
+      <h4>3. Determinante ou conta-chave</h4>
+      <p>${system.determinant}</p>
+      <p>${system.critical}</p>
+      <h4>4. Interpretação da matriz final</h4>
+      <p>${system.care}</p>
+      <h4>5. Conclusão SPD/SPI/SI</h4>
+      <p>${system.proofConclusion}</p>
+    </div>
+  `;
+}
+
+function boardWhyLayers(system) {
+  if (system.whyLayers) return system.whyLayers;
+  return String.raw`
+    <div class="why-layers">
+      <h4>Camada 1 — Tradução humana</h4>
+      <p>Voce nao esta decorando resposta. Voce esta descobrindo se o sistema tem pivos suficientes, contradicao ou variavel livre.</p>
+      <h4>Camada 2 — Conta no quadro</h4>
+      <p>${system.determinant} ${system.critical}</p>
+      <h4>Camada 3 — Relação com SPD/SPI/SI</h4>
+      <p>Se ha pivo para todas as variaveis, SPD. Se nao ha contradicao e sobra variavel livre, SPI. Se aparece linha contraditoria, SI.</p>
+      <h4>Camada 4 — Erro comum</h4>
+      <p>${system.commonError}</p>
+      <h4>Camada 5 — Mini-teste</h4>
+      <p>Se \(\det(A)=0\) em sistema nao homogeneo, voce ja pode concluir SPI?</p>
+      <p><strong>Resposta:</strong> nao. Precisa escalonar a matriz aumentada e verificar se aparece SPI ou SI.</p>
+    </div>
+  `;
+}
+
+function boardCorrectFeedback(system, stepIndex, shortFeedback) {
+  const account = system.deepExplanation || String.raw`
+    <p>${system.determinant}</p>
+    <p>${system.critical}</p>
+    <p>${system.strategy}</p>
+  `;
+  return String.raw`
+    <div class="deep-feedback">
+      <h4>Resposta curta</h4>
+      <p>Voce acertou. ${shortFeedback}</p>
+      <p><strong>Conclusao:</strong> ${system.conclusion}</p>
+      <h4>Por que?</h4>
+      <p>${system.proofConclusion}</p>
+      <h4>Conta no quadro</h4>
+      ${account}
+      <h4>Armadilha</h4>
+      <p>${system.commonError}</p>
+      <h4>Modelo de prova</h4>
+      <p>${system.proofConclusion}</p>
+      <h4>Proximo passo</h4>
+      <p>${boardNextStepText(stepIndex)}</p>
+      ${system.miniTest || ""}
+    </div>
+  `;
+}
+
 function boardStepItem(system, stepIndex) {
   const common = {
     origin: system.origin,
     difficulty: system.difficulty,
-    fullSolution: system.proofConclusion,
-    why: system.care,
+    statement: system.statement,
+    matrix: system.matrix,
+    mission: system.mission || system.strategy || system.typeLabel,
+    fullSolution: system.fullBoardSolution || boardDefaultFullSolution(system),
+    why: boardWhyLayers(system),
     boardSystemId: system.id,
     boardStep: stepIndex
   };
@@ -4252,7 +4582,22 @@ function boardStepItem(system, stepIndex) {
         "Sem matriz/estrategia, a escrita nao fica auditavel."
       ]
     },
-    {
+    system.parameterStatus === "fixed" ? {
+      key: "primeira-operacao",
+      title: "Primeira operacao no quadro",
+      skill: "rowOperations",
+      errorType: "arithmetic",
+      question: "Qual operacao deve entrar no quadro agora?",
+      choices: [
+        system.firstOperation || "L_2 <- L_2 - 2L_1",
+        ...(system.firstOperationWrongChoices.length ? system.firstOperationWrongChoices : ["L_2 <- L_2 + 2L_1", "Nao preciso mexer no lado direito da barra."])
+      ],
+      feedbacks: [
+        system.firstOperationFeedbacks[0] || "Certo. Agora o parametro ja foi fixado; a missao e escalonar o sistema numerico.",
+        system.firstOperationFeedbacks[1] || "Sinal errado: essa operacao nao zera a entrada-alvo.",
+        system.firstOperationFeedbacks[2] || "Erro de organizacao: a operacao de linha vale para a linha inteira, inclusive depois da barra."
+      ]
+    } : {
       key: "determinante-caso",
       title: "Determinante ou caso critico",
       skill: system.tags.includes("homogeneo") ? "homogeneousSystems" : system.tags.includes("parametro") ? "determinantUse" : "rowOperations",
@@ -4322,6 +4667,10 @@ function boardStepItem(system, stepIndex) {
     }
   ];
   const selected = templates[stepIndex] || templates[0];
+  const feedbacks = selected.choices.map((_, optionIndex) => optionIndex === 0
+    ? boardCorrectFeedback(system, stepIndex, selected.feedbacks[0])
+    : (selected.feedbacks[optionIndex] || "Ainda nao. Leia a questao cobrada e refaca a conta no quadro.")
+  );
   return {
     ...common,
     id: `${system.id}-board-${selected.key}`,
@@ -4335,10 +4684,10 @@ function boardStepItem(system, stepIndex) {
     question: selected.question,
     choices: selected.choices,
     answer: 0,
-    feedback: selected.feedbacks[0],
-    feedbacks: selected.feedbacks,
+    feedback: feedbacks[0],
+    feedbacks,
     commonError: system.commonError,
-    fullSolution: system.proofConclusion
+    fullSolution: system.fullBoardSolution || boardDefaultFullSolution(system)
   };
 }
 
@@ -4394,15 +4743,14 @@ function renderBoardMode(systemIndex = state.boardProgress?.systemIndex || 0, st
       <article class="board-panel">
         <h3>Quadro de operacoes</h3>
         <ul class="board-notes">
-          <li>Escreva cada operacao antes da conta.</li>
-          <li>Atualize a linha inteira, inclusive depois da barra.</li>
-          <li>Se aparecer parametro, separe caso antes de dividir.</li>
+          ${boardNotesFor(system)}
         </ul>
       </article>
 
       <article class="board-panel focus-panel">
         <h3>Proximo passo do aluno</h3>
         ${sourceChip(item)}
+        ${questionSnapshotBlock(item)}
         <p>${item.explain}</p>
         <div class="choices">
           <p><strong>${item.question}</strong></p>
@@ -4629,6 +4977,7 @@ function bossFinalBoard(index = 0, score = 0, errors = []) {
       </article>
       <article class="board-panel focus-panel">
         <h3>Resposta de prova</h3>
+        ${questionSnapshotBlock(item)}
         <p>${item.explain}</p>
         <div class="choices">
           <p><strong>${item.question}</strong></p>
@@ -4853,6 +5202,7 @@ function diagnosticMode(index = 0, score = 0, misses = [], answers = []) {
       <p>Responda para eu escolher sua entrada na Jornada. O objetivo e rota, nao nota bonita.</p>
       <p class="tiny"><strong>Habilidade avaliada:</strong> ${skillLabel(item.skill)}.</p>
       ${contextBlock(item)}
+      ${questionSnapshotBlock(item)}
       <div class="choices">
         <p><strong>${item.q}</strong></p>
         ${item.c.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
@@ -5434,6 +5784,7 @@ function bossMode(key = "mixed", index = 0, score = 0, errors = [], force = fals
       </div>
       ${sourceChip(item)}
       ${contextBlock(item)}
+      ${questionSnapshotBlock(item)}
       <div class="choices">
         <p><strong>${item.prompt}</strong></p>
         ${item.choices.map((choice, i) => `<button class="choice" data-boss-answer="${i}">${choice}</button>`).join("")}
@@ -5498,6 +5849,7 @@ function infiniteMode(item = pickInfiniteQuestion()) {
       </div>
       ${sourceChip(item)}
       ${contextBlock(item)}
+      ${questionSnapshotBlock(item)}
       <div class="choices">
         <p><strong>${item.prompt}</strong></p>
         ${item.choices.map((choice, i) => `<button class="choice" data-infinite-answer="${i}">${choice}</button>`).join("")}

@@ -517,7 +517,8 @@ p {
 }
 
 .hint,
-.solution {
+.solution,
+.question-review {
   padding: 0.75rem;
   border: 1px solid var(--math-line);
   border-radius: 12px;
@@ -525,7 +526,8 @@ p {
 }
 
 .hint summary,
-.solution summary {
+.solution summary,
+.question-review summary {
   min-height: 40px;
   display: flex;
   align-items: center;
@@ -534,10 +536,27 @@ p {
   cursor: pointer;
 }
 
-.solution div {
+.solution div,
+.question-review-body {
   display: grid;
   gap: 0.55rem;
   margin-top: 0.55rem;
+}
+
+.question-review {
+  margin: 0.55rem 0;
+  background: color-mix(in srgb, var(--surface) 86%, var(--gold));
+}
+
+.question-review-body p {
+  margin: 0;
+}
+
+.question-options {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
 }
 
 .actions {
@@ -1085,6 +1104,40 @@ button,
 .readiness-item strong {
   display: inline-block;
   margin-bottom: 0.2rem;
+}
+
+.deep-feedback,
+.deep-solution,
+.why-layers,
+.mini-test {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.deep-feedback h4,
+.deep-solution h4,
+.why-layers h4,
+.mini-test h4 {
+  margin-top: 0.25rem;
+  color: var(--blue);
+  font-size: 0.82rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.deep-feedback p,
+.deep-solution p,
+.why-layers p,
+.mini-test p {
+  margin: 0;
+}
+
+.mini-test {
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--line));
+  border-radius: 8px;
+  background: var(--warning-bg);
 }
 
 .secondary-grid {

@@ -16,6 +16,7 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 - Boss Final com sistemas da Lista 11 e derivados: parametro, homogeneo, escalonamento medio, caso SI, caso SPI e conclusao escrita.
 - Cada questao gerada tem origem marcada como `Gerada`; questoes das listas aparecem como `Lista 10` ou `Lista 11`.
 - Feedback errado explica o motivo do erro e abre uma area "Ver conta inteira".
+- Cada card de exercicio tem a opcao "Ver questao cobrada agora", com origem, dados, enunciado, matriz e alternativas relevantes para resolver sem depender da lista original.
 - O Sistema III da Lista 10 fica marcado como `conferir enunciado`, porque a extracao do PDF mostrou possivel erro de OCR na segunda equacao.
 
 ## Estrutura
@@ -111,6 +112,7 @@ Referencias oficiais:
 - Recomendacao: `recommendNextMode(...)` considera erros do diagnostico, progresso salvo e habilidades fracas. Erros de sinal/pivo mandam para Modo Quadro; erros de parametro mandam para sistemas com casos; erros de homogeneo mandam para Lista 11 ex. 5/6.
 - Home recalibrada: a tela principal mostra uma jornada de prova, nao tres minigames paralelos.
 - Modo Quadro: resolve sistemas em decisoes pequenas, como identificar o tipo, montar matriz aumentada, escolher estrategia, testar caso critico, classificar e escrever conclusao.
+- No Modo Quadro, casos com parametro fixado sao tratados como sistemas numericos. Exemplo: Lista 11 ex. 3(a), com `\alpha=0`, conduz o aluno para escalonamento e solucao unica, nao para discussao simbolica.
 - Escalonamentos completos adicionados: Sistema I da Lista 10 terminando em SI, sistema com pivo 3 sem fracao terminando em SPD, e sistema gerado equivalente terminando em SPI.
 - Parametros ficaram acessiveis diretamente pela Home e pela recomendacao do diagnostico.
 - Boss Lista 11 pode ser iniciado mesmo antes dos 140 XP; o app ainda avisa que e recomendado treinar antes.
