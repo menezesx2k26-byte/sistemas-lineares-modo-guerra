@@ -173,6 +173,23 @@ Exercicios implementados no modo:
 
 Tambem existe o modo opcional `Minha folha ficou confusa`, que organiza a resposta em blocos: dados, matriz aumentada, operacoes, caso geral, caso especial, classificacao, solucao e conclusao.
 
+### Atualizacao dinamica do exercicio 4
+
+O exercicio 4 da Lista 11 agora e a fatia vertical de referencia do modo Folha em Branco:
+
+- comeca por enunciado cru e matriz;
+- exige proximo passo escrito antes de mostrar qualquer alternativa;
+- pede justificativa do determinante e do caso critico;
+- inclui matriz parcialmente escalonada para o aluno continuar de verdade;
+- mostra armadilha objetiva apenas depois da tentativa escrita;
+- embaralha alternativas por tentativa, mantendo a ordem estavel durante a mesma tentativa;
+- usa distratores plausiveis: SPI automatico, SI automatico, parar em "nao ha solucao unica" e esquecer classificacao;
+- cobra correcao de uma resposta errada ficticia;
+- termina com conclusao escrita obrigatoria;
+- exibe rubrica por leitura, plano, execucao, caso especial, interpretacao e conclusao.
+
+O objetivo desta fatia e reduzir reconhecimento por eliminacao e treinar o raciocinio de prova: `enunciado -> proximo passo -> justificativa -> continuacao -> conclusao`.
+
 ## Modos auxiliares de prova
 
 ### Escalonamento Sem Quadro

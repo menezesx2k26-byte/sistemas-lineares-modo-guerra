@@ -1492,6 +1492,12 @@ body[data-focus-mode="blank"] .stats {
 .blank-shell {
   display: grid;
   gap: 0.85rem;
+  padding: 0.15rem;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 200, 87, 0.32), transparent 18rem),
+    radial-gradient(circle at 92% 8%, rgba(80, 140, 255, 0.24), transparent 20rem),
+    linear-gradient(135deg, rgba(40, 95, 159, 0.08), rgba(139, 45, 67, 0.08));
 }
 
 .blank-hero,
@@ -1524,7 +1530,8 @@ body[data-focus-mode="blank"] .stats {
   display: grid;
   gap: 0.65rem;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--gold)), var(--surface));
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 76%, var(--gold)), color-mix(in srgb, var(--surface) 84%, var(--blue)) 58%, var(--surface));
+  border-color: color-mix(in srgb, var(--gold) 46%, var(--line));
 }
 
 .blank-hero h2,
@@ -1566,11 +1573,31 @@ body[data-focus-mode="blank"] .stats {
   min-height: 132px;
   padding: 0.95rem;
   color: var(--ink);
-  background: var(--surface);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--gold)), var(--surface));
   border: 1px solid var(--line);
+  border-top: 6px solid var(--gold);
   border-radius: 10px;
   box-shadow: 0 10px 24px rgba(23, 33, 46, 0.08);
   text-align: left;
+}
+
+.blank-case-card:nth-child(2n) {
+  border-top-color: var(--blue);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--blue)), var(--surface));
+}
+
+.blank-case-card:nth-child(3n) {
+  border-top-color: var(--wine);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 90%, var(--wine)), var(--surface));
+}
+
+.blank-case-card.featured {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+  border-top-color: var(--success);
+  box-shadow: 0 16px 34px rgba(31, 122, 77, 0.18);
 }
 
 .blank-case-card span,
@@ -1600,11 +1627,18 @@ body[data-focus-mode="blank"] .stats {
   min-width: 0;
 }
 
+.blank-paper.focus-panel {
+  border-color: color-mix(in srgb, var(--blue) 45%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--blue)), var(--surface));
+}
+
 .blank-prompt {
   padding: 0.8rem;
   border-radius: 10px;
-  background: var(--data-bg);
-  border: 1px solid var(--data-line);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--data-bg) 82%, var(--gold)), var(--data-bg));
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--data-line));
   font-weight: 850;
 }
 
@@ -1631,6 +1665,17 @@ body[data-focus-mode="blank"] .stats {
   border-radius: 10px;
   font: inherit;
   line-height: 1.45;
+}
+
+.blank-shell .primary {
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  border-color: color-mix(in srgb, var(--green) 55%, var(--blue));
+}
+
+.blank-shell .secondary {
+  border-color: color-mix(in srgb, var(--blue) 34%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--button-soft) 82%, var(--gold)), var(--button-soft));
 }
 
 .blank-response textarea:focus-visible,
@@ -1676,6 +1721,96 @@ body[data-focus-mode="blank"] .stats {
 .blank-help {
   border-left: 6px solid var(--gold);
   background: var(--warning-bg);
+}
+
+.source-chip.vivid {
+  color: #fff;
+  background: linear-gradient(135deg, var(--wine), var(--blue));
+}
+
+.continue-card,
+.fictitious-answer,
+.workbench-card,
+.trap-panel,
+.rubric-panel,
+.blank-roadmap {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.continue-card {
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 84%, var(--blue)), var(--surface));
+}
+
+.fictitious-answer {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
+  background: var(--danger-bg);
+}
+
+.workbench-card {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+  background: var(--warning-bg);
+}
+
+.trap-panel {
+  border-color: color-mix(in srgb, var(--wine) 48%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--wine)), var(--surface));
+}
+
+.trap-panel h3,
+.rubric-panel h3 {
+  margin: 0;
+  color: var(--wine);
+  font-size: 1rem;
+}
+
+.blank-roadmap summary {
+  cursor: pointer;
+  color: var(--blue);
+  font-weight: 950;
+}
+
+.rubric-grid {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.rubric-grid div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+}
+
+.rubric-grid div.ok {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.rubric-grid div.warn {
+  border-color: var(--gold);
+  background: var(--warning-bg);
+}
+
+.rubric-grid div.danger {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.rubric-grid span {
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 .blank-help li span {
@@ -1823,7 +1958,8 @@ body[data-focus-mode="blank"] .stats {
 
   .blank-rules,
   .blank-case-grid,
-  .messy-grid {
+  .messy-grid,
+  .rubric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
