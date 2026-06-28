@@ -1731,7 +1731,6 @@ body[data-focus-mode="blank"] .stats {
 .continue-card,
 .fictitious-answer,
 .workbench-card,
-.trap-panel,
 .rubric-panel,
 .blank-roadmap {
   display: grid;
@@ -1758,13 +1757,6 @@ body[data-focus-mode="blank"] .stats {
   background: var(--warning-bg);
 }
 
-.trap-panel {
-  border-color: color-mix(in srgb, var(--wine) 48%, var(--line));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--wine)), var(--surface));
-}
-
-.trap-panel h3,
 .rubric-panel h3 {
   margin: 0;
   color: var(--wine);

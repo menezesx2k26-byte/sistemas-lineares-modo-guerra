@@ -7,6 +7,8 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const index = read("index.html");
 const script = read("script.js");
 const css = read("style.css");
+const removedTrapHook = "data-blank-" + "trap";
+const removedShuffleHelper = "seeded" + "ShuffleIndexes";
 
 function assert(condition, message) {
   if (!condition) {
@@ -32,11 +34,12 @@ assert(script.includes('role="status" aria-live="polite"'), "dynamic feedback us
 assert(script.includes("Folha em Branco - Lista 11") && script.includes("BLANK_SHEET_CASES"), "blank sheet exam mode exists");
 assert(script.includes("data-blank-form") && script.includes("Estou travado"), "blank sheet mode uses open response and progressive help");
 assert(script.includes("Ritual de prova") && script.includes("blankSheetAttempts"), "blank sheet mode tracks exam ritual and attempts");
-assert(script.includes("seededShuffleIndexes") && script.includes("data-blank-trap"), "blank sheet traps shuffle alternatives after written attempt");
-assert(script.includes("blankRubricPanel") && script.includes("Caso especial"), "blank sheet result has explicit rubric including special cases");
+assert(script.includes("blank-l11-ex4") && script.includes("semSPI") && script.includes("detectBlankAmbiguity"), "blank sheet exercise 4 uses written reasoning with ambiguity checks");
+assert(!script.includes(removedTrapHook) && !script.includes(removedShuffleHelper), "blank sheet exercise 4 no longer depends on quiz traps");
+assert(script.includes("blankRubricPanel") && script.includes("Identificacao do caso especial") && script.includes("Teste do caso especial"), "blank sheet result has explicit rubric including special cases");
 assert(css.includes(".skip-link") && css.includes(":focus-visible"), "visible focus and skip link styles exist");
 assert(css.includes(".stepper-step") && css.includes(".info-card"), "study stepper and info cards are styled");
 assert(css.includes(".blank-shell") && css.includes(".ritual-panel"), "blank sheet mode styles exist");
-assert(css.includes(".trap-panel") && css.includes(".rubric-panel") && css.includes(".blank-case-card.featured"), "blank sheet mode has vivid exam UI states");
+assert(css.includes(".continue-card") && css.includes(".rubric-panel") && css.includes(".blank-case-card.featured"), "blank sheet mode has vivid exam UI states");
 
 if (process.exitCode) process.exit(process.exitCode);

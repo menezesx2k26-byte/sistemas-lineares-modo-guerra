@@ -173,22 +173,73 @@ Exercicios implementados no modo:
 
 Tambem existe o modo opcional `Minha folha ficou confusa`, que organiza a resposta em blocos: dados, matriz aumentada, operacoes, caso geral, caso especial, classificacao, solucao e conclusao.
 
-### Atualizacao dinamica do exercicio 4
+### QA e refatoracao do exercicio 4
 
-O exercicio 4 da Lista 11 agora e a fatia vertical de referencia do modo Folha em Branco:
+O exercicio 4 da Lista 11 virou a fatia vertical de referencia do modo Folha em Branco. O fluxo principal nao usa alternativa: ele exige escrita curta, justificativa, continuacao da conta e conclusao de prova.
 
-- comeca por enunciado cru e matriz;
-- exige proximo passo escrito antes de mostrar qualquer alternativa;
-- pede justificativa do determinante e do caso critico;
-- inclui matriz parcialmente escalonada para o aluno continuar de verdade;
-- mostra armadilha objetiva apenas depois da tentativa escrita;
-- embaralha alternativas por tentativa, mantendo a ordem estavel durante a mesma tentativa;
-- usa distratores plausiveis: SPI automatico, SI automatico, parar em "nao ha solucao unica" e esquecer classificacao;
-- cobra correcao de uma resposta errada ficticia;
-- termina com conclusao escrita obrigatoria;
-- exibe rubrica por leitura, plano, execucao, caso especial, interpretacao e conclusao.
+Fluxo atual:
 
-O objetivo desta fatia e reduzir reconhecimento por eliminacao e treinar o raciocinio de prova: `enunciado -> proximo passo -> justificativa -> continuacao -> conclusao`.
+1. ler o pedido: discutir em funcao de `k` e resolver `k=0`;
+2. escolher estrategia: determinante/pivo/escalonamento e separacao de caso;
+3. achar o valor critico `k=-3`;
+4. justificar por que `k=-3` precisa ser separado;
+5. concluir o caso geral `k != -3` como SPD;
+6. continuar a matriz do caso `k=-3` ate a contradicao;
+7. responder por escrito por que nao existe caso SPI;
+8. resolver `k=0` com solucao `(0,2,-1)`;
+9. escrever a conclusao final completa.
+
+Rubrica do exercicio 4:
+
+- leitura do enunciado;
+- escolha de estrategia;
+- identificacao do caso especial;
+- teste do caso especial;
+- classificacao SPD/SPI/SI;
+- resolucao de `k=0`;
+- conclusao escrita.
+
+O avaliador agora tambem rejeita respostas ambiguas, por exemplo `determinante zero entao SPI`, quando o aluno nao explicou o teste do caso especial.
+
+### Changelog de QA do modo Folha em Branco
+
+#### BUGS ENCONTRADOS
+
+- A etapa final do exercicio 4 ficou com sintaxe quebrada apos remover uma etapa antiga.
+- A rubrica podia nao pontuar respostas corretas porque as etapas tinham texto de armadilha (`trap`).
+- O botao `Minha folha ficou confusa` apontava para outro exercicio, nao para a fatia de referencia.
+- O smoke test ainda exigia armadilhas de multipla escolha, mesmo depois de o fluxo principal virar escrita.
+
+#### DIVIDAS DE UI
+
+- Modos auxiliares antigos ainda possuem telas mais parecidas com cards de quiz.
+- As questoes 2, 3, 5 e 6 ainda precisam receber o mesmo polimento profundo do exercicio 4.
+- Algumas copias antigas sem acento permanecem para evitar refatoracao ampla fora da fatia validada.
+
+#### DIVIDAS PEDAGOGICAS
+
+- O banco antigo ainda contem perguntas boas para revisao, mas algumas sao rasas para treino de prova.
+- A estrutura de Folha em Branco esta pronta, mas a profundidade de professor de lousa foi validada primeiro no exercicio 4.
+- Replicar a fatia para os outros exercicios deve ser feito depois de validar este modelo no celular.
+
+#### O QUE FOI REMOVIDO
+
+- Dependencia de alternativa embaralhada no fluxo principal do exercicio 4.
+- Painel visual e handler antigos de armadilha objetiva.
+- Etapa de correcao ficticia que alongava o exercicio sem melhorar a resolucao.
+
+#### O QUE FOI MANTIDO
+
+- Enunciado cru, matriz, campo aberto, ajuda progressiva, cronometro, ritual de prova e historico.
+- Modo `Minha folha ficou confusa`.
+- Demais modos do app como treino auxiliar, sem misturar com a fatia de prova.
+
+#### O QUE FOI REFEITO
+
+- Exercicio 4 agora comeca por enunciado/matriz e cobra escrita.
+- A rubrica foi alinhada ao que a prova exige.
+- O feedback detecta conclusao precipitada por determinante zero.
+- O menu prioriza o exercicio 4 como fatia vertical de referencia.
 
 ## Modos auxiliares de prova
 

@@ -3893,11 +3893,13 @@ const BLANK_RITUAL = [
 
 const BLANK_AXIS_LABELS = {
   leitura: "Leitura do enunciado",
-  plano: "Plano",
-  execucao: "Execucao",
-  casoEspecial: "Caso especial",
-  interpretacao: "Interpretacao",
-  conclusao: "Conclusao"
+  plano: "Escolha de estrategia",
+  casoEspecial: "Identificacao do caso especial",
+  testeEspecial: "Teste do caso especial",
+  classificacao: "Classificacao SPD/SPI/SI",
+  execucao: "Resolucao de k=0",
+  conclusao: "Conclusao escrita",
+  interpretacao: "Interpretacao geral"
 };
 
 const BLANK_STUCK_REASONS = [
@@ -4211,7 +4213,7 @@ const BLANK_SHEET_CASES = [
         format: "raw",
         formatLabel: "Formato A - enunciado cru",
         title: "Primeiro passo: ler a missão",
-        prompt: "Sem calcular ainda: qual é o próximo passo justificável?",
+        prompt: "O que a questão pede? Sem calcular ainda, escreva a tarefa completa.",
         must: [["k"], ["classificar", "discutir", "spd", "spi", "si"], ["k=0", "0"]],
         expected: "Você precisa dizer que a questão pede discutir o sistema em função de k e depois resolver o caso k=0.",
         trap: "Resolver só k=0 é confortável, mas incompleto: a questão cobra discussão por parâmetro.",
@@ -4227,18 +4229,18 @@ const BLANK_SHEET_CASES = [
         ]
       },
       {
-        key: "critico",
+        key: "estrategia",
         axis: "plano",
         format: "next-step",
         formatLabel: "Formato B - estratégia",
-        title: "Radar do caso especial",
-        prompt: "Qual cálculo vem agora e por que ele é legítimo?",
-        must: [["k"], ["-3"]],
-        expected: String.raw`O cálculo útil é \(\det(A)=-2(k+3)\). O valor crítico vem de \(k+3=0\Rightarrow k=-3\).`,
-        trap: String.raw`Achar que \(k=-3\) já é a resposta. Ele é só o caso que precisa ser testado.`,
-        proof: String.raw`Em sistema quadrado, \(\det(A)\neq0\) garante SPD. Quando \(\det(A)=0\), investigamos a matriz aumentada.`,
-        next: "Separar caso geral e caso especial.",
-        placeholder: "Ex.: calcular det(A)=-2(k+3); o caso crítico é k=-3.",
+        title: "Escolher uma estratégia",
+        prompt: "Qual é a estratégia agora?",
+        must: [["det", "determinante", "pivo", "pivô", "escalonar", "separar"]],
+        expected: "A estratégia aceitável é usar determinante/pivô como radar e separar o caso especial antes de concluir.",
+        trap: "Resolver só por substituição numérica ignora a discussão em função de k.",
+        proof: String.raw`Como o sistema é quadrado e tem parâmetro, \(\det(A)\) ou escalonamento simbólico indicam quando o pivô pode zerar.`,
+        next: "Encontrar o valor de k que precisa ser separado.",
+        placeholder: "Ex.: vou calcular o determinante para achar o valor crítico e separar os casos.",
         dangers: [
           {
             terms: ["det", "zero", "spi"],
@@ -4254,18 +4256,60 @@ const BLANK_SHEET_CASES = [
           }
         ],
         helps: [
-          "O determinante é o radar de pivô perdido.",
+          "A questão tem parâmetro.",
+          "Parâmetro pede separação de casos.",
+          "Determinante ou pivô mostram onde o caso muda.",
+          "Não conclua SPD/SPI/SI ainda.",
+          "Próximo: achar o valor crítico."
+        ]
+      },
+      {
+        key: "critico",
+        axis: "casoEspecial",
+        format: "next-step",
+        formatLabel: "Formato C - valor crítico",
+        title: "Encontrar o caso perigoso",
+        prompt: "Qual valor de k precisa ser separado?",
+        must: [["k"], ["-3"]],
+        expected: String.raw`O valor é \(k=-3\), pois \(\det(A)=-2(k+3)\) zera quando \(k+3=0\).`,
+        trap: String.raw`Responder \(k=-3\) como classificação final. Ele é só o caso que precisa ser testado.`,
+        proof: String.raw`\(\det(A)=-2(k+3)\Rightarrow \det(A)=0\) quando \(k=-3\).`,
+        next: String.raw`Justificar por que \(k=-3\) não pode ficar no caso geral.`,
+        placeholder: "Ex.: k=-3, porque zera det(A)=-2(k+3).",
+        helps: [
           "A expressão crítica é k+3.",
           String.raw`Resolva \(k+3=0\).`,
-          String.raw`O caso especial é \(k=-3\).`,
-          String.raw`O caso geral é \(k\neq-3\).`
+          String.raw`O resultado é \(k=-3\).`,
+          "Esse valor não é classificação ainda.",
+          "Ele apenas abre o caso especial."
+        ]
+      },
+      {
+        key: "porQueCritico",
+        axis: "casoEspecial",
+        format: "justify",
+        formatLabel: "Formato D - justificativa",
+        title: String.raw`Por que separar \(k=-3\)?`,
+        prompt: String.raw`Por que \(k=-3\) precisa ser separado do caso geral?`,
+        must: [["zera", "zero", "det", "determinante", "pivo", "pivô"], ["dividir", "tratar junto", "caso geral", "separar"]],
+        expected: String.raw`Porque \(k=-3\) zera o determinante/pivô. Se você trata esse valor junto com o caso geral, pode dividir por zero ou concluir sem consistência.`,
+        trap: "Dividir por uma expressão com k antes de perguntar quando ela zera.",
+        proof: String.raw`O caso geral só permite usar \(\det(A)\neq0\). O valor \(k=-3\) fica fora desse raciocínio e exige teste próprio.`,
+        next: String.raw`Concluir o caso geral \(k\neq-3\).`,
+        placeholder: "Ex.: porque k=-3 zera o determinante/pivô; então não posso dividir/tratar junto com k diferente de -3.",
+        helps: [
+          "O problema não é o k em si.",
+          "O problema é o pivô/determinante zerar.",
+          "Se zera, a divisão do caso geral deixa de valer.",
+          "Por isso separam-se dois casos.",
+          String.raw`Caso geral: \(k\neq-3\). Caso especial: \(k=-3\).`
         ]
       },
       {
         key: "geral",
-        axis: "interpretacao",
+        axis: "classificacao",
         format: "justify",
-        formatLabel: "Formato C - justificativa",
+        formatLabel: "Formato E - caso geral",
         title: "Caso geral sem drama",
         prompt: String.raw`Justifique: por que \(k\neq-3\) dá SPD?`,
         must: [["spd", "solucao unica", "possivel determinado"], ["det", "diferente", "neq", "!="]],
@@ -4284,9 +4328,9 @@ const BLANK_SHEET_CASES = [
       },
       {
         key: "especial",
-        axis: "casoEspecial",
+        axis: "testeEspecial",
         format: "continue",
-        formatLabel: "Formato D - continue daqui",
+        formatLabel: "Formato F - continue daqui",
         title: String.raw`Continue daqui: caso \(k=-3\)`,
         partialIntro: String.raw`Depois de \(L_2\leftarrow L_2-2L_1\) e \(L_3\leftarrow L_3+L_1\), a folha ficou assim:`,
         partialMatrix: String.raw`\[\left[\begin{array}{ccc|c}1&3&1&5\\0&-2&1&-5\\0&4&-2&7\end{array}\right]\]`,
@@ -4295,7 +4339,7 @@ const BLANK_SHEET_CASES = [
         expected: String.raw`Use \(L_3\leftarrow L_3+2L_2\). Isso gera \([0,0,0|-3]\), ou seja, \(0=-3\). Contradição: SI.`,
         trap: String.raw`Parar em \(\det(A)=0\) e chamar de SPI sem continuar o caso especial.`,
         proof: String.raw`A linha \([0,0,0|-3]\) significa \(0=-3\). Portanto \(posto(A)\neq posto(A|b)\) e o sistema é SI.`,
-        next: "Agora desarme uma armadilha objetiva sobre esse caso.",
+        next: "Agora responda se existe algum caso SPI/infinitas.",
         placeholder: "Ex.: faria L3 <- L3 + 2L2; aparece [0,0,0|-3], contradição, SI.",
         helps: [
           "A segunda coluna tem -2 na linha 2 e 4 na linha 3.",
@@ -4306,61 +4350,31 @@ const BLANK_SHEET_CASES = [
         ]
       },
       {
-        key: "armadilha",
-        axis: "casoEspecial",
-        format: "trap",
-        formatLabel: "Formato E - armadilha plausível",
-        title: "Determinante zero não é sentença",
-        prompt: String.raw`Antes de escolher uma opção, escreva em uma frase: o que \(\det(A)=0\) permite concluir neste exercício?`,
-        must: [["investigar", "testar", "escalonar", "caso"], ["nao", "não", "apenas", "sozinho", "automaticamente"]],
-        expected: String.raw`\(\det(A)=0\) apenas avisa que o caso \(k=-3\) precisa ser investigado. Depois do escalonamento, esse caso dá SI.`,
-        trapText: "Confundir 'não há solução única' com 'não há solução' ou com 'SPI automático'.",
-        proof: String.raw`Em sistema não homogêneo, \(\det(A)=0\) pode virar SPI ou SI. Quem decide é a matriz aumentada/posto.`,
+        key: "semSPI",
+        axis: "classificacao",
+        format: "concept",
+        formatLabel: "Formato G - pergunta conceitual escrita",
+        title: "Existe caso com infinitas soluções?",
+        prompt: String.raw`Existe algum valor de \(k\) que gere infinitas soluções? Justifique.`,
+        must: [["nao", "não", "nenhum", "nao ha", "não ha"], ["spi", "infinitas"], ["contradicao", "si", "impossivel", "k=-3", "-3"]],
+        expected: String.raw`Não. Para \(k\neq-3\), há solução única. Para \(k=-3\), aparece contradição, então é SI. Portanto não há caso SPI.`,
+        trap: "Dizer que det(A)=0 implica SPI. Esse é o erro clássico.",
+        proof: String.raw`SPI exigiria ausência de contradição e variável livre. Aqui o único caso singular, \(k=-3\), gera contradição.`,
         next: String.raw`Resolver \(k=0\).`,
-        placeholder: "Ex.: det zero não decide; preciso testar k=-3 na matriz aumentada antes de dizer SPI ou SI.",
-        trap: {
-          title: "Escolha a frase mais segura",
-          prompt: "Agora que você tentou explicar, escolha a formulação que sobreviveria numa prova.",
-          choices: [
-            {
-              ok: true,
-              text: String.raw`Quando \(k=-3\), \(\det(A)=0\). Isso só obriga a investigar. Escalonando, aparece contradição; logo o caso é SI.`,
-              feedback: String.raw`Exato. Determinante zero não decidiu sozinho; a matriz aumentada mostrou \(0=-3\).`,
-              errorType: "conclusion"
-            },
-            {
-              ok: false,
-              text: String.raw`Quando \(\det(A)=0\), não há solução única; portanto, o sistema é SPI.`,
-              feedback: "Tentadora, mas incompleta. Não haver solução única não significa infinitas soluções: pode haver contradição.",
-              errorType: "prematureSPI"
-            },
-            {
-              ok: false,
-              text: String.raw`Quando \(\det(A)=0\), o sistema fica SI automaticamente.`,
-              feedback: "Também é chute. Determinante zero pode gerar SI ou SPI; precisa testar consistência.",
-              errorType: "determinantMisuse"
-            },
-            {
-              ok: false,
-              text: String.raw`Como \(k=-3\) tira a solução única, basta dizer que não há solução única e parar.`,
-              feedback: "Isso perde ponto. A prova pede classificação: você precisa decidir entre SPI e SI.",
-              errorType: "conclusion"
-            }
-          ]
-        },
+        placeholder: "Ex.: não há k para SPI; se k diferente de -3 é SPD, e se k=-3 aparece contradição/SI.",
         helps: [
-          "Não trate determinante zero como resposta final.",
-          "Primeiro diga que o caso precisa ser testado.",
-          "Depois use o resultado do escalonamento.",
-          String.raw`Neste exercício, \(k=-3\) gera contradição.`,
-          "A classificação correta desse caso é SI."
+          "SPI quer infinitas soluções.",
+          "Infinitas exigem variável livre sem contradição.",
+          String.raw`O caso \(k=-3\) não tem variável livre aproveitável; ele dá contradição.`,
+          String.raw`O caso \(k\neq-3\) é SPD.`,
+          "Logo não há valor de k para SPI."
         ]
       },
       {
         key: "k0",
         axis: "execucao",
         format: "solve",
-        formatLabel: "Formato F - resolução numérica",
+        formatLabel: "Formato H - resolução numérica",
         title: String.raw`Resolver o caso \(k=0\)`,
         prompt: String.raw`Agora resolva o caso numérico. Qual é a solução para \(k=0\)?`,
         must: [["0"], ["2"], ["-1"]],
@@ -4378,32 +4392,10 @@ const BLANK_SHEET_CASES = [
         ]
       },
       {
-        key: "corrigir",
-        axis: "conclusao",
-        format: "correction",
-        formatLabel: "Formato G - professor chato real",
-        title: "Corrija uma resposta perigosa",
-        fictitiousAnswer: String.raw`"Como \(k=-3\) zera o determinante, o sistema não tem solução única. Para \(k=0\), deu \((0,2,-1)\)."` ,
-        prompt: "O que está faltando ou errado nessa resposta fictícia?",
-        must: [["si", "impossivel", "contradicao"], ["spi"], ["conclusao", "classificacao", "prova"]],
-        expected: String.raw`Falta dizer que \(k=-3\) gera contradição, portanto SI; falta declarar que não há caso SPI; e falta escrever a conclusão completa por casos.`,
-        trap: "A resposta fictícia tem pedaços certos, mas não fecha a classificação formal.",
-        proof: "Conta certa sem conclusão ainda perde ponto.",
-        next: "Agora escreva sua conclusão final.",
-        placeholder: "Ex.: falta testar k=-3 e concluir SI; também falta dizer que não há k para SPI.",
-        helps: [
-          "Procure o que a resposta não provou.",
-          "Ela disse 'não há solução única', mas isso ainda não classifica.",
-          "Ela não falou SPI nem SI formalmente.",
-          "Ela esqueceu a contradição do caso k=-3.",
-          "Corrija com conclusão por casos."
-        ]
-      },
-      {
         key: "concluir",
         axis: "conclusao",
         format: "conclusion",
-        formatLabel: "Formato H - conclusão escrita",
+        formatLabel: "Formato I - conclusão escrita",
         title: "Conclusão de prova",
         prompt: "Escreva a conclusão final como a professora exigente aceitaria.",
         must: [["k"], ["-3"], ["spd"], ["si"], ["nao ha", "nenhum", "sem"], ["spi"], ["0"], ["2"], ["-1"]],
@@ -4672,6 +4664,23 @@ function normalizeBlankText(text = "") {
     .trim();
 }
 
+function detectBlankAmbiguity(stage, text) {
+  const mentionsDetZero = (text.includes("det") || text.includes("determinante")) && (text.includes("zero") || text.includes("=0") || text.includes(" 0 "));
+  const jumpsToSpi = text.includes("spi") || text.includes("infinitas");
+  const jumpsToSi = text.includes("si") || text.includes("impossivel") || text.includes("sem solucao");
+  const investigated = ["testar", "teste", "escalonar", "contradicao", "caso", "matriz aumentada", "posto"].some((term) => text.includes(term));
+  if (mentionsDetZero && jumpsToSpi && !investigated) {
+    return "Resposta ambigua: determinante zero nao classifica sozinho. Em sistema nao homogeneo, ele so diz que voce precisa testar o caso especial antes de decidir entre SPI e SI.";
+  }
+  if (mentionsDetZero && jumpsToSi && !investigated) {
+    return "Resposta apressada: determinante zero tambem nao prova SI sozinho. Mostre a contradicao no caso especial para sustentar essa conclusao.";
+  }
+  if (stage?.key === "semSPI" && text.includes("-3") && jumpsToSpi && !text.includes("contradicao")) {
+    return "Isso ainda esta perigoso: citar k=-3 junto de SPI sem mostrar contradicao confunde caso singular com infinitas solucoes. Para k=-3, a linha final contradiz o sistema, entao e SI.";
+  }
+  return "";
+}
+
 function blankTermMatches(text, terms = []) {
   const normalized = normalizeBlankText(text);
   return terms.some((term) => normalized.includes(normalizeBlankText(term)));
@@ -4682,26 +4691,6 @@ function blankAllTermsMatch(text, terms = []) {
   return terms.every((term) => normalized.includes(normalizeBlankText(term)));
 }
 
-function seededNumber(seed = "") {
-  let hash = 2166136261;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash ^= seed.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function seededShuffleIndexes(length, seed = "") {
-  const indexes = Array.from({ length }, (_, index) => index);
-  let value = seededNumber(seed) || 1;
-  for (let i = indexes.length - 1; i > 0; i -= 1) {
-    value = Math.imul(value, 1664525) + 1013904223;
-    const j = Math.abs(value) % (i + 1);
-    [indexes[i], indexes[j]] = [indexes[j], indexes[i]];
-  }
-  return indexes;
-}
-
 function evaluateBlankStep(stage, rawText) {
   const text = normalizeBlankText(rawText);
   if (!text || text.length < 4) {
@@ -4709,6 +4698,14 @@ function evaluateBlankStep(stage, rawText) {
       ok: false,
       missing: ["Explique seu proximo passo em uma frase curta."],
       feedback: "Ainda nao da para avaliar. Na prova, pensamento escondido nao ganha ponto: escreva o que voce faria e por que."
+    };
+  }
+  const ambiguity = detectBlankAmbiguity(stage, text);
+  if (ambiguity) {
+    return {
+      ok: false,
+      missing: ["teste do caso especial"],
+      feedback: `<strong>Professor chato:</strong> ${ambiguity}<br><strong>Como destravar:</strong> diga qual caso voce testou, que linha apareceu e por que isso fecha SPD/SPI/SI.`
     };
   }
   const danger = (stage.dangers || []).find((item) => blankAllTermsMatch(text, item.terms || []));
@@ -4739,18 +4736,14 @@ function newBlankAttempt(caseIndex) {
   return {
     caseId: item.id,
     history: [],
-    axes: { leitura: 0, plano: 0, execucao: 0, interpretacao: 0, conclusao: 0 },
+    axes: { leitura: 0, plano: 0, casoEspecial: 0, testeEspecial: 0, classificacao: 0, execucao: 0, conclusao: 0, interpretacao: 0 },
     stageComplete: false,
     lastFeedback: "",
     helpLevel: 0,
     usedDeepHelp: false,
     timerStart: null,
     timedOut: false,
-    stuckReason: "",
-    shuffleSeed: `${Date.now()}-${Math.random()}`,
-    trapOrders: {},
-    trapSelected: {},
-    pendingTrap: ""
+    stuckReason: ""
   };
 }
 
@@ -4816,13 +4809,14 @@ function blankHistoryPanel(history = []) {
   `;
 }
 
-function blankAxisPanel(axes = {}) {
+function blankAxisPanel(axes = {}, item = null) {
+  const visibleAxes = item ? blankRelevantAxes(item) : Object.keys(BLANK_AXIS_LABELS);
   return `
     <section class="axis-panel" aria-label="Avaliacao por eixo">
-      ${Object.entries(BLANK_AXIS_LABELS).map(([key, label]) => `
+      ${visibleAxes.map((key) => `
         <div>
           <strong>${Math.min(100, axes[key] || 0)}%</strong>
-          <span>${label}</span>
+          <span>${BLANK_AXIS_LABELS[key]}</span>
         </div>
       `).join("")}
     </section>
@@ -4839,7 +4833,8 @@ function blankRelevantAxes(item) {
   return Object.keys(BLANK_AXIS_LABELS).filter((axis) => axes.has(axis));
 }
 
-function blankRubricPanel(axes = {}) {
+function blankRubricPanel(axes = {}, item = null) {
+  const visibleAxes = item ? blankRelevantAxes(item) : Object.keys(BLANK_AXIS_LABELS);
   const statusFor = (value = 0) => {
     if (value >= 70) return ["OK", "ok"];
     if (value >= 35) return ["instavel", "warn"];
@@ -4849,13 +4844,24 @@ function blankRubricPanel(axes = {}) {
     <section class="rubric-panel">
       <h3>Rubrica do professor</h3>
       <div class="rubric-grid">
-        ${Object.entries(BLANK_AXIS_LABELS).map(([key, label]) => {
+        ${visibleAxes.map((key) => {
           const [status, klass] = statusFor(axes[key] || 0);
-          return `<div class="${klass}"><strong>${label}</strong><span>${status}</span></div>`;
+          return `<div class="${klass}"><strong>${BLANK_AXIS_LABELS[key]}</strong><span>${status}</span></div>`;
         }).join("")}
       </div>
     </section>
   `;
+}
+
+function blankCaseMenuOrder() {
+  const featured = blankFeaturedCaseIndex();
+  const indexes = BLANK_SHEET_CASES.map((_, index) => index);
+  if (featured < 0) return indexes;
+  return [featured, ...indexes.filter((index) => index !== featured)];
+}
+
+function blankFeaturedCaseIndex() {
+  return BLANK_SHEET_CASES.findIndex((item) => item.id === "blank-l11-ex4");
 }
 
 function blankStagePrelude(stage) {
@@ -4890,39 +4896,6 @@ function blankStagePrelude(stage) {
   return parts.join("");
 }
 
-function blankTrapChoices(stage, attempt) {
-  if (!stage.trap) return [];
-  if (!attempt.trapOrders[stage.key]) {
-    attempt.trapOrders[stage.key] = seededShuffleIndexes(stage.trap.choices.length, `${attempt.shuffleSeed}-${stage.key}`);
-  }
-  return attempt.trapOrders[stage.key].map((originalIndex) => ({
-    originalIndex,
-    ...stage.trap.choices[originalIndex]
-  }));
-}
-
-function blankTrapPanel(stage, attempt) {
-  if (!stage.trap || attempt.pendingTrap !== stage.key) return "";
-  const choices = blankTrapChoices(stage, attempt);
-  const selected = attempt.trapSelected[stage.key];
-  return `
-    <section class="trap-panel">
-      <span class="source-chip vivid">Armadilha diagnóstica</span>
-      <h3>${stage.trap.title}</h3>
-      <p>${stage.trap.prompt}</p>
-      <div class="choices">
-        ${choices.map((choice, index) => {
-          const wasSelected = selected?.originalIndex === choice.originalIndex;
-          const revealed = !!selected;
-          const className = revealed && choice.ok ? "correct" : wasSelected && !choice.ok ? "wrong" : "";
-          return `<button class="choice ${className}" type="button" data-blank-trap="${index}" ${revealed && selected.ok ? "disabled" : ""}>${choice.text}</button>`;
-        }).join("")}
-      </div>
-      ${selected ? `<div class="feedback show ${selected.ok ? "success" : "danger"}"><strong>${selected.ok ? "Boa." : "Professor chato:"}</strong> ${selected.feedback}</div>` : ""}
-    </section>
-  `;
-}
-
 function blankSheetHome() {
   if (blankTimerHandle) {
     clearTimeout(blankTimerHandle);
@@ -4943,17 +4916,19 @@ function blankSheetHome() {
         <article><strong>Tentativas</strong><p>${attemptCount} tentativa(s) registradas neste modo. XP nao e usado como medida principal aqui.</p></article>
       </section>
       <div class="blank-case-grid">
-        ${BLANK_SHEET_CASES.map((item, index) => `
+        ${blankCaseMenuOrder().map((index) => {
+          const item = BLANK_SHEET_CASES[index];
+          return `
           <button class="blank-case-card ${item.id === "blank-l11-ex4" ? "featured" : ""}" type="button" data-blank-start="${index}">
             <span>${item.origin}</span>
             <strong>${item.title}</strong>
             <small>${item.examGoal}</small>
             <em>${item.timeMinutes} min sugeridos</em>
           </button>
-        `).join("")}
+        `; }).join("")}
       </div>
       <div class="actions">
-        <button class="secondary" type="button" data-blank-messy="1">Minha folha ficou confusa</button>
+        <button class="secondary" type="button" data-blank-messy="${blankFeaturedCaseIndex()}">Minha folha ficou confusa</button>
         <button class="secondary" type="button" data-mode="home">Voltar ao menu</button>
       </div>
     </section>
@@ -5017,7 +4992,6 @@ function renderBlankStage() {
                 <button class="secondary" type="button" data-blank-stuck>Estou travado</button>
               </div>
             </form>
-            ${blankTrapPanel(stage, attempt)}
             ${blankHelpPanel(stage, attempt)}
             <div id="blankFeedback" class="feedback ${attempt.lastFeedback ? "show" : ""} ${attempt.stageComplete ? "success" : "danger"}" role="status" aria-live="polite">${attempt.lastFeedback || "Sem correcao ainda. Primeiro tente escrever seu plano."}</div>
             <div class="actions">
@@ -5030,7 +5004,7 @@ function renderBlankStage() {
         <aside class="blank-side">
           ${ritualPanel()}
           ${blankTimerPanel(item, attempt)}
-          ${blankAxisPanel(attempt.axes)}
+          ${blankAxisPanel(attempt.axes, item)}
           ${blankHistoryPanel(attempt.history)}
         </aside>
       </div>
@@ -5045,45 +5019,16 @@ function submitBlankStep(rawText) {
   const attempt = screen.blank || newBlankAttempt(screen.caseIndex);
   const result = evaluateBlankStep(stage, rawText);
   if (blankTimerExpired(attempt, item)) attempt.timedOut = true;
-  attempt.stageComplete = result.ok && !stage.trap;
-  attempt.pendingTrap = result.ok && stage.trap ? stage.key : "";
-  attempt.lastFeedback = result.ok && stage.trap
-    ? `${result.feedback}<br><strong>Agora vem a armadilha:</strong> escolha a opção mais segura. As alternativas só aparecem depois da sua tentativa escrita.`
-    : result.feedback;
+  attempt.stageComplete = result.ok;
+  attempt.lastFeedback = result.feedback;
   attempt.history = [
     ...attempt.history,
     { stage: stage.title, text: rawText.trim() || "(sem resposta)", ok: result.ok }
   ].slice(-24);
-  if (result.ok && !stage.trap) {
+  if (result.ok) {
     attempt.axes[stage.axis] = Math.min(100, (attempt.axes[stage.axis] || 0) + blankAxisIncrement(item, stage.axis));
   } else {
     recordProofError(stage.axis === "execucao" ? "arithmetic" : stage.axis === "conclusao" ? "conclusion" : "conceptual");
-  }
-  screen.blank = attempt;
-  renderBlankStage();
-}
-
-function answerBlankTrap(shuffledIndex) {
-  if (screen.mode !== "blankSheetCase") return;
-  const item = BLANK_SHEET_CASES[screen.caseIndex] || BLANK_SHEET_CASES[0];
-  const stage = item.stages[screen.index] || item.stages[0];
-  const attempt = screen.blank || newBlankAttempt(screen.caseIndex);
-  if (!stage.trap || attempt.pendingTrap !== stage.key) return;
-  const choice = blankTrapChoices(stage, attempt)[Number(shuffledIndex)];
-  if (!choice) return;
-  attempt.trapSelected[stage.key] = choice;
-  attempt.stageComplete = !!choice.ok;
-  attempt.lastFeedback = choice.ok
-    ? `<strong>Armadilha desarmada.</strong> ${choice.feedback}<br><strong>Próximo passo:</strong> ${stage.next}`
-    : `<strong>Professor chato:</strong> ${choice.feedback}<br><strong>Correção:</strong> ${stage.expected}`;
-  attempt.history = [
-    ...attempt.history,
-    { stage: `${stage.title} - armadilha`, text: choice.text, ok: !!choice.ok }
-  ].slice(-24);
-  if (choice.ok) {
-    attempt.axes[stage.axis] = Math.min(100, (attempt.axes[stage.axis] || 0) + blankAxisIncrement(item, stage.axis));
-  } else {
-    recordProofError(choice.errorType || "conceptual");
   }
   screen.blank = attempt;
   renderBlankStage();
@@ -5114,7 +5059,6 @@ function blankNextStep() {
   screen.blank.stageComplete = false;
   screen.blank.lastFeedback = "";
   screen.blank.helpLevel = 0;
-  screen.blank.pendingTrap = "";
   renderBlankStage();
 }
 
@@ -5171,8 +5115,8 @@ function blankSheetResult() {
       <span class="pill">Resultado - Folha em Branco</span>
       <h2>${realMastery ? "Dominio real validado nesta questao" : "Resposta treinada, mas ainda nao blindada"}</h2>
       <p>${realMastery ? "Voce iniciou sem dica profunda, passou pelos eixos principais e fechou a conclusao." : "Voce praticou a questao, mas ainda houve ajuda profunda, tempo estourado ou eixo fraco. Isso e treino, nao dominio real."}</p>
-      ${blankAxisPanel(attempt.axes)}
-      ${blankRubricPanel(attempt.axes)}
+      ${blankAxisPanel(attempt.axes, item)}
+      ${blankRubricPanel(attempt.axes, item)}
       <div class="feedback show">
         <strong>Modelo final de prova</strong>
         <p>${item.finalModel}</p>
@@ -5191,9 +5135,9 @@ function blankSheetResult() {
   `);
 }
 
-function startBlankMessy(caseIndex = 1) {
+function startBlankMessy(caseIndex = blankFeaturedCaseIndex()) {
   const safeIndex = Math.max(0, Math.min(Number(caseIndex) || 0, BLANK_SHEET_CASES.length - 1));
-  const item = BLANK_SHEET_CASES[safeIndex] || BLANK_SHEET_CASES[1];
+  const item = BLANK_SHEET_CASES[safeIndex] || BLANK_SHEET_CASES[blankFeaturedCaseIndex()] || BLANK_SHEET_CASES[0];
   screen = { mode: "blankSheetMessy", index: 0, caseIndex: safeIndex, boss: "mixed", score: 0, errors: [], item: null };
   const blocks = [
     ["dados", "Dados do sistema"],
@@ -7734,9 +7678,6 @@ document.addEventListener("click", (event) => {
 
   const blankTimer = event.target.closest("[data-blank-timer]");
   if (blankTimer) return startBlankTimer();
-
-  const blankTrap = event.target.closest("[data-blank-trap]");
-  if (blankTrap) return answerBlankTrap(Number(blankTrap.dataset.blankTrap));
 
   const blankStuckReason = event.target.closest("[data-blank-stuck-reason]");
   if (blankStuckReason) return blankRecordStuckReason(blankStuckReason.dataset.blankStuckReason);
