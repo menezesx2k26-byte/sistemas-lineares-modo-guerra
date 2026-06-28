@@ -35,6 +35,44 @@ const defaultState = {
     discussaoSistemas: 0,
     lista11Total: 0
   },
+  progressPercent: 0,
+  estimatedMastery: 0,
+  operationalConfidence: "instavel",
+  currentSystemId: null,
+  currentPhase: "diagnostico",
+  boardProgress: { systemIndex: 0, stepIndex: 0 },
+  completedSystems: [],
+  completedBoardModeSystems: [],
+  completedWithoutHints: [],
+  solvedOriginalList11: 0,
+  solvedDerivedSystems: 0,
+  bossFinalPassed: false,
+  boardAttempts: [],
+  bossFinalAttempts: [],
+  proofSkills: {
+    matrixSetup: 0,
+    pivotChoice: 0,
+    rowOperations: 0,
+    arithmeticControl: 0,
+    parameterCaseSplit: 0,
+    determinantUse: 0,
+    rankDiscussion: 0,
+    homogeneousSystems: 0,
+    writtenConclusion: 0
+  },
+  errorProfile: {
+    conceptual: 0,
+    arithmetic: 0,
+    organization: 0,
+    conclusion: 0,
+    parameterDivision: 0,
+    homogeneousConfusion: 0,
+    prematureSPI: 0,
+    ignoredContradiction: 0,
+    missingFreeVariable: 0,
+    determinantMisuse: 0,
+    missingCaseSplit: 0
+  },
   lista11TotalAttempts: [],
   bossUnlocked: false,
   theme: "light",
@@ -56,6 +94,14 @@ function loadState() {
       skillScores: { ...defaultState.skillScores, ...(saved.skillScores || {}) },
       errorTypes: { ...defaultState.errorTypes, ...(saved.errorTypes || {}) },
       modeProgress: { ...defaultState.modeProgress, ...(saved.modeProgress || {}) },
+      boardProgress: { ...defaultState.boardProgress, ...(saved.boardProgress || {}) },
+      completedSystems: Array.isArray(saved.completedSystems) ? saved.completedSystems : [],
+      completedBoardModeSystems: Array.isArray(saved.completedBoardModeSystems) ? saved.completedBoardModeSystems : [],
+      completedWithoutHints: Array.isArray(saved.completedWithoutHints) ? saved.completedWithoutHints : [],
+      boardAttempts: Array.isArray(saved.boardAttempts) ? saved.boardAttempts : [],
+      bossFinalAttempts: Array.isArray(saved.bossFinalAttempts) ? saved.bossFinalAttempts : [],
+      proofSkills: { ...defaultState.proofSkills, ...(saved.proofSkills || {}) },
+      errorProfile: { ...defaultState.errorProfile, ...(saved.errorProfile || {}) },
       lista11TotalAttempts: Array.isArray(saved.lista11TotalAttempts) ? saved.lista11TotalAttempts : [],
       adaptiveQueue: Array.isArray(saved.adaptiveQueue) ? saved.adaptiveQueue : [],
       history: Array.isArray(saved.history) ? saved.history : []
@@ -66,6 +112,7 @@ function loadState() {
 }
 
 function saveState() {
+  updateComputedMetrics();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   renderHud();
 }
@@ -141,6 +188,9 @@ function renderHud() {
     discussaoSistemasResult: "discussaoSistemas",
     lista11Total: "lista11Total",
     lista11TotalResult: "lista11Total",
+    board: "board",
+    bossFinalBoard: "bossFinalBoard",
+    readinessReport: "home",
     checklist: "grimoire"
   }[screen.mode] || screen.mode;
   $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === activeMode));
@@ -491,12 +541,14 @@ const ERROR_TYPE_LABELS = {
 };
 
 function hasCompletedFullEscalation(currentState = state) {
+  const boardEscalations = completedSystemObjects(currentState)
+    .filter((system) => system.tags?.includes("escalonamento") && system.difficulty >= 2).length;
   return (currentState.completed || []).some((id) =>
     id === "pocket-lista10-si-finish"
     || id === "pocket-pivot3-spd-finish"
     || id === "pocket-generated-spi-finish"
     || id.startsWith("mode-escalonamento-sem-quadro-finish")
-  );
+  ) || boardEscalations >= 2;
 }
 
 function hasCompletedParameterDiscussion(currentState = state) {
@@ -504,7 +556,7 @@ function hasCompletedParameterDiscussion(currentState = state) {
     id.startsWith("course-discussion-")
     || id.startsWith("mode-discussao-sistemas-finish")
     || id === "course-c8-65-lista11-4"
-  );
+  ) || hasCompletedSystemWithTag("parametro", currentState);
 }
 
 function hasCompletedMixedSimulado(currentState = state) {
@@ -512,19 +564,15 @@ function hasCompletedMixedSimulado(currentState = state) {
     id.startsWith("mode-lista11-total-finish")
     || id === "course-c10-74-boss-mixed"
     || id === "course-c10-75-campaign-complete"
-  );
+  ) || hasCompletedSystemWithTag("lista11-total", currentState) || !!currentState.bossFinalPassed;
 }
 
 function masteryCap(currentState = state) {
-  let cap = 100;
-  if (!hasCompletedFullEscalation(currentState)) cap = Math.min(cap, 80);
-  if (!hasCompletedParameterDiscussion(currentState)) cap = Math.min(cap, 85);
-  if (!hasCompletedMixedSimulado(currentState)) cap = Math.min(cap, 90);
-  return cap;
+  return masteryCapStrict(currentState);
 }
 
 function adjustedConfidence(rawPercent, currentState = state) {
-  return Math.min(rawPercent, masteryCap(currentState));
+  return Math.min(rawPercent, masteryCapStrict(currentState));
 }
 
 function currentFocusText(currentState = state) {
@@ -536,6 +584,136 @@ function currentFocusText(currentState = state) {
   if (!hasCompletedParameterDiscussion(currentState)) return "discussao com parametro";
   if (!hasCompletedMixedSimulado(currentState)) return "Lista 11 Total";
   return "manter velocidade e revisar erros";
+}
+
+function uniqueCount(list = []) {
+  return new Set(list).size;
+}
+
+function systemById(id) {
+  return (typeof LISTA11_SYSTEMS === "undefined" ? [] : LISTA11_SYSTEMS).find((system) => system.id === id);
+}
+
+function completedSystemObjects(currentState = state) {
+  return (currentState.completedBoardModeSystems || []).map(systemById).filter(Boolean);
+}
+
+function completedSystemsByKind(kind, currentState = state) {
+  return completedSystemObjects(currentState).filter((system) => system.kind === kind || system.tags?.includes(kind));
+}
+
+function hasCompletedSystemWithTag(tag, currentState = state) {
+  return completedSystemObjects(currentState).some((system) => system.tags?.includes(tag) || system.kind === tag);
+}
+
+function countCompletedOriginalList11(currentState = state) {
+  return completedSystemObjects(currentState).filter((system) => system.originType === "Lista 11").length;
+}
+
+function countCompletedDerived(currentState = state) {
+  return completedSystemObjects(currentState).filter((system) => system.originType === "Derivado").length;
+}
+
+function proofSkillAverage(currentState = state) {
+  const values = Object.values(currentState.proofSkills || {});
+  if (!values.length) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function fullMasteryRequirements(currentState = state) {
+  const boardSystems = completedSystemObjects(currentState);
+  return {
+    concepts: !!currentState.diagnostic,
+    twoMediumEscalations: boardSystems.filter((system) => system.tags?.includes("escalonamento") && system.difficulty >= 2).length >= 2,
+    parameterSystem: hasCompletedSystemWithTag("parametro", currentState),
+    classification: hasCompletedSystemWithTag("classificacao", currentState),
+    homogeneous: hasCompletedSystemWithTag("homogeneo", currentState),
+    writtenConclusion: (currentState.proofSkills?.writtenConclusion || 0) >= 60 || hasCompletedSystemWithTag("conclusao", currentState),
+    bossFinal: !!currentState.bossFinalPassed && (currentState.bossFinalAttempts || []).some((attempt) => attempt.passed && !attempt.usedHint)
+  };
+}
+
+function masteryCapStrict(currentState = state) {
+  const requirements = fullMasteryRequirements(currentState);
+  const boardCount = uniqueCount(currentState.completedBoardModeSystems || []);
+  if (Object.values(requirements).every(Boolean)) return 100;
+  if (boardCount === 0) return 45;
+  if (boardCount < 2) return 60;
+  if (!requirements.twoMediumEscalations) return 75;
+  if (!requirements.parameterSystem) return 85;
+  if (boardCount < 10) return 90;
+  if (!requirements.bossFinal) return 90;
+  return 95;
+}
+
+function dominantRisk(currentState = state) {
+  const profile = currentState.errorProfile || {};
+  const mapped = [
+    ["arithmetic", "aritmetica e controle de sinais"],
+    ["organization", "organizacao auditavel no escalonamento"],
+    ["conclusion", "conclusao escrita incompleta"],
+    ["parameterDivision", "dividir por parametro sem separar casos"],
+    ["homogeneousConfusion", "confundir sistema homogeneo"],
+    ["prematureSPI", "concluir SPI cedo demais"],
+    ["ignoredContradiction", "ignorar linha contraditoria"],
+    ["missingFreeVariable", "nao reconhecer variavel livre"],
+    ["determinantMisuse", "usar determinante como resposta final"],
+    ["missingCaseSplit", "nao separar caso critico"]
+  ].sort((a, b) => (profile[b[0]] || 0) - (profile[a[0]] || 0));
+  if ((profile[mapped[0]?.[0]] || 0) > 0) return mapped[0][1];
+  if (!hasCompletedFullEscalation(currentState)) return "escalonamento medio sem dica";
+  if (!hasCompletedParameterDiscussion(currentState)) return "parametros e discussao por casos";
+  if (!hasCompletedSystemWithTag("homogeneo", currentState)) return "homogeneos e solucao trivial";
+  if (!currentState.bossFinalPassed) return "Boss Final sem dica direta";
+  return "manutencao: revisar erros finos da Lista 11";
+}
+
+function nextTrainingText(currentState = state) {
+  if (!currentState.diagnostic && uniqueCount(currentState.completedBoardModeSystems || []) === 0) return "Diagnostico Lista 11";
+  if (!hasCompletedFullEscalation(currentState)) return "Sistema 06 no Modo Quadro guiado";
+  if (!hasCompletedParameterDiscussion(currentState)) return "Sistema 01 ou 02: parametros";
+  if (!hasCompletedSystemWithTag("homogeneo", currentState)) return "Sistema 13 ou 14: homogeneo";
+  if (!hasCompletedSystemWithTag("lista11-total", currentState)) return "Lista 11 Total";
+  if (!currentState.bossFinalPassed) return "Boss Final";
+  return "Refazer derivados 19 e 20 sem dica";
+}
+
+function progressMetrics(currentState = state) {
+  const systems = typeof LISTA11_SYSTEMS === "undefined" ? [] : LISTA11_SYSTEMS;
+  const totalSystems = systems.length || 20;
+  const boardCount = uniqueCount(currentState.completedBoardModeSystems || []);
+  const proofAvg = proofSkillAverage(currentState);
+  const errorCount = Object.values(currentState.errorProfile || {}).reduce((sum, value) => sum + value, 0);
+  const progress = Math.min(100, Math.round((boardCount / totalSystems) * 100));
+  const practicalScore = Math.min(100, Math.round(20 + boardCount * 4 + proofAvg * 0.35 - Math.min(errorCount * 1.6, 28)));
+  const cap = masteryCapStrict(currentState);
+  const estimatedMastery = Math.max(0, Math.min(cap, practicalScore));
+  const requirements = fullMasteryRequirements(currentState);
+  let confidence = "instavel";
+  if (currentState.bossFinalPassed && estimatedMastery > 90) confidence = "forte";
+  else if (boardCount >= 6 && requirements.parameterSystem && requirements.homogeneous) confidence = "forte, mas ainda nao validada no Boss Final";
+  else if (boardCount >= 2 && errorCount <= boardCount + 4) confidence = "razoavel";
+  return {
+    progressPercent: progress,
+    estimatedMastery,
+    masteryCap: cap,
+    operationalConfidence: confidence,
+    risk: dominantRisk(currentState),
+    nextTraining: nextTrainingText(currentState),
+    requirements,
+    completedBoardSystems: boardCount,
+    solvedOriginalList11: countCompletedOriginalList11(currentState),
+    solvedDerivedSystems: countCompletedDerived(currentState)
+  };
+}
+
+function updateComputedMetrics() {
+  const metrics = progressMetrics(state);
+  state.progressPercent = metrics.progressPercent;
+  state.estimatedMastery = metrics.estimatedMastery;
+  state.operationalConfidence = metrics.operationalConfidence;
+  state.solvedOriginalList11 = metrics.solvedOriginalList11;
+  state.solvedDerivedSystems = metrics.solvedDerivedSystems;
 }
 
 function diagnosticMisses(result = state.diagnostic) {
@@ -565,6 +743,7 @@ function recommendationLabel(mode) {
     diagnostic: "Fazer diagnostico rapido",
     recommendedJourney: "Continuar missao recomendada",
     journey: "Continuar Jornada",
+    board: "Ir para Modo Quadro",
     escalation: "Escalonamento completo",
     pocketHome: "Quadro de Bolso",
     classificationTrack: "Classificacao SPD/SPI/SI",
@@ -690,11 +869,11 @@ function recommendRoute(result) {
     message,
     level,
     levelLabel: {
-      nivel0: "Nivel 0 - fundamento quebrado",
-      nivel1: "Nivel 1 - iniciante operacional",
-      nivel2: "Nivel 2 - entende, mas se perde na conta",
-      nivel3: "Nivel 3 - intermediario fragil",
-      nivel4: "Nivel 4 - simulado misto"
+      nivel0: "Nivel 1 - Sobrevivencia",
+      nivel1: "Nivel 2 - Escalonamento basico",
+      nivel2: "Nivel 3 - Discussao SPD/SPI/SI",
+      nivel3: "Nivel 4 - Parametros e homogeneos",
+      nivel4: "Nivel 5 - Lista 11 Real"
     }[level],
     recommendedStartPhase: phase
   });
@@ -738,16 +917,30 @@ function recommendRoute(result) {
 function applyDiagnosticResult(result) {
   state.diagnostic = result;
   state.userProfile = result.userProfile;
+  const boardIndex = boardStartForDiagnostic(result);
+  const boardSystem = LISTA11_SYSTEMS[boardIndex] || LISTA11_SYSTEMS[0];
+  state.boardProgress = { systemIndex: boardIndex, stepIndex: 0 };
+  state.currentSystemId = boardSystem.id;
   state.lastRecommendation = {
-    mode: result.recommendedMode,
+    mode: "board",
     missionId: result.recommendedMissionId,
-    route: result.recommendedRoute,
-    message: result.message,
+    route: `Sistema ${String(boardSystem.number).padStart(2, "0")} - ${boardSystem.title}`,
+    message: `Proxima missao no Modo Quadro: ${boardSystem.origin}.`,
     date: result.date
   };
   if (diagnosticBasicsMastered(result) && result.recommendedMissionId) markMissionsBeforeOptional(result.recommendedMissionId);
   if (result.score >= result.total - 1) state.bossUnlocked = true;
   saveState();
+}
+
+function boardStartForDiagnostic(result = state.diagnostic) {
+  const weak = new Set(result?.weakPoints || result?.weaknesses || []);
+  if (weak.has("aritmetica") || weak.has("escalonamento") || weak.has("matrizAmpliada")) return 5;
+  if (weak.has("classificacao") || weak.has("escritaConclusao")) return 8;
+  if (weak.has("homogeneo")) return 12;
+  if (weak.has("parametros") || weak.has("determinante") || weak.has("discussaoSistema")) return 0;
+  if ((result?.rawPercent || result?.percent || 0) >= 85) return 6;
+  return 0;
 }
 
 function recommendNextMode(diagnosticResult = state.diagnostic) {
@@ -758,13 +951,14 @@ function recommendNextMode(diagnosticResult = state.diagnostic) {
       reason: "O Chapeu Seletor decide o ponto de entrada da Jornada. Sem menu poluido: voce responde e eu te coloco na proxima missao certa."
     };
   }
-  const mission = COURSE_PATH.find((item) => item.id === diagnosticResult.recommendedMissionId);
+  const boardIndex = boardStartForDiagnostic(diagnosticResult);
+  const system = LISTA11_SYSTEMS[boardIndex] || LISTA11_SYSTEMS[0];
   return {
-    mode: diagnosticResult.recommendedMode,
-    missionId: diagnosticResult.recommendedMissionId,
-    title: `Recomendacao atual: ${diagnosticResult.recommendedRoute}`,
-    reason: diagnosticResult.message || "Continuar pela missao recomendada.",
-    missionTitle: mission?.title
+    mode: "board",
+    missionId: system.id,
+    title: `Recomendacao atual: Sistema ${String(system.number).padStart(2, "0")}`,
+    reason: diagnosticResult.message || "Continuar no Modo Quadro.",
+    missionTitle: `${system.title} (${system.origin})`
   };
 }
 
@@ -2954,6 +3148,412 @@ const infinitePool = [
   ...parameterQuestions
 ];
 
+function lista11System({
+  id,
+  number,
+  origin,
+  originType = "Lista 11",
+  title,
+  statement,
+  matrix = "",
+  typeLabel,
+  strategy,
+  determinant = "",
+  critical = "",
+  care,
+  conclusion,
+  proofConclusion,
+  commonError,
+  difficulty = 2,
+  tags = [],
+  boardMode = "guiado"
+}) {
+  return {
+    id,
+    number,
+    origin,
+    originType,
+    title,
+    statement,
+    matrix,
+    typeLabel,
+    strategy,
+    determinant,
+    critical,
+    care,
+    conclusion,
+    proofConclusion,
+    commonError,
+    difficulty,
+    tags,
+    kind: tags[0] || "lista11",
+    boardMode
+  };
+}
+
+const LISTA11_SYSTEMS = [
+  lista11System({
+    id: "s01-l11-1a-lambda",
+    number: 1,
+    origin: "Lista 11 - exercicio 1(a)",
+    title: "Discussao 2x2 com lambda",
+    statement: String.raw`\[\begin{cases}\lambda x+2y=\lambda-1\\2x+4y=3\lambda\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{cc|c}\lambda&2&\lambda-1\\2&4&3\lambda\end{array}\right]\]`,
+    typeLabel: "Sistema 2x2 nao homogeneo com parametro lambda.",
+    strategy: "Calcular det(A), separar lambda diferente de 1 e lambda igual a 1, e testar a matriz aumentada no caso critico.",
+    determinant: String.raw`\(\det(A)=4\lambda-4=4(\lambda-1)\).`,
+    critical: String.raw`Valor critico: \(\lambda=1\). Se \(\lambda\neq1\), SPD. Se \(\lambda=1\), SI.`,
+    care: "Nao pare em lambda=1. Esse valor so manda substituir e verificar consistencia.",
+    conclusion: String.raw`Para \(\lambda\neq1\), SPD. Para \(\lambda=1\), SI. Nao ha caso SPI.`,
+    proofConclusion: String.raw`Como \(\det(A)=4(\lambda-1)\), para \(\lambda\neq1\) o sistema e SPD. Para \(\lambda=1\), a matriz ampliada fica inconsistente; logo o sistema e SI.`,
+    commonError: "Achar que det(A)=0 implica SPI automaticamente.",
+    tags: ["parametro", "classificacao", "determinante", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s02-l11-1b-lambda-mu",
+    number: 2,
+    origin: "Lista 11 - exercicio 1(b)",
+    title: "Discussao 3x3 com lambda e mu",
+    statement: String.raw`\[\begin{cases}x+y+\lambda z=1\\2x-2y+z=-1\\3x-y+3z=\mu\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&1&\lambda&1\\2&-2&1&-1\\3&-1&3&\mu\end{array}\right]\]`,
+    typeLabel: "Sistema 3x3 nao homogeneo com dois parametros.",
+    strategy: "Usar determinante para o caso geral e investigar lambda=2 com o parametro mu.",
+    determinant: String.raw`\(\det(A)=4(\lambda-2)\).`,
+    critical: String.raw`Se \(\lambda\neq2\), SPD para qualquer \(\mu\). Se \(\lambda=2\), o resultado depende de \(\mu\).`,
+    care: "O caso critico tem dois parametros: lambda fixa o det zero; mu decide consistencia.",
+    conclusion: String.raw`Se \(\lambda\neq2\), SPD. Se \(\lambda=2\) e \(\mu=0\), SPI. Se \(\lambda=2\) e \(\mu\neq0\), SI.`,
+    proofConclusion: String.raw`Para \(\lambda\neq2\), \(\det(A)\neq0\), logo SPD. Para \(\lambda=2\), ao escalonar a ampliada: \(\mu=0\) gera SPI e \(\mu\neq0\) gera SI.`,
+    commonError: "Dizer apenas lambda=2 e esquecer de discutir mu.",
+    difficulty: 3,
+    tags: ["parametro", "classificacao", "determinante", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s03-l11-1c-m-overdetermined",
+    number: 3,
+    origin: "Lista 11 - exercicio 1(c)",
+    title: "Tres equacoes, duas incognitas",
+    statement: String.raw`\[\begin{cases}mx+y=1\\x+y=2\\x-y=m\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{cc|c}m&1&1\\1&1&2\\1&-1&m\end{array}\right]\]`,
+    typeLabel: "Sistema nao quadrado com parametro m.",
+    strategy: "Nao usar determinante 3x3. Resolver as duas ultimas equacoes e substituir na primeira.",
+    determinant: "Nao e o caminho principal: ha 3 equacoes e 2 incognitas.",
+    critical: String.raw`Da substituicao vem \(m(m+1)=0\).`,
+    care: "Sistema com mais equacoes que incognitas ainda pode ter solucao unica se for consistente.",
+    conclusion: String.raw`Para \(m=0\) ou \(m=-1\), ha solucao unica. Para outros valores, SI.`,
+    proofConclusion: String.raw`Das duas ultimas equacoes, \(x=(m+2)/2\) e \(y=(2-m)/2\). Substituindo na primeira: \(m(m+1)=0\). Logo \(m=0\) ou \(m=-1\) dao solucao unica; caso contrario, SI.`,
+    commonError: "Tentar aplicar det(A) como se a matriz fosse quadrada.",
+    difficulty: 3,
+    tags: ["parametro", "classificacao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s04-l11-1d-hom-lambda",
+    number: 4,
+    origin: "Lista 11 - exercicio 1(d)",
+    title: "Homogeneo 3x3 com lambda",
+    statement: String.raw`\[\begin{cases}x+y-2z=0\\2x-y+3z=0\\3x-2y+\lambda z=0\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&1&-2&0\\2&-1&3&0\\3&-2&\lambda&0\end{array}\right]\]`,
+    typeLabel: "Sistema homogeneo 3x3 com parametro lambda.",
+    strategy: "Usar determinante para separar apenas trivial de solucoes nao triviais.",
+    determinant: String.raw`\(\det(A)=17-3\lambda\).`,
+    critical: String.raw`Valor critico: \(\lambda=17/3\).`,
+    care: "Homogeneo nunca e SI: a solucao trivial sempre existe.",
+    conclusion: String.raw`Se \(\lambda\neq17/3\), apenas trivial. Se \(\lambda=17/3\), infinitas solucoes, \(t(-1,7,3)\).`,
+    proofConclusion: String.raw`Como o sistema e homogeneo, \(\vec{x}=\vec{0}\) sempre resolve. Se \(\det(A)\neq0\), so a trivial. Se \(\lambda=17/3\), ha variavel livre e solucoes nao triviais.`,
+    commonError: "Chamar o caso det zero de SI em sistema homogeneo.",
+    difficulty: 3,
+    tags: ["homogeneo", "parametro", "determinante", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s05-l11-2a-m-unique",
+    number: 5,
+    origin: "Lista 11 - exercicio 2(a)",
+    title: "Valor de m para solucao unica",
+    statement: String.raw`\[\begin{pmatrix}m&1&1\\2&-1&2\\4&-1&1\end{pmatrix}\begin{pmatrix}x_1\\x_2\\x_3\end{pmatrix}=\begin{pmatrix}2\\5\\6\end{pmatrix}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}m&1&1&2\\2&-1&2&5\\4&-1&1&6\end{array}\right]\]`,
+    typeLabel: "Sistema 3x3 com parametro m pedindo solucao unica.",
+    strategy: "Calcular det(A) e exigir det(A) diferente de zero.",
+    determinant: String.raw`\(\det(A)=m+8\).`,
+    critical: String.raw`Solucao unica quando \(m\neq-8\).`,
+    care: "O enunciado pede solucao unica, entao o caso det diferente de zero ja resolve.",
+    conclusion: String.raw`O sistema admite solucao unica para \(m\neq-8\).`,
+    proofConclusion: String.raw`Como \(\det(A)=m+8\), a matriz dos coeficientes e inversivel quando \(m\neq-8\). Logo ha solucao unica exatamente para \(m\neq-8\).`,
+    commonError: "Responder m=-8, que e justamente o valor que derruba a unicidade.",
+    tags: ["parametro", "determinante", "classificacao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s06-l11-2b-m2",
+    number: 6,
+    origin: "Lista 11 - exercicio 2(b)",
+    title: "Resolver o sistema com m=2",
+    statement: String.raw`\[\begin{cases}2x_1+x_2+x_3=2\\2x_1-x_2+2x_3=5\\4x_1-x_2+x_3=6\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}2&1&1&2\\2&-1&2&5\\4&-1&1&6\end{array}\right]\]`,
+    typeLabel: "Sistema numerico 3x3 para escalonamento.",
+    strategy: "Montar a matriz aumentada, escolher pivo e escalonar ate isolar as variaveis.",
+    determinant: String.raw`Como \(m=2\), \(\det(A)=10\neq0\). Deve haver SPD.`,
+    critical: "Nao ha caso de parametro aqui: m ja foi fixado em 2.",
+    care: "A dificuldade e execucao: sinais, barra e organizacao.",
+    conclusion: String.raw`SPD, com \((x_1,x_2,x_3)=(1,-1,1)\).`,
+    proofConclusion: String.raw`Escalonando a matriz aumentada, obtemos \(x_1=1\), \(x_2=-1\), \(x_3=1\). Como ha pivo para cada variavel, o sistema e SPD.`,
+    commonError: "Errar a conta na linha inteira e esquecer o termo depois da barra.",
+    difficulty: 2,
+    tags: ["escalonamento", "classificacao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s07-l11-3-alpha-geral",
+    number: 7,
+    origin: "Lista 11 - exercicio 3 geral",
+    title: "Discussao geral com alpha",
+    statement: String.raw`\[\begin{cases}x_1+4x_2+\alpha x_3=6\\2x_1-x_2+2\alpha x_3=3\\\alpha x_1+3x_2+x_3=5\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&\alpha&6\\2&-1&2\alpha&3\\\alpha&3&1&5\end{array}\right]\]`,
+    typeLabel: "Sistema 3x3 nao homogeneo com parametro alpha.",
+    strategy: "Calcular determinante e discutir os casos alpha=1 e alpha=-1.",
+    determinant: String.raw`\(\det(A)=9(\alpha-1)(\alpha+1)\).`,
+    critical: String.raw`Valores criticos: \(\alpha=1\) e \(\alpha=-1\).`,
+    care: "Dois valores criticos significam dois casos especiais separados.",
+    conclusion: String.raw`Se \(\alpha\neq1,-1\), SPD. Se \(\alpha=1\), SPI. Se \(\alpha=-1\), SI.`,
+    proofConclusion: String.raw`Para \(\alpha\neq1,-1\), \(\det(A)\neq0\), logo SPD. Substituindo os valores criticos: \(\alpha=1\) gera SPI e \(\alpha=-1\) gera SI.`,
+    commonError: "Testar apenas um dos valores criticos.",
+    difficulty: 3,
+    tags: ["parametro", "determinante", "classificacao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s08-l11-3a-alpha0",
+    number: 8,
+    origin: "Lista 11 - exercicio 3(a)",
+    title: "Resolver alpha=0",
+    statement: String.raw`\[\begin{cases}x_1+4x_2=6\\2x_1-x_2=3\\3x_2+x_3=5\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&0&6\\2&-1&0&3\\0&3&1&5\end{array}\right]\]`,
+    typeLabel: "Sistema numerico 3x3 com solucao unica.",
+    strategy: "Escalonar e depois conferir a solucao.",
+    determinant: String.raw`Com \(\alpha=0\), \(\det(A)=-9\neq0\).`,
+    critical: "Nao ha caso critico: alpha ja foi fixado em 0.",
+    care: "Mesmo sabendo que e SPD, ainda precisa resolver se o enunciado pede solucao.",
+    conclusion: String.raw`SPD, com \((x_1,x_2,x_3)=(2,1,2)\).`,
+    proofConclusion: String.raw`A solucao obtida e \((2,1,2)\). Ha pivo para cada variavel, portanto o sistema e SPD.`,
+    commonError: "Parar no determinante e esquecer que a pergunta pediu resolver.",
+    difficulty: 2,
+    tags: ["escalonamento", "classificacao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s09-l11-3b-alpha1",
+    number: 9,
+    origin: "Lista 11 - exercicio 3(b)",
+    title: "Caso alpha=1: SPI",
+    statement: String.raw`\[\begin{cases}x_1+4x_2+x_3=6\\2x_1-x_2+2x_3=3\\x_1+3x_2+x_3=5\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&1&6\\2&-1&2&3\\1&3&1&5\end{array}\right]\]`,
+    typeLabel: "Sistema numerico singular com infinitas solucoes.",
+    strategy: "Escalonar, verificar que nao ha contradicao e identificar variavel livre.",
+    determinant: String.raw`Como \(\alpha=1\), \(\det(A)=0\).`,
+    critical: String.raw`O caso especial \(\alpha=1\) deve ser investigado na matriz aumentada.`,
+    care: "Linha 0=0 sozinha nao prova SPI; precisa faltar pivo e nao ter contradicao.",
+    conclusion: String.raw`SPI, com \((x_1,x_2,x_3)=(2-t,1,t)\).`,
+    proofConclusion: String.raw`Nao ha contradicao e \(x_3\) fica livre. Logo \(posto(A)=posto(A|b)<3\), entao o sistema e SPI.`,
+    commonError: "Confundir linha nula com resposta final.",
+    difficulty: 3,
+    tags: ["escalonamento", "classificacao", "variavelLivre", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s10-l11-3c-alpha-minus1",
+    number: 10,
+    origin: "Lista 11 - exercicio 3(c)",
+    title: "Caso alpha=-1: SI",
+    statement: String.raw`\[\begin{cases}x_1+4x_2-x_3=6\\2x_1-x_2-2x_3=3\\-x_1+3x_2+x_3=5\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&4&-1&6\\2&-1&-2&3\\-1&3&1&5\end{array}\right]\]`,
+    typeLabel: "Sistema numerico singular impossivel.",
+    strategy: "Escalonar a matriz aumentada e procurar linha contraditoria.",
+    determinant: String.raw`Como \(\alpha=-1\), \(\det(A)=0\).`,
+    critical: "O determinante zero nao decide sozinho; a ampliada decide.",
+    care: "Se aparecer 0 0 0 | c com c diferente de zero, acabou: SI.",
+    conclusion: "SI: durante o escalonamento aparece linha contraditoria.",
+    proofConclusion: String.raw`A matriz aumentada apresenta uma linha equivalente a \(0=c\), com \(c\neq0\). Logo \(posto(A)\neq posto(A|b)\), entao o sistema e SI.`,
+    commonError: "Ver det zero e concluir SPI sem olhar a contradição.",
+    difficulty: 3,
+    tags: ["escalonamento", "classificacao", "contradicao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s11-l11-4a-k",
+    number: 11,
+    origin: "Lista 11 - exercicio 4(a)",
+    title: "Discussao com parametro k",
+    statement: String.raw`\[\begin{cases}x_1+3x_2+x_3=5\\2x_1+4x_2+3x_3=5\\-x_1+x_2+kx_3=2\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&3&1&5\\2&4&3&5\\-1&1&k&2\end{array}\right]\]`,
+    typeLabel: "Sistema 3x3 nao homogeneo com parametro k.",
+    strategy: "Calcular det(A), testar k=-3 e classificar.",
+    determinant: String.raw`\(\det(A)=-2(k+3)\).`,
+    critical: String.raw`Valor critico: \(k=-3\).`,
+    care: "Pode nao existir valor que gere SPI; a discussao deve dizer isso.",
+    conclusion: String.raw`Se \(k\neq-3\), SPD. Se \(k=-3\), SI. Nao existe k para SPI.`,
+    proofConclusion: String.raw`Para \(k\neq-3\), \(\det(A)\neq0\), logo SPD. No caso \(k=-3\), a matriz ampliada e inconsistente; logo SI.`,
+    commonError: "Forcar um caso SPI que nao existe.",
+    difficulty: 3,
+    tags: ["parametro", "determinante", "classificacao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s12-l11-4b-k0",
+    number: 12,
+    origin: "Lista 11 - exercicio 4(b)",
+    title: "Resolver k=0",
+    statement: String.raw`\[\begin{cases}x_1+3x_2+x_3=5\\2x_1+4x_2+3x_3=5\\-x_1+x_2=2\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&3&1&5\\2&4&3&5\\-1&1&0&2\end{array}\right]\]`,
+    typeLabel: "Sistema numerico 3x3.",
+    strategy: "Escalonar a matriz aumentada e concluir a solucao.",
+    determinant: String.raw`Com \(k=0\), \(\det(A)=-6\neq0\).`,
+    critical: "Nao ha parametro a discutir depois de fixar k=0.",
+    care: "Resolva ate a solucao; nao basta dizer SPD.",
+    conclusion: String.raw`SPD, com \((x_1,x_2,x_3)=(0,2,-1)\).`,
+    proofConclusion: String.raw`Escalonando, obtemos \(x_1=0\), \(x_2=2\), \(x_3=-1\). Como ha pivo em todas as variaveis, SPD.`,
+    commonError: "Parar em det diferente de zero quando o enunciado pediu resolver.",
+    difficulty: 2,
+    tags: ["escalonamento", "classificacao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s13-l11-5a-alpha-hom",
+    number: 13,
+    origin: "Lista 11 - exercicio 5(a)",
+    title: "Homogeneo: valor de alpha",
+    statement: String.raw`\[\begin{pmatrix}2&1&1\\1&\alpha&1\\1&-1&2\end{pmatrix}\vec{x}=\begin{pmatrix}0\\0\\0\end{pmatrix}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}2&1&1&0\\1&\alpha&1&0\\1&-1&2&0\end{array}\right]\]`,
+    typeLabel: "Sistema homogeneo 3x3 com parametro alpha.",
+    strategy: "Calcular determinante e zerar para obter infinitas solucoes.",
+    determinant: String.raw`\(\det(A)=3\alpha\).`,
+    critical: String.raw`Infinitas solucoes quando \(\alpha=0\).`,
+    care: "Em homogeneo, det zero significa solucao nao trivial; nao e SI.",
+    conclusion: String.raw`Para \(\alpha=0\), ha infinitas solucoes. Para \(\alpha\neq0\), so trivial.`,
+    proofConclusion: String.raw`Como o sistema e homogeneo, a trivial sempre existe. Para infinitas solucoes, precisamos \(\det(A)=0\), entao \(3\alpha=0\Rightarrow\alpha=0\).`,
+    commonError: "Esquecer que o vetor zero sempre resolve.",
+    tags: ["homogeneo", "parametro", "determinante", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s14-l11-5bc-alpha0",
+    number: 14,
+    origin: "Lista 11 - exercicio 5(b)(c)",
+    title: "Homogeneo singular: solucao geral",
+    statement: String.raw`\[\begin{cases}2x_1+x_2+x_3=0\\x_1+x_3=0\\x_1-x_2+2x_3=0\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}2&1&1&0\\1&0&1&0\\1&-1&2&0\end{array}\right]\]`,
+    typeLabel: "Sistema homogeneo singular.",
+    strategy: "Escalonar, escolher variavel livre e escrever solucao geral.",
+    determinant: String.raw`\(\det(A)=0\) no caso \(\alpha=0\).`,
+    critical: "A variavel livre gera familia de solucoes.",
+    care: "Solucao nao trivial nao substitui a trivial; ela aparece alem da trivial.",
+    conclusion: String.raw`\((x_1,x_2,x_3)=t(-1,1,1)\). Para \(t=1\), \((-1,1,1)\).`,
+    proofConclusion: String.raw`Com \(t=x_3\), temos \(x_1=-t\), \(x_2=t\), \(x_3=t\). Logo a solucao geral e \(t(-1,1,1)\), incluindo a nao trivial \((-1,1,1)\).`,
+    commonError: "Fazer a variavel livre igual a zero e achar que nao ha nao trivial.",
+    difficulty: 3,
+    tags: ["homogeneo", "variavelLivre", "escalonamento", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s15-l11-6-m-hom",
+    number: 15,
+    origin: "Lista 11 - exercicio 6",
+    title: "Homogeneo com parametro m",
+    statement: String.raw`\[\begin{pmatrix}1&2&2\\m-1&1&m-2\\m+1&m-1&2\end{pmatrix}\vec{x}=\begin{pmatrix}0\\0\\0\end{pmatrix}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&2&2&0\\m-1&1&m-2&0\\m+1&m-1&2&0\end{array}\right]\]`,
+    typeLabel: "Sistema homogeneo 3x3 com parametro m.",
+    strategy: "Usar det(A) para identificar quando existe apenas a trivial.",
+    determinant: String.raw`\(\det(A)=3m(m-3)\).`,
+    critical: String.raw`So trivial quando \(m\neq0\) e \(m\neq3\).`,
+    care: "A pergunta pede apenas a trivial, entao queremos determinante diferente de zero.",
+    conclusion: String.raw`Apenas a solucao trivial para \(m\neq0\) e \(m\neq3\). Para \(m=0\) ou \(m=3\), existem nao triviais.`,
+    proofConclusion: String.raw`No homogeneo quadrado, \(\det(A)\neq0\) garante apenas a trivial. Como \(\det(A)=3m(m-3)\), isso ocorre quando \(m\neq0,3\).`,
+    commonError: "Responder os valores que zeram o determinante quando a pergunta pede so trivial.",
+    difficulty: 3,
+    tags: ["homogeneo", "parametro", "determinante", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s16-der-2x2-spi",
+    number: 16,
+    origin: "Derivado Lista 11 - 2x2 com SPI",
+    originType: "Derivado",
+    title: "Derivado: parametro com SPI",
+    statement: String.raw`\[\begin{cases}\lambda x+y=2\\2x+2y=4\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{cc|c}\lambda&1&2\\2&2&4\end{array}\right]\]`,
+    typeLabel: "Sistema 2x2 nao homogeneo com parametro lambda.",
+    strategy: "Calcular det(A) e testar o caso lambda=1.",
+    determinant: String.raw`\(\det(A)=2(\lambda-1)\).`,
+    critical: String.raw`Se \(\lambda=1\), as equacoes ficam dependentes e consistentes.`,
+    care: "Compare com sistema 17: mesmo det, lado direito diferente muda SPI para SI.",
+    conclusion: String.raw`Se \(\lambda\neq1\), SPD. Se \(\lambda=1\), SPI.`,
+    proofConclusion: String.raw`Para \(\lambda\neq1\), SPD. Para \(\lambda=1\), as linhas sao equivalentes e nao ha contradicao; sobra variavel livre, logo SPI.`,
+    commonError: "Achar que todo det zero vira SI.",
+    tags: ["parametro", "classificacao", "variavelLivre", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s17-der-2x2-si",
+    number: 17,
+    origin: "Derivado Lista 11 - 2x2 com SI",
+    originType: "Derivado",
+    title: "Derivado: parametro com SI",
+    statement: String.raw`\[\begin{cases}\lambda x+y=2\\2x+2y=5\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{cc|c}\lambda&1&2\\2&2&5\end{array}\right]\]`,
+    typeLabel: "Sistema 2x2 nao homogeneo com parametro lambda.",
+    strategy: "Calcular det(A) e testar lambda=1 na matriz ampliada.",
+    determinant: String.raw`\(\det(A)=2(\lambda-1)\).`,
+    critical: String.raw`Se \(\lambda=1\), aparece inconsistencia.`,
+    care: "det zero em nao homogeneo pode ser SPI ou SI; o lado direito decide.",
+    conclusion: String.raw`Se \(\lambda\neq1\), SPD. Se \(\lambda=1\), SI.`,
+    proofConclusion: String.raw`Para \(\lambda\neq1\), SPD. Para \(\lambda=1\), as equacoes teriam lados direitos incompatíveis; logo SI.`,
+    commonError: "Concluir SPI so porque o determinante zerou.",
+    tags: ["parametro", "classificacao", "contradicao", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s18-der-hom-lambda",
+    number: 18,
+    origin: "Derivado Lista 11 - homogeneo",
+    originType: "Derivado",
+    title: "Derivado: homogeneo com lambda",
+    statement: String.raw`\[\begin{cases}x+y+z=0\\2x+3y+z=0\\x+2y+\lambda z=0\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&1&1&0\\2&3&1&0\\1&2&\lambda&0\end{array}\right]\]`,
+    typeLabel: "Sistema homogeneo 3x3 com parametro lambda.",
+    strategy: "Usar determinante para separar apenas trivial de nao trivial.",
+    determinant: String.raw`\(\det(A)=\lambda\).`,
+    critical: String.raw`Se \(\lambda=0\), ha infinitas solucoes.`,
+    care: "Homogeneo com det zero tem variavel livre e solucao nao trivial.",
+    conclusion: String.raw`Se \(\lambda\neq0\), so trivial. Se \(\lambda=0\), \((x,y,z)=t(-2,1,1)\).`,
+    proofConclusion: String.raw`Quando \(\lambda=0\), falta pivo e ha variavel livre. Logo alem da trivial existem solucoes nao triviais como \((-2,1,1)\).`,
+    commonError: "Confundir vetor resultado zero com matriz de coeficientes zero.",
+    difficulty: 3,
+    tags: ["homogeneo", "parametro", "variavelLivre", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s19-der-param-spi",
+    number: 19,
+    origin: "Derivado Lista 11 - parametro com SPI",
+    originType: "Derivado",
+    title: "Derivado: det zero gerando SPI",
+    statement: String.raw`\[\begin{cases}x+y+z=1\\2x+3y+z=2\\x+2y+kz=1\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&1&1&1\\2&3&1&2\\1&2&k&1\end{array}\right]\]`,
+    typeLabel: "Sistema 3x3 nao homogeneo com parametro k.",
+    strategy: "Calcular det(A), testar k=0 e comparar posto.",
+    determinant: String.raw`\(\det(A)=k\).`,
+    critical: String.raw`Se \(k=0\), o caso singular e consistente.`,
+    care: "Este e o exemplo em que det zero realmente vira SPI, mas so depois de verificar consistencia.",
+    conclusion: String.raw`Se \(k\neq0\), SPD. Se \(k=0\), SPI, com \((x,y,z)=(1-2t,t,t)\).`,
+    proofConclusion: String.raw`Para \(k=0\), nao aparece contradicao e sobra variavel livre; logo \(posto(A)=posto(A|b)<3\), entao SPI.`,
+    commonError: "Acertar k=0 mas nao justificar posto/variavel livre.",
+    difficulty: 3,
+    tags: ["parametro", "classificacao", "variavelLivre", "conclusao", "lista11-total"]
+  }),
+  lista11System({
+    id: "s20-der-param-si",
+    number: 20,
+    origin: "Derivado Lista 11 - parametro com SI",
+    originType: "Derivado",
+    title: "Derivado: det zero gerando SI",
+    statement: String.raw`\[\begin{cases}x+y+z=1\\2x+3y+z=2\\x+2y+kz=3\end{cases}\]`,
+    matrix: String.raw`\[\left[\begin{array}{ccc|c}1&1&1&1\\2&3&1&2\\1&2&k&3\end{array}\right]\]`,
+    typeLabel: "Sistema 3x3 nao homogeneo com parametro k.",
+    strategy: "Calcular det(A), testar k=0 e procurar contradicao.",
+    determinant: String.raw`\(\det(A)=k\).`,
+    critical: String.raw`Se \(k=0\), o caso singular fica inconsistente.`,
+    care: "Compare com sistema 19: mesma matriz de coeficientes, outro lado direito.",
+    conclusion: String.raw`Se \(k\neq0\), SPD. Se \(k=0\), SI.`,
+    proofConclusion: String.raw`Para \(k=0\), a matriz ampliada produz linha contraditoria. Assim \(posto(A)\neq posto(A|b)\), logo SI.`,
+    commonError: "Concluir SPI por copiar o sistema 19 sem conferir o lado direito.",
+    difficulty: 3,
+    tags: ["parametro", "classificacao", "contradicao", "conclusao", "lista11-total"]
+  })
+];
+
 const ESCALONAMENTO_SEM_QUADRO = [
   courseMission({
     id: "mode-esq-01-row-op",
@@ -3473,31 +4073,47 @@ const PROOF_MODES = {
 
 function home() {
   screen = { mode: "home", index: 0, boss: "mixed", score: 0, errors: [], item: null };
-  const focus = currentFocusText();
-  const confidence = state.diagnostic ? adjustedConfidence(state.diagnostic.rawPercent ?? state.diagnostic.percent ?? 0) : null;
-  const cards = Object.entries(PROOF_MODES).map(([mode, data]) => proofModeCard(mode, data)).join("");
+  const metrics = progressMetrics();
+  const boardPosition = nextBoardPosition();
+  const currentSystem = LISTA11_SYSTEMS[boardPosition.systemIndex] || LISTA11_SYSTEMS[0];
   setStage(`
-    <section class="home-shell proof-home">
+    <section class="home-shell board-home">
       <div class="hero course-hero">
         <img src="assets/study-map-banner.png" alt="">
         <div class="hero-content">
-          <p class="eyebrow">Tutor de prova</p>
+          <p class="eyebrow">Lista 11 e Modo Quadro</p>
           <h1>Sistemas Lineares</h1>
-          <p>Menos porcentagem bonita. Mais escalonamento, discussao e Lista 11.</p>
+          <p>O aluno nao passa porque reconheceu a resposta. Passa porque resolveu no quadro.</p>
         </div>
       </div>
-      <div class="proof-mode-grid" aria-label="Modos principais">${cards}</div>
-      <div class="status-strip" aria-label="Status do estudante">
-        <span>Foco atual: ${focus}</span>
-        <span>${confidence === null ? "Diagnostico duro pendente" : `Confianca operacional: ${confidence}%`}</span>
-        <span>Sem teto fake: cap ${masteryCap()}%</span>
+
+      <section class="readiness-card">
+        <span class="pill">Regua honesta</span>
+        <h2>100% de progresso nao e 100% de dominio.</h2>
+        <div class="metric-grid">
+          <div><strong>${metrics.progressPercent}%</strong><span>Progresso do app</span></div>
+          <div><strong>${metrics.estimatedMastery}%</strong><span>Dominio estimado · teto ${metrics.masteryCap}%</span></div>
+          <div><strong>${metrics.operationalConfidence}</strong><span>Confianca operacional</span></div>
+        </div>
+        <p><strong>Risco principal:</strong> ${metrics.risk}.</p>
+        <p><strong>Proximo treino:</strong> ${metrics.nextTraining}.</p>
+      </section>
+
+      <div class="board-main-actions" aria-label="Acoes principais">
+        ${menuButton("Continuar jornada", `Sistema ${String(currentSystem.number).padStart(2, "0")}: ${currentSystem.title}`, "board")}
+        ${menuButton("Resolver no quadro", "Lousa guiada com matriz, operacao, erro e conclusao", "board")}
+        ${menuButton("Ver diagnostico", "Chapeu Seletor focado na Lista 11", "diagnostic")}
+        ${menuButton("Boss Final", "So libera dominio acima de 90% com prova pratica", "bossFinalBoard")}
       </div>
+
       <details class="extras-panel">
-        <summary>Ajustes e consulta</summary>
+        <summary>Treinos auxiliares e consulta</summary>
         <div class="menu-grid compact-menu">
-          ${menuButton("Chapeu Seletor duro", "Diagnostico por habilidade, sem 97 fake", "diagnostic")}
+          ${menuButton("Escalonamento rapido", "Apoio operacional curto", "escalonamentoSemQuadro")}
+          ${menuButton("Discussao SPD/SPI/SI", "Apoio de classificacao", "discussaoSistemas")}
+          ${menuButton("Lista 11 Total", "Revisao misturada", "lista11Total")}
           ${menuButton("Grimorio", "Consulta rapida", "grimoire")}
-          ${menuButton("Resetar diagnostico", "Apaga so o perfil", "resetDiagnostic")}
+          ${menuButton("Relatorio", "Prontidao real para prova", "readinessReport")}
         </div>
       </details>
     </section>
@@ -3565,6 +4181,507 @@ function proofModeResult(mode) {
 function advanceProofProgress(mode, index) {
   state.modeProgress[mode] = Math.max(state.modeProgress?.[mode] || 0, index + 1);
   if (mode === "lista11Total") state.lastMode = "lista11Total";
+}
+
+const BOARD_STEP_COUNT = 6;
+
+function nextBoardPosition(currentState = state) {
+  const currentIndex = Math.max(0, Math.min(currentState.boardProgress?.systemIndex || 0, LISTA11_SYSTEMS.length - 1));
+  const currentSystem = LISTA11_SYSTEMS[currentIndex];
+  if (currentSystem && !currentState.completedBoardModeSystems?.includes(currentSystem.id)) {
+    return { systemIndex: currentIndex, stepIndex: Math.max(0, Math.min(currentState.boardProgress?.stepIndex || 0, BOARD_STEP_COUNT - 1)) };
+  }
+  const nextIndex = LISTA11_SYSTEMS.findIndex((system) => !currentState.completedBoardModeSystems?.includes(system.id));
+  return { systemIndex: nextIndex === -1 ? LISTA11_SYSTEMS.length - 1 : nextIndex, stepIndex: 0 };
+}
+
+function boardLevelForSystem(systemIndex) {
+  if (systemIndex < 3) return "Quadro guiado";
+  if (systemIndex < 8) return "Quadro semi-guiado";
+  if (systemIndex < 15) return "Quadro sem dica parcial";
+  return "Correcao de professor";
+}
+
+function boardStepItem(system, stepIndex) {
+  const common = {
+    origin: system.origin,
+    difficulty: system.difficulty,
+    fullSolution: system.proofConclusion,
+    why: system.care,
+    boardSystemId: system.id,
+    boardStep: stepIndex
+  };
+  const typeWrong = system.tags.includes("homogeneo")
+    ? ["Sistema nao homogeneo comum.", "Nao da para saber porque a matriz tem letras."]
+    : system.tags.includes("parametro")
+      ? ["Sistema homogeneo sem parametro.", "Sistema ja resolvido, basta copiar a resposta."]
+      : ["Sistema com parametro ainda nao fixado.", "Questao so de conceito, sem conta."];
+  const typeFeedbackWrong = system.tags.includes("homogeneo")
+    ? "Erro de leitura: no homogeneo, o lado direito e zero; a matriz dos coeficientes nao precisa ser zero."
+    : system.tags.includes("parametro")
+      ? "Cuidado: ha parametro no enunciado, entao a classificacao pode depender de casos."
+      : "Aqui o parametro ja foi fixado ou nao existe; o gargalo e executar escalonamento e concluir.";
+  const templates = [
+    {
+      key: "tipo",
+      title: "Leitura do enunciado",
+      skill: "interpretacao de enunciado",
+      errorType: "conceptual",
+      question: "Que tipo de questao esta na lousa?",
+      choices: [system.typeLabel, ...typeWrong],
+      feedbacks: [
+        "Boa leitura. Antes de operar, voce identificou o monstro.",
+        typeFeedbackWrong,
+        "Isso pularia a parte que a Lista 11 realmente cobra: discutir ou resolver com criterio."
+      ]
+    },
+    {
+      key: "estrategia",
+      title: "Escolha da estrategia",
+      skill: system.tags.includes("parametro") ? "parameterCaseSplit" : "matrixSetup",
+      errorType: system.tags.includes("parametro") ? "missingCaseSplit" : "organization",
+      question: "Qual e o primeiro plano seguro?",
+      choices: [
+        system.strategy,
+        "Chutar SPD porque a matriz parece grande.",
+        "Procurar a resposta final sem montar matriz aumentada."
+      ],
+      feedbacks: [
+        "Certo. A estrategia vem antes da conta.",
+        "Isso e conclusao sem prova. A professora vai cobrar justificativa.",
+        "Sem matriz/estrategia, a escrita nao fica auditavel."
+      ]
+    },
+    {
+      key: "determinante-caso",
+      title: "Determinante ou caso critico",
+      skill: system.tags.includes("homogeneo") ? "homogeneousSystems" : system.tags.includes("parametro") ? "determinantUse" : "rowOperations",
+      errorType: system.tags.includes("homogeneo") ? "homogeneousConfusion" : system.tags.includes("parametro") ? "determinantMisuse" : "arithmetic",
+      question: "Qual informacao deve entrar no quadro agora?",
+      choices: [
+        `${system.determinant} ${system.critical}`,
+        "det(A)=0, logo SPI automaticamente.",
+        "Nao preciso olhar o lado direito depois da barra."
+      ],
+      feedbacks: [
+        "Certo. Esse e o radar da discussao, nao a resposta por si so.",
+        "Conclusao precipitada: em sistema nao homogeneo, det zero pode virar SPI ou SI.",
+        "Erro grave de organizacao: o lado direito decide consistencia."
+      ]
+    },
+    {
+      key: "cuidado",
+      title: "Anti-vacilo da etapa",
+      skill: system.tags.includes("parametro") ? "parameterCaseSplit" : system.tags.includes("homogeneo") ? "homogeneousSystems" : "arithmeticControl",
+      errorType: system.tags.includes("parametro") ? "parameterDivision" : system.tags.includes("homogeneo") ? "homogeneousConfusion" : "organization",
+      question: "Qual cuidado evita perder ponto aqui?",
+      choices: [
+        system.care,
+        "Misturar duas operacoes de linha sem indicar.",
+        "Concluir assim que aparecer uma linha 0 0 0 | 0."
+      ],
+      feedbacks: [
+        "Certo. Esse e o cuidado que separa treino bonito de prova auditavel.",
+        "Isso deixa a resolucao suspeita. Escreva cada operacao.",
+        "Linha nula sozinha nao conclui SPI; precisa comparar posto e variaveis."
+      ]
+    },
+    {
+      key: "classificacao",
+      title: "Classificacao e posto",
+      skill: "rankDiscussion",
+      errorType: system.tags.includes("contradicao") ? "ignoredContradiction" : system.tags.includes("variavelLivre") ? "missingFreeVariable" : "conclusion",
+      question: "Qual leitura formal combina com o resultado?",
+      choices: [
+        system.conclusion,
+        "det(A)=0, entao sempre SPI.",
+        "Se apareceu parametro, nao da para concluir nada."
+      ],
+      feedbacks: [
+        "Certo. A classificacao esta ligada ao que a matriz aumentada mostra.",
+        "Esse e o erro classico: det zero obriga investigar, nao classifica sozinho.",
+        "Da para concluir, mas por casos bem escritos."
+      ]
+    },
+    {
+      key: "conclusao",
+      title: "Conclusao de prova",
+      skill: "writtenConclusion",
+      errorType: "conclusion",
+      question: "Qual conclusao voce escreveria na prova?",
+      choices: [
+        system.proofConclusion,
+        "Resposta: valor critico encontrado.",
+        "Acho que da certo porque tem uma linha nula."
+      ],
+      feedbacks: [
+        "Boa. Isso e conclusao auditavel: caso, criterio e classificacao.",
+        "Incompleto. Valor critico nao e classificacao do sistema.",
+        "Nao basta intuicao. Precisa dizer SPD/SPI/SI, posto/contradicao/variavel livre."
+      ]
+    }
+  ];
+  const selected = templates[stepIndex] || templates[0];
+  return {
+    ...common,
+    id: `${system.id}-board-${selected.key}`,
+    title: selected.title,
+    origin: system.origin,
+    skill: selected.skill,
+    errorType: selected.errorType,
+    type: "modo quadro",
+    data: system.matrix,
+    explain: selected.key === "tipo" ? "Leia antes de operar. A Lista 11 cobra escolher o metodo certo." : system.care,
+    question: selected.question,
+    choices: selected.choices,
+    answer: 0,
+    feedback: selected.feedbacks[0],
+    feedbacks: selected.feedbacks,
+    commonError: system.commonError,
+    fullSolution: system.proofConclusion
+  };
+}
+
+function renderBoardMode(systemIndex = state.boardProgress?.systemIndex || 0, stepIndex = state.boardProgress?.stepIndex || 0) {
+  const safeSystemIndex = Math.max(0, Math.min(systemIndex, LISTA11_SYSTEMS.length - 1));
+  const safeStep = Math.max(0, Math.min(stepIndex, BOARD_STEP_COUNT - 1));
+  const system = LISTA11_SYSTEMS[safeSystemIndex];
+  const item = boardStepItem(system, safeStep);
+  state.currentSystemId = system.id;
+  state.currentPhase = "modo-quadro";
+  screen = {
+    mode: "board",
+    index: safeStep,
+    systemIndex: safeSystemIndex,
+    boss: "mixed",
+    score: 0,
+    errors: [],
+    item,
+    hintUsed: false
+  };
+  const metrics = progressMetrics();
+  const globalProgress = Math.round(((safeSystemIndex * BOARD_STEP_COUNT + safeStep + 1) / (LISTA11_SYSTEMS.length * BOARD_STEP_COUNT)) * 100);
+  setStage(`
+    <section class="board-shell">
+      <header class="board-top">
+        <div>
+          <span class="pill">${boardLevelForSystem(safeSystemIndex)}</span>
+          <h2>Sistema ${String(system.number).padStart(2, "0")} — ${system.title}</h2>
+          <p>${system.origin} · passo ${safeStep + 1}/${BOARD_STEP_COUNT}</p>
+        </div>
+        <div class="progress-block">
+          <span>Progresso da lousa: ${globalProgress}%</span>
+          <div class="bar"><span style="width:${globalProgress}%"></span></div>
+        </div>
+      </header>
+
+      <div class="board-metrics">
+        <span>Progresso: ${metrics.progressPercent}%</span>
+        <span>Dominio estimado: ${metrics.estimatedMastery}%</span>
+        <span>Confianca: ${metrics.operationalConfidence}</span>
+      </div>
+
+      <article class="board-panel">
+        <h3>Enunciado</h3>
+        <div class="math-box">${system.statement}</div>
+      </article>
+
+      <article class="board-panel">
+        <h3>Matriz aumentada</h3>
+        <div class="math-box">${system.matrix}</div>
+      </article>
+
+      <article class="board-panel">
+        <h3>Quadro de operacoes</h3>
+        <ul class="board-notes">
+          <li>Escreva cada operacao antes da conta.</li>
+          <li>Atualize a linha inteira, inclusive depois da barra.</li>
+          <li>Se aparecer parametro, separe caso antes de dividir.</li>
+        </ul>
+      </article>
+
+      <article class="board-panel focus-panel">
+        <h3>Proximo passo do aluno</h3>
+        ${sourceChip(item)}
+        <p>${item.explain}</p>
+        <div class="choices">
+          <p><strong>${item.question}</strong></p>
+          ${item.choices.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
+        </div>
+        <button class="secondary quiet" data-why="why-board-${system.id}-${safeStep}">Nao entendi / por que?</button>
+        <div id="why-board-${system.id}-${safeStep}" class="feedback">${item.why}</div>
+      </article>
+
+      <article class="board-panel">
+        <h3>Diagnostico do erro</h3>
+        <div id="feedback" class="feedback">Ainda sem resposta. O app vai separar erro conceitual, aritmetico, organizacao e conclusao.</div>
+      </article>
+
+      <article class="board-panel">
+        <h3>Conclusao de prova esperada</h3>
+        <p class="tiny">${safeStep < BOARD_STEP_COUNT - 1 ? "A conclusao completa aparece depois da tentativa. Antes disso, tente decidir a etapa." : system.proofConclusion}</p>
+      </article>
+
+      <div class="actions">
+        <button class="primary" data-next="board" disabled>${safeStep === BOARD_STEP_COUNT - 1 ? "Fechar sistema" : "Proximo passo"}</button>
+        <button class="secondary" data-repeat="board">Refazer passo</button>
+        <button class="secondary" data-mode="home">Menu</button>
+      </div>
+    </section>
+  `);
+}
+
+function recordProofSkill(skill, amount = 8) {
+  if (!state.proofSkills) state.proofSkills = { ...defaultState.proofSkills };
+  state.proofSkills[skill] = Math.max(0, Math.min(100, (state.proofSkills[skill] || 0) + amount));
+}
+
+function recordProofError(errorType = "conceptual") {
+  const map = {
+    conceptual: "conceptual",
+    arithmetic: "arithmetic",
+    aritmetico: "arithmetic",
+    organization: "organization",
+    organizacao: "organization",
+    conclusion: "conclusion",
+    conclusao: "conclusion",
+    parameterDivision: "parameterDivision",
+    missingCaseSplit: "missingCaseSplit",
+    homogeneousConfusion: "homogeneousConfusion",
+    prematureSPI: "prematureSPI",
+    ignoredContradiction: "ignoredContradiction",
+    missingFreeVariable: "missingFreeVariable",
+    determinantMisuse: "determinantMisuse"
+  };
+  const key = map[errorType] || "conceptual";
+  state.errorProfile[key] = (state.errorProfile[key] || 0) + 1;
+}
+
+function advanceBoardProgress(correct, item) {
+  const system = LISTA11_SYSTEMS[screen.systemIndex];
+  state.boardProgress = {
+    systemIndex: screen.systemIndex,
+    stepIndex: Math.min(screen.index + 1, BOARD_STEP_COUNT - 1)
+  };
+  state.currentSystemId = system.id;
+  state.currentPhase = "modo-quadro";
+  state.boardAttempts = [
+    ...(state.boardAttempts || []),
+    {
+      date: new Date().toISOString(),
+      systemId: system.id,
+      step: screen.index,
+      correct,
+      skill: item.skill,
+      errorType: item.errorType,
+      usedHint: !!screen.hintUsed
+    }
+  ].slice(-160);
+  if (correct) recordProofSkill(item.skill, screen.hintUsed ? 4 : 9);
+  else recordProofError(item.errorType);
+  if (screen.index === BOARD_STEP_COUNT - 1 && correct) {
+    if (!state.completedSystems.includes(system.id)) state.completedSystems.push(system.id);
+    if (!state.completedBoardModeSystems.includes(system.id)) state.completedBoardModeSystems.push(system.id);
+    if (!screen.hintUsed && !state.completedWithoutHints.includes(system.id)) state.completedWithoutHints.push(system.id);
+    if (system.tags?.includes("lista11-total")) complete(`board-${system.id}`);
+    if (system.number >= 15) complete("board-lista11-total-marker");
+  }
+}
+
+function boardSystemResult(systemIndex = screen.systemIndex) {
+  const system = LISTA11_SYSTEMS[systemIndex] || LISTA11_SYSTEMS[0];
+  const solved = state.completedBoardModeSystems.includes(system.id);
+  const nextIndex = Math.min(systemIndex + 1, LISTA11_SYSTEMS.length - 1);
+  const metrics = progressMetrics();
+  setStage(`
+    <section class="panel stack readiness-report">
+      <span class="pill">Sistema ${String(system.number).padStart(2, "0")}</span>
+      <h2>${solved ? "Sistema fechado no quadro" : "Tentativa registrada"}</h2>
+      <p>${solved ? "Boa. Isso conta para dominio real, porque voce passou por leitura, estrategia, caso e conclusao." : "Ainda nao vou contar como dominio. Voce viu a correcao, mas precisa refazer sem tropeçar."}</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${metrics.progressPercent}%</strong><small>progresso do app</small></div>
+        <div class="mission-card"><strong>${metrics.estimatedMastery}%</strong><small>dominio estimado</small></div>
+        <div class="mission-card"><strong>${metrics.operationalConfidence}</strong><small>confianca operacional</small></div>
+      </div>
+      <div class="feedback show ${solved ? "success" : "danger"}">
+        <strong>Risco principal:</strong> ${metrics.risk}.<br>
+        <strong>Proximo treino:</strong> ${metrics.nextTraining}.
+      </div>
+      <div class="actions">
+        <button class="primary" data-board-go="${solved && systemIndex < LISTA11_SYSTEMS.length - 1 ? nextIndex : systemIndex}">${solved && systemIndex < LISTA11_SYSTEMS.length - 1 ? "Proximo sistema" : "Refazer no quadro"}</button>
+        <button class="secondary" data-mode="bossFinalBoard">Ir para Boss Final</button>
+        <button class="secondary" data-mode="readinessReport">Relatorio de prontidao</button>
+      </div>
+    </section>
+  `);
+}
+
+function readinessReport() {
+  const metrics = progressMetrics();
+  const req = metrics.requirements;
+  setStage(`
+    <section class="panel stack readiness-report">
+      <span class="pill">Relatorio honesto</span>
+      <h2>Prontidao para prova</h2>
+      <p><strong>100% de progresso nao e 100% de dominio.</strong> O app mede as duas coisas separadamente.</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${metrics.progressPercent}%</strong><small>progresso</small></div>
+        <div class="mission-card"><strong>${metrics.estimatedMastery}%</strong><small>dominio estimado · teto ${metrics.masteryCap}%</small></div>
+        <div class="mission-card"><strong>${metrics.operationalConfidence}</strong><small>confianca operacional</small></div>
+      </div>
+      <div class="readiness-grid">
+        ${Object.entries({
+          "conceitos basicos": req.concepts,
+          "2 escalonamentos medios": req.twoMediumEscalations,
+          "sistema com parametro": req.parameterSystem,
+          "discussao SPD/SPI/SI": req.classification,
+          "homogeneo": req.homogeneous,
+          "conclusao escrita": req.writtenConclusion,
+          "Boss Final sem dica": req.bossFinal
+        }).map(([label, done]) => `<div class="readiness-item ${done ? "ok" : "warn"}"><strong>${done ? "OK" : "Falta"}</strong><span>${label}</span></div>`).join("")}
+      </div>
+      <div class="feedback show">
+        <strong>Risco principal:</strong> ${metrics.risk}.<br>
+        <strong>Proximo treino:</strong> ${metrics.nextTraining}.
+      </div>
+      <div class="actions">
+        <button class="primary" data-mode="board">Resolver no quadro</button>
+        <button class="secondary" data-mode="bossFinalBoard">Boss Final</button>
+        <button class="secondary" data-mode="home">Menu</button>
+      </div>
+    </section>
+  `);
+}
+
+const BOSS_FINAL_SYSTEM_IDS = [
+  "s02-l11-1b-lambda-mu",
+  "s04-l11-1d-hom-lambda",
+  "s06-l11-2b-m2",
+  "s10-l11-3c-alpha-minus1",
+  "s19-der-param-spi",
+  "s20-der-param-si"
+];
+
+function bossFinalItem(index) {
+  const system = systemById(BOSS_FINAL_SYSTEM_IDS[index]) || LISTA11_SYSTEMS[index];
+  const prompts = [
+    "Discuta o sistema com parametro e escreva a conclusao completa.",
+    "Identifique o comportamento do sistema homogeneo.",
+    "Resolva o escalonamento numerico e conclua SPD/SPI/SI.",
+    "Decida se apareceu SI e justifique por posto/contradicao.",
+    "Reconheca o caso SPI sem concluir cedo demais.",
+    "Compare com o caso SPI e explique por que agora e SI."
+  ];
+  return {
+    id: `boss-final-${system.id}`,
+    origin: system.origin,
+    difficulty: 3,
+    title: `Boss Final ${index + 1}/6 — Sistema ${String(system.number).padStart(2, "0")}`,
+    skill: index === 1 ? "homogeneousSystems" : index >= 3 ? "rankDiscussion" : "writtenConclusion",
+    errorType: index === 1 ? "homogeneousConfusion" : index >= 3 ? "conclusion" : "organization",
+    type: "boss final",
+    data: `${system.statement}${system.matrix}`,
+    explain: "Sem dica direta. Primeiro identifique, depois resolva e conclua como prova.",
+    question: prompts[index] || "Qual conclusao final e correta?",
+    choices: [
+      system.proofConclusion,
+      "det(A)=0, portanto SPI automaticamente.",
+      "Valor critico encontrado; isso ja basta como resposta."
+    ],
+    answer: 0,
+    feedback: "Certo. Essa resposta tem criterio e conclusao de prova.",
+    feedbacks: [
+      "Certo. Essa resposta tem criterio e conclusao de prova.",
+      "Erro conceitual: det(A)=0 nao classifica sozinho sistema nao homogeneo.",
+      "Incompleto: valor critico e etapa, nao conclusao final."
+    ],
+    fullSolution: system.proofConclusion,
+    why: "No Boss Final, usar dica derruba a validacao de dominio maximo."
+  };
+}
+
+function bossFinalBoard(index = 0, score = 0, errors = []) {
+  const total = BOSS_FINAL_SYSTEM_IDS.length;
+  const safeIndex = Math.max(0, Math.min(index, total - 1));
+  const item = bossFinalItem(safeIndex);
+  screen = { mode: "bossFinalBoard", index: safeIndex, boss: "final", score, errors, item, hintUsed: false };
+  setStage(`
+    <section class="board-shell boss-board">
+      <header class="board-top">
+        <div>
+          <span class="pill">Boss Final</span>
+          <h2>${item.title}</h2>
+          <p>Voce passou do tutorial. Agora vamos ver se aguenta prova.</p>
+        </div>
+        <div class="progress-block">
+          <span>${safeIndex + 1}/${total}</span>
+          <div class="bar"><span style="width:${((safeIndex + 1) / total) * 100}%"></span></div>
+        </div>
+      </header>
+      <div class="board-metrics">
+        <span>Sem dica direta</span>
+        <span>Sem porcentagem fake</span>
+        <span>Conclusao escrita obrigatoria</span>
+      </div>
+      <article class="board-panel">
+        <h3>Enunciado e matriz</h3>
+        <div class="math-box">${item.data}</div>
+      </article>
+      <article class="board-panel focus-panel">
+        <h3>Resposta de prova</h3>
+        <p>${item.explain}</p>
+        <div class="choices">
+          <p><strong>${item.question}</strong></p>
+          ${item.choices.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
+        </div>
+      </article>
+      <article class="board-panel">
+        <h3>Diagnostico</h3>
+        <div id="feedback" class="feedback">Responda antes de ver a correcao. Boss nao entrega caminho antes da tentativa.</div>
+      </article>
+      <div class="actions">
+        <button class="primary" data-next="bossFinalBoard" disabled>${safeIndex === total - 1 ? "Ver relatorio final" : "Proximo boss"}</button>
+        <button class="secondary" data-mode="board">Voltar ao Modo Quadro</button>
+      </div>
+    </section>
+  `);
+}
+
+function bossFinalResult() {
+  const total = BOSS_FINAL_SYSTEM_IDS.length;
+  const passed = screen.score >= 5 && !(screen.errors || []).length;
+  state.bossFinalAttempts = [
+    ...(state.bossFinalAttempts || []),
+    { date: new Date().toISOString(), score: screen.score, total, passed, usedHint: false, errors: screen.errors || [] }
+  ].slice(-20);
+  if (passed) {
+    state.bossFinalPassed = true;
+    complete("boss-final-lista11-board");
+    award("boss");
+  }
+  saveState();
+  const metrics = progressMetrics();
+  setStage(`
+    <section class="panel stack readiness-report">
+      <span class="pill">Resultado do Boss Final</span>
+      <h2>${passed ? "Boss vencido" : "Boss revelou o gargalo"}</h2>
+      <p>${passed ? "Agora sim: voce provou resolucao pratica, discussao e conclusao sob pressao." : "Isso nao zera seu progresso. Ele mostra onde a prova ainda pode te pegar."}</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>${screen.score}/${total}</strong><small>acertos no Boss</small></div>
+        <div class="mission-card"><strong>${metrics.estimatedMastery}%</strong><small>dominio estimado</small></div>
+        <div class="mission-card"><strong>${metrics.operationalConfidence}</strong><small>confianca operacional</small></div>
+      </div>
+      <div class="feedback show ${passed ? "success" : "danger"}">
+        <strong>Diagnostico honesto:</strong> ${passed ? "forte, mas mantenha revisao nos parametros." : metrics.risk}.<br>
+        <strong>Proximo treino:</strong> ${passed ? "revisao fina dos Sistemas 02, 07, 11 e 20." : metrics.nextTraining}.
+      </div>
+      <div class="actions">
+        <button class="primary" data-mode="readinessReport">Ver relatorio completo</button>
+        <button class="secondary" data-mode="bossFinalBoard">Refazer Boss</button>
+        <button class="secondary" data-mode="home">Menu</button>
+      </div>
+    </section>
+  `);
 }
 
 function courseIds() {
@@ -3776,7 +4893,7 @@ function showDiagnosticResult(result) {
       <span class="pill">Resultado do Chapeu Seletor</span>
       <h2>${result.levelLabel || "Rota calibrada"}</h2>
       <p><strong>Voce acertou ${result.score} de ${result.total}.</strong> Isso mede leitura rapida, nao dominio de prova.</p>
-      <p class="tiny"><strong>Confianca operacional estimada:</strong> ${result.percent}% (limite atual: ${result.cap}%). Voce nao esta zerado, mas tambem nao esta 97% enquanto nao provar escalonamento completo, discussao com parametro e simulado misto.</p>
+      <p class="tiny"><strong>Dominio estimado apos diagnostico:</strong> ${result.percent}% (teto atual: ${result.cap}%). Voce nao esta zerado, mas tambem nao esta blindado enquanto nao resolver no quadro, discutir parametros e passar pelo Boss Final.</p>
       <p>${result.message}</p>
       <div class="mission-list">
         <div class="mission-card"><strong>Pontos fortes</strong><small>${strong}</small></div>
@@ -4496,6 +5613,13 @@ function answer(selected) {
       ? (item.feedbacks?.[selected] || item.feedback || item.f || "Certo.")
       : (item.feedbacks?.[selected] || item.wrong || item.feedback || item.f || "Revise a conta.");
     fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item, item.solutionLabel || "Ver conta inteira")}`;
+    if (screen.mode === "board") {
+      advanceBoardProgress(correct, item);
+    }
+    if (screen.mode === "bossFinalBoard") {
+      if (correct) screen.score += 1;
+      else screen.errors.push(item.errorType || "conclusion");
+    }
     if (correct) {
       recordPerformance({ skill: item.skill || "jornada", correct: true, source: screen.mode || "jornada" });
       if (PROOF_MODES[screen.mode]) advanceProofProgress(screen.mode, screen.index);
@@ -4505,11 +5629,12 @@ function answer(selected) {
         saveState();
       }
     } else {
+      if (screen.mode !== "board") recordProofError(item.errorType);
       miss(item.skill || "jornada");
     }
   }
   fb.className = `feedback show ${correct ? "success" : "danger"}`;
-  if (correct || screen.mode === "diagnostic") enableNextButtons();
+  if (correct || screen.mode === "diagnostic" || screen.mode === "board" || screen.mode === "bossFinalBoard") enableNextButtons();
   typeset();
 }
 
@@ -4518,6 +5643,7 @@ function currentAnswerItem() {
   if (screen.mode === "guided") return guided[screen.index];
   if (screen.mode === "diagnostic") return diagnostic[screen.index];
   if (screen.mode === "adaptive") return CORRECTIVE_MISSIONS[screen.skillKey];
+  if (screen.mode === "board" || screen.mode === "bossFinalBoard") return screen.item;
   if (PROOF_MODES[screen.mode]) return PROOF_MODES[screen.mode].items[screen.index];
   return null;
 }
@@ -4603,6 +5729,14 @@ function next(kind) {
     if (screen.index >= board.steps.length - 1) return pocketResult();
     return pocketMode(screen.boardIndex, screen.index + 1, screen.score, screen.errors);
   }
+  if (kind === "board") {
+    if (screen.index >= BOARD_STEP_COUNT - 1) return boardSystemResult(screen.systemIndex);
+    return renderBoardMode(screen.systemIndex, screen.index + 1);
+  }
+  if (kind === "bossFinalBoard") {
+    if (screen.index >= BOSS_FINAL_SYSTEM_IDS.length - 1) return bossFinalResult();
+    return bossFinalBoard(screen.index + 1, screen.score, screen.errors);
+  }
   if (kind === "guided") {
     if (screen.index >= guided.length - 1) {
       complete("guided");
@@ -4632,6 +5766,7 @@ function repeat(kind) {
   if (PROOF_MODES[kind]) return proofMode(kind, screen.index);
   if (kind === "lab") return labMode(screen.index);
   if (kind === "pocket") return pocketMode(screen.boardIndex, screen.index, screen.score, screen.errors);
+  if (kind === "board") return renderBoardMode(screen.systemIndex, screen.index);
   if (kind === "guided") return guidedMode(screen.index);
   if (kind === "boss") return bossMode(screen.boss, 0, 0, []);
   if (kind === "infinite") return infiniteMode(screen.item);
@@ -4654,6 +5789,13 @@ function route(mode) {
   if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
   if (mode === "resetDiagnostic") return resetDiagnosticOnly();
+  if (mode === "board") {
+    if (uniqueCount(state.completedBoardModeSystems || []) >= LISTA11_SYSTEMS.length) return readinessReport();
+    const position = nextBoardPosition();
+    return renderBoardMode(position.systemIndex, position.stepIndex);
+  }
+  if (mode === "bossFinalBoard") return bossFinalBoard(0, 0, []);
+  if (mode === "readinessReport") return readinessReport();
   if (PROOF_MODES[mode]) return proofMode(mode);
   if (mode.endsWith("Reset")) {
     const proofModeName = mode.replace("Reset", "");
@@ -4709,6 +5851,14 @@ document.addEventListener("click", (event) => {
   const pocketStart = event.target.closest("[data-pocket-start]");
   if (pocketStart) return pocketMode(Number(pocketStart.dataset.pocketStart), 0, 0, []);
 
+  const boardGo = event.target.closest("[data-board-go]");
+  if (boardGo) {
+    const index = Number(boardGo.dataset.boardGo);
+    state.boardProgress = { systemIndex: index, stepIndex: 0 };
+    saveState();
+    return renderBoardMode(index, 0);
+  }
+
   const bossAns = event.target.closest("[data-boss-answer]");
   if (bossAns) return answerBoss(Number(bossAns.dataset.bossAnswer));
 
@@ -4729,8 +5879,10 @@ document.addEventListener("click", (event) => {
     const panel = document.getElementById(why.dataset.why);
     panel.classList.toggle("show");
     if (panel.classList.contains("show")) {
+      if (screen.mode === "board" || screen.mode === "bossFinalBoard") screen.hintUsed = true;
       state.hintsUsed += 1;
       const activeItem = PROOF_MODES[screen.mode]?.items?.[screen.index]
+        || (screen.mode === "board" || screen.mode === "bossFinalBoard" ? screen.item : null)
         || (screen.mode === "journey" ? COURSE_PATH[screen.index] : null)
         || (screen.mode === "adaptive" ? CORRECTIVE_MISSIONS[screen.skillKey] : null)
         || screen.item;

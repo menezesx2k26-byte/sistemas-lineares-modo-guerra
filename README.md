@@ -4,16 +4,16 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 
 ## O que o app treina
 
-- Home com tres modos principais, sem dashboard poluido:
-  - Escalonamento Sem Quadro;
-  - Discussao de Sistemas Lineares;
-  - Lista 11 Total.
+- Home com jornada unica de prova: continuar no Modo Quadro, diagnostico, Boss Final e relatorio.
+- Modo Quadro como experiencia central: enunciado, sistema, matriz aumentada, decisao do aluno, diagnostico do erro e conclusao de prova.
+- Banco com 20 sistemas diferentes: 15 originais/eixos da Lista 11 e 5 derivados no mesmo estilo.
+- Metricas separadas: progresso do app, dominio estimado e confianca operacional.
 - Diagnostico duro por habilidade, sem porcentagem fake de dominio.
 - Laboratorio com 59 desafios de operacoes de linha.
 - Chapeu Seletor com 12 questoes que mede conceito de sistema, matriz ampliada, escalonamento, aritmetica, classificacao, homogeneos, determinante, parametros e discussao de sistemas.
 - Quadro de Bolso com 3 escalonamentos 3x3 guiados em passos curtos para celular, sem exigir digitar matriz inteira.
 - Banco de treino com 20 questoes de equacao linear, 20 de matriz aumentada, 20 de classificacao, 15 de homogeneos, 26 de parametros e 168 questoes no treino infinito.
-- Boss final com 50 questoes baseadas na Lista 11 e questoes geradas equivalentes dentro do mesmo escopo.
+- Boss Final com sistemas da Lista 11 e derivados: parametro, homogeneo, escalonamento medio, caso SI, caso SPI e conclusao escrita.
 - Cada questao gerada tem origem marcada como `Gerada`; questoes das listas aparecem como `Lista 10` ou `Lista 11`.
 - Feedback errado explica o motivo do erro e abre uma area "Ver conta inteira".
 - O Sistema III da Lista 10 fica marcado como `conferir enunciado`, porque a extracao do PDF mostrou possivel erro de OCR na segunda equacao.
@@ -65,8 +65,8 @@ Depois abra o endereco mostrado pelo terminal.
 - A refatoracao `ux-didactic-refactor` simplifica a Home, transforma a Jornada em superficie de curso limpo e organiza o Laboratorio por habilidade.
 - A atualizacao adaptativa troca "fundamento como pedagio" por recomendacao: quem acerta o basico entra automaticamente mais adiante na Jornada.
 - O Diagnostico salva um `userProfile` com nivel, habilidades, pontos fracos, fase inicial recomendada e ultima recomendacao.
-- A Home agora evita painel poluido: mostra apenas tres cards grandes de treino de prova e uma area pequena de status.
-- O app nao mostra dominio alto so por acerto conceitual: a confianca operacional fica limitada a 80% sem escalonamento completo, 85% sem discussao com parametro e 90% sem simulado misto.
+- A Home agora evita painel poluido: mostra a proxima acao no Modo Quadro, diagnostico, Boss Final e relatorio.
+- O app nao mostra dominio alto so por acerto conceitual: o dominio estimado tem tetos rigidos e so passa de 90% depois do Boss Final sem dica.
 - O conteudo longo fica no Grimorio. Jornada, Laboratorio e Boss mostram uma decisao por tela.
 - O Laboratorio reforca a automatizacao de operacoes de linha antes de exigir escalonamento completo.
 - O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.
@@ -107,19 +107,37 @@ Referencias oficiais:
 
 ## Atualizacao adaptativa
 
-- Reducao de repeticao: fundamentos continuam disponiveis na Jornada, mas o Diagnostico pode marca-los como revisao opcional e recomendar trilhas avancadas.
-- Recomendacao: `recommendNextMode(...)` considera erros do diagnostico, progresso salvo e habilidades fracas. Erros de sinal/pivo mandam para treino operacional; erros de parametro mandam para discussao por casos; acerto conceitual alto ainda nao libera dominio sem execucao completa.
-- Home recalibrada: a tela principal mostra somente Escalonamento Sem Quadro, Discussao de Sistemas Lineares e Lista 11 Total.
-- Quadro de Bolso: resolve escalonamentos 3x3 em decisoes pequenas, como escolher pivo, calcular `3L_2`, conferir termo independente e classificar SPD/SPI/SI.
+- Reducao de repeticao: fundamentos continuam disponiveis, mas a rota principal agora manda o aluno para sistemas reais da Lista 11.
+- Recomendacao: `recommendNextMode(...)` considera erros do diagnostico, progresso salvo e habilidades fracas. Erros de sinal/pivo mandam para Modo Quadro; erros de parametro mandam para sistemas com casos; erros de homogeneo mandam para Lista 11 ex. 5/6.
+- Home recalibrada: a tela principal mostra uma jornada de prova, nao tres minigames paralelos.
+- Modo Quadro: resolve sistemas em decisoes pequenas, como identificar o tipo, montar matriz aumentada, escolher estrategia, testar caso critico, classificar e escrever conclusao.
 - Escalonamentos completos adicionados: Sistema I da Lista 10 terminando em SI, sistema com pivo 3 sem fracao terminando em SPD, e sistema gerado equivalente terminando em SPI.
 - Parametros ficaram acessiveis diretamente pela Home e pela recomendacao do diagnostico.
 - Boss Lista 11 pode ser iniciado mesmo antes dos 140 XP; o app ainda avisa que e recomendado treinar antes.
 
-## Tres modos de prova
+## Lista 11 + Modo Quadro
+
+O banco `LISTA11_SYSTEMS` cadastra 20 sistemas:
+
+- Sistemas 01 a 15: Lista 11, exercicios 1(a), 1(b), 1(c), 1(d), 2(a), 2(b), 3 geral, 3(a), 3(b), 3(c), 4(a), 4(b), 5(a), 5(b)(c) e 6.
+- Sistemas 16 a 20: derivados controlados da Lista 11, com os mesmos raciocinios de parametro, SPI, SI e homogeneos.
+
+Cada sistema passa por seis passos no Modo Quadro:
+
+1. Leitura do enunciado.
+2. Escolha da estrategia.
+3. Determinante ou caso critico.
+4. Anti-vacilo da etapa.
+5. Classificacao por posto/SPD/SPI/SI.
+6. Conclusao escrita no modelo de prova.
+
+O Modo Quadro mostra enunciado, matriz aumentada, operacoes esperadas, decisao do aluno, diagnostico do erro e conclusao. Ele registra erro aritmetico, conceitual, organizacao, conclusao, parametro, homogeneo, SPI cedo demais, contradicao ignorada e variavel livre esquecida.
+
+## Modos auxiliares de prova
 
 ### Escalonamento Sem Quadro
 
-Treina pivo, escolha de linha, operacao elementar, aritmetica de sinais, lado direito depois da barra, fracao inevitavel, parametro simples e classificacao final. O celular quebra o escalonamento em decisoes pequenas; nao exige digitar uma matriz inteira.
+Treino auxiliar de pivo, escolha de linha, operacao elementar, aritmetica de sinais, lado direito depois da barra, fracao inevitavel, parametro simples e classificacao final.
 
 ### Discussao de Sistemas Lineares
 
@@ -132,23 +150,27 @@ Simula a lista dificil: primeiro identifica o tipo da questao, depois escolhe o 
 ## Diagnostico sem 97 fake
 
 - `rawPercent` guarda a pontuacao bruta do Chapeu Seletor.
-- `percent` guarda a confianca operacional ajustada por requisitos praticos.
-- `masteryCap()` impede dominio inflado:
-  - maximo de 80% se o aluno ainda nao concluiu escalonamento completo;
-  - maximo de 85% se ainda nao discutiu sistema com parametro;
-  - maximo de 90% se ainda nao fez simulado misto.
+- `percent` guarda o dominio estimado ajustado por requisitos praticos.
+- `masteryCapStrict()` impede dominio inflado:
+  - so quiz conceitual: dominio maximo 45%;
+  - conceitos + exemplos guiados: dominio maximo 60%;
+  - sem 2 escalonamentos medios: dominio maximo 75%;
+  - sem sistema com parametro: dominio maximo 85%;
+  - sem treino amplo da Lista 11 ou Boss Final: dominio maximo 90%;
+  - acima de 90% apenas com Boss Final aprovado sem dica direta.
 - Usar dica registra sinal de pressa/fragilidade naquela habilidade.
 - O perfil salvo e por habilidade, nao por porcentagem geral.
+- O relatorio mostra: `Progresso`, `Dominio estimado`, `Confianca operacional`, `Risco principal` e `Proximo treino`.
 
 ## Jornada unica adaptativa
 
-- Fluxo principal: `Chapeu Seletor -> missao recomendada -> Jornada -> microcorrecao se necessario -> discussao de sistemas -> simulado`.
+- Fluxo principal: `Chapeu Seletor -> sistema recomendado da Lista 11 -> Modo Quadro -> Lista 11 Total -> Boss Final -> relatorio`.
 - `buildDiagnosticResult(answers)` calcula pontuacao, habilidades dominadas, habilidades fracas, perfil e fase inicial.
-- `recommendRoute(result)` escolhe uma missao real dentro do `COURSE_PATH`, nao um menu paralelo.
+- `boardStartForDiagnostic(result)` escolhe um sistema real dentro de `LISTA11_SYSTEMS`, nao um menu paralelo.
 - Se o aluno mostra base suficiente, `markMissionsBeforeOptional(...)` marca as telas anteriores como revisao opcional para evitar pedagio eterno.
 - Se o aluno erra repetidamente a mesma familia de habilidade, a Jornada insere uma microcorrecao adaptativa curta antes de continuar.
 - A discussao de sistemas virou habilidade central: a Jornada treina identificar questao com parametro, usar determinante como radar, investigar `det(A)=0` e escrever conclusao completa.
-- O app registra em `localStorage`: diagnostico, `userProfile`, pontuacoes por habilidade, tipos de erro, historico recente, recomendacao atual e progresso.
+- O app registra em `localStorage`: diagnostico, `userProfile`, pontuacoes por habilidade, tipos de erro, historico recente, sistemas concluidos, sistemas feitos sem dica, tentativas do Modo Quadro, Boss Final e progresso.
 
 Relatorio de auditoria desta atualizacao:
 
