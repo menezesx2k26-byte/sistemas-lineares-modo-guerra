@@ -895,6 +895,34 @@ button,
   font-size: clamp(1.3rem, 5vw, 2rem);
 }
 
+.single-journey .current-mission .actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+.coach-panel,
+.diagnostic-report {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--bg));
+  box-shadow: var(--shadow);
+}
+
+.coach-panel .mission-list,
+.diagnostic-report .mission-list.compact {
+  gap: 0.55rem;
+}
+
+.mission-card.compact,
+.diagnostic-report .mission-card {
+  min-height: auto;
+  padding: 0.75rem;
+}
+
 .big-cta {
   min-height: 62px;
   font-size: 1.02rem;
@@ -1132,6 +1160,10 @@ button,
   .status-strip,
   .extras-panel {
     grid-column: 1 / -1;
+  }
+
+  .single-journey .current-mission .actions {
+    grid-template-columns: 1.2fr 0.8fr 0.8fr;
   }
 
   .actions {

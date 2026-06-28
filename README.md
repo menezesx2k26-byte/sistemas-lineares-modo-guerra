@@ -4,9 +4,9 @@ App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 d
 
 ## O que o app treina
 
-- Home, Jornada, Laboratorio, Duelos, Boss Lista 11, Treino infinito e Grimorio.
+- Jornada Modo Guerra como caminho principal: diagnostico, entrada automatica no nivel certo, missoes, discussao de sistemas, simulado e relatorio.
 - Laboratorio com 59 desafios de operacoes de linha.
-- Diagnostico rapido com 10 questoes que recomenda fundamentos, escalonamento, classificacao, homogeneos, parametros ou Boss Lista 11.
+- Chapeu Seletor com 12 questoes que mede conceito de sistema, matriz ampliada, escalonamento, aritmetica, classificacao, homogeneos, determinante, parametros e discussao de sistemas.
 - Quadro de Bolso com 3 escalonamentos 3x3 guiados em passos curtos para celular, sem exigir digitar matriz inteira.
 - Banco de treino com 20 questoes de equacao linear, 20 de matriz aumentada, 20 de classificacao, 15 de homogeneos, 26 de parametros e 168 questoes no treino infinito.
 - Boss final com 50 questoes baseadas na Lista 11 e questoes geradas equivalentes dentro do mesmo escopo.
@@ -52,16 +52,16 @@ Depois abra o endereco mostrado pelo terminal.
 ## Decisoes didaticas e de design
 
 - A casca gamificada foi mantida; a refatoracao aprofundou principalmente `script.js`.
-- A Jornada agora usa uma trilha canonica `COURSE_PATH`, com 92 missoes em ordem linear, do fundamento ao boss final.
+- A Jornada agora usa uma trilha canonica `COURSE_PATH`, com 97 missoes em ordem linear, do fundamento ao boss final.
 - A trilha inclui 16 microaulas de formalizacao matematica para nomes como SPD, SPI, SI, matriz aumentada, forma matricial, conjunto solucao, solucao trivial, pivo, variavel livre e parametro.
 - O botao "Continuar jornada" sempre procura a proxima missao da campanha ainda nao concluida; se tudo foi concluido, mostra "Campanha concluida".
 - "Comecar do zero" reinicia apenas o progresso da campanha linear depois de confirmacao, sem apagar XP, medalhas ou historico dos modos auxiliares.
 - Lab, Duelos, Treino Infinito, Grimorio e Boss livre continuam existindo como modos auxiliares, mas nao controlam a ordem da Jornada.
 - O HUD tem alternancia de tema claro/escuro salva em `localStorage`, com contraste alto e cores vivas.
 - A refatoracao `ux-didactic-refactor` simplifica a Home, transforma a Jornada em superficie de curso limpo e organiza o Laboratorio por habilidade.
-- A atualizacao adaptativa troca "fundamento como pedagio" por recomendacao: quem acerta o basico pode ir direto para escalonamento completo, parametros ou Lista 11.
-- O Diagnostico marca os fundamentos como revisao opcional quando o aluno demonstra dominio de termo independente, linearidade e matriz aumentada.
-- A Home agora mostra atalhos avancados: Diagnostico rapido, Escalonamento completo, Parametros, Boss Lista 11 e Quadro de Bolso.
+- A atualizacao adaptativa troca "fundamento como pedagio" por recomendacao: quem acerta o basico entra automaticamente mais adiante na Jornada.
+- O Diagnostico salva um `userProfile` com nivel, habilidades, pontos fracos, fase inicial recomendada e ultima recomendacao.
+- A Home agora evita painel poluido: mostra uma acao principal, status do tutor, ponto fraco detectado e deixa modos auxiliares recolhidos em "Academia opcional".
 - O conteudo longo fica no Grimorio. Jornada, Laboratorio e Boss mostram uma decisao por tela.
 - O Laboratorio reforca a automatizacao de operacoes de linha antes de exigir escalonamento completo.
 - O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.
@@ -110,12 +110,22 @@ Referencias oficiais:
 - Parametros ficaram acessiveis diretamente pela Home e pela recomendacao do diagnostico.
 - Boss Lista 11 pode ser iniciado mesmo antes dos 140 XP; o app ainda avisa que e recomendado treinar antes.
 
+## Jornada unica adaptativa
+
+- Fluxo principal: `Chapeu Seletor -> missao recomendada -> Jornada -> microcorrecao se necessario -> discussao de sistemas -> simulado`.
+- `buildDiagnosticResult(answers)` calcula pontuacao, habilidades dominadas, habilidades fracas, perfil e fase inicial.
+- `recommendRoute(result)` escolhe uma missao real dentro do `COURSE_PATH`, nao um menu paralelo.
+- Se o aluno mostra base suficiente, `markMissionsBeforeOptional(...)` marca as telas anteriores como revisao opcional para evitar pedagio eterno.
+- Se o aluno erra repetidamente a mesma familia de habilidade, a Jornada insere uma microcorrecao adaptativa curta antes de continuar.
+- A discussao de sistemas virou habilidade central: a Jornada treina identificar questao com parametro, usar determinante como radar, investigar `det(A)=0` e escrever conclusao completa.
+- O app registra em `localStorage`: diagnostico, `userProfile`, pontuacoes por habilidade, tipos de erro, historico recente, recomendacao atual e progresso.
+
 Relatorio de auditoria desta atualizacao:
 
-- O que foi reduzido: o caminho basico deixou de ser obrigatorio para quem passa no diagnostico.
-- Como o diagnostico decide: ele registra alvos fracos (`fundamentals`, `linear`, `matrix`, `rows`, `signs`, `pivot`, `classify`, `free`, `homogeneous`, `parameters`) e escolhe a trilha mais util.
+- O que foi reduzido: a Home deixou de ser vitrine de modos; o aluno ve uma acao principal e extras recolhidos.
+- Como o diagnostico decide: ele registra respostas por habilidade (`conceitoSistema`, `matrizAmpliada`, `escalonamento`, `aritmetica`, `classificacao`, `homogeneo`, `determinante`, `parametros`, `discussaoSistema`, `escritaConclusao`) e escolhe a missao canonica mais util.
 - Teste mobile esperado: botoes grandes, uma decisao por tela, formulas dentro de caixas rolaveis e sem digitacao longa.
-- Pendencias conhecidas: o conteudo antigo da Jornada foi preservado; a reducao e adaptativa, nao uma remocao fisica das missoes.
+- Pendencias conhecidas: os modos auxiliares continuam acessiveis para treino livre, mas nao determinam a ordem da Jornada.
 
 ## Pente fino 2x
 

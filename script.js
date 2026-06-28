@@ -23,6 +23,13 @@ const defaultState = {
   checklistDone: false,
   lastMode: "home",
   diagnostic: null,
+  userProfile: null,
+  skillScores: {},
+  errorTypes: {},
+  hintsUsed: 0,
+  lastRecommendation: null,
+  adaptiveQueue: [],
+  history: [],
   bossUnlocked: false,
   theme: "light",
   optionalReview: { foundations: false },
@@ -39,7 +46,11 @@ function loadState() {
       ...defaultState,
       ...saved,
       optionalReview: { ...defaultState.optionalReview, ...(saved.optionalReview || {}) },
-      stats: { ...defaultState.stats, ...(saved.stats || {}) }
+      stats: { ...defaultState.stats, ...(saved.stats || {}) },
+      skillScores: { ...defaultState.skillScores, ...(saved.skillScores || {}) },
+      errorTypes: { ...defaultState.errorTypes, ...(saved.errorTypes || {}) },
+      adaptiveQueue: Array.isArray(saved.adaptiveQueue) ? saved.adaptiveQueue : [],
+      history: Array.isArray(saved.history) ? saved.history : []
     };
   } catch {
     return { ...defaultState };
@@ -68,6 +79,7 @@ function addXp(amount, reason) {
 function miss(skill = "revisão geral") {
   state.streak = 0;
   state.stats.mistakes[skill] = (state.stats.mistakes[skill] || 0) + 1;
+  recordPerformance({ skill, correct: false, errorType: inferErrorType(skill), source: screen.mode || "app" });
   saveState();
 }
 
@@ -426,6 +438,258 @@ function recommendNextMode(diagnosticResult = state.diagnostic, currentState = s
     mode: "params",
     title: "Ir para Parametros.",
     reason: String.raw`Voce ja mostrou base suficiente. Bora treinar \(\lambda\), \(m\), \(\alpha\) e \(k\).`
+  };
+}
+
+const DIAGNOSTIC_SKILL_LABELS = {
+  conceitoSistema: "conceito de sistema",
+  matrizAmpliada: "matriz ampliada",
+  escalonamento: "escalonamento",
+  aritmetica: "aritmetica de sinais",
+  classificacao: "classificacao SPD/SPI/SI",
+  homogeneo: "sistema homogeneo",
+  determinante: "determinante como radar",
+  parametros: "parametros",
+  discussaoSistema: "discussao de sistemas",
+  escritaConclusao: "escrita da conclusao"
+};
+
+const DIAGNOSTIC_ROUTE_MISSIONS = {
+  fundamentos: "course-c0-01-system-linear",
+  matriz: "course-c3-17-line-row",
+  escalonamento: "course-c5-30-pivot",
+  classificacao: "course-c6-39-unique",
+  livre: "course-c6-44-free-variable",
+  homogeneos: "course-c7-48-homogeneous",
+  determinante: "course-c7-51-determinant",
+  discussao: "course-discussion-01-type",
+  parametros: "course-c8-55-parameter",
+  simulado: "course-c10-72-boss-lista10"
+};
+
+const ERROR_TYPE_LABELS = {
+  conceitual: "erro conceitual",
+  aritmetico: "erro aritmetico",
+  interpretacao: "erro de interpretacao",
+  organizacao: "erro de organizacao",
+  pressa: "erro de pressa",
+  conclusao: "erro de escrita da conclusao"
+};
+
+function diagnosticMisses(result = state.diagnostic) {
+  return new Set(result?.misses || result?.weakTargets || []);
+}
+
+function diagnosticBasicsMastered(result = state.diagnostic) {
+  if (!result) return false;
+  const misses = diagnosticMisses(result);
+  const weak = new Set(result.weakPoints || result.weaknesses || []);
+  return !["fundamentals", "linear", "matrix"].some((key) => misses.has(key))
+    && !["conceitoSistema", "matrizAmpliada"].some((key) => weak.has(key));
+}
+
+function markMissionsBeforeOptional(missionId) {
+  const targetIndex = COURSE_PATH.findIndex((mission) => mission.id === missionId);
+  if (targetIndex <= 0) return;
+  COURSE_PATH.slice(0, targetIndex).forEach((mission) => {
+    if (!state.completed.includes(mission.id)) state.completed.push(mission.id);
+  });
+  state.optionalReview.foundations = true;
+  state.optionalReview.skippedTo = missionId;
+}
+
+function recommendationLabel(mode) {
+  return {
+    diagnostic: "Fazer diagnostico rapido",
+    recommendedJourney: "Continuar missao recomendada",
+    journey: "Continuar Jornada",
+    escalation: "Escalonamento completo",
+    pocketHome: "Quadro de Bolso",
+    classificationTrack: "Classificacao SPD/SPI/SI",
+    homogeneousTrack: "Homogeneos",
+    params: "Parametros",
+    lista11Boss: "Boss Lista 11"
+  }[mode] || "Continuar Jornada";
+}
+
+function skillLabel(skill) {
+  return DIAGNOSTIC_SKILL_LABELS[skill] || skill || "revisao geral";
+}
+
+function inferErrorType(skill = "") {
+  const text = String(skill).toLowerCase();
+  if (/sinal|arit|conta|linha|opera/.test(text)) return "aritmetico";
+  if (/piv|escal|matriz|barra/.test(text)) return "organizacao";
+  if (/class|spd|spi|si|contradi|livre|homog|det|param/.test(text)) return "interpretacao";
+  if (/conclus/.test(text)) return "conclusao";
+  return "conceitual";
+}
+
+function recordPerformance({ skill = "revisao geral", correct = false, errorType = "conceitual", source = "app" } = {}) {
+  if (!skill) return;
+  const current = state.skillScores[skill] || { correct: 0, wrong: 0, streak: 0 };
+  if (correct) {
+    current.correct += 1;
+    current.streak += 1;
+  } else {
+    current.wrong += 1;
+    current.streak = 0;
+    state.errorTypes[errorType] = (state.errorTypes[errorType] || 0) + 1;
+    maybeQueueCorrection(skill, errorType);
+  }
+  state.skillScores[skill] = current;
+  state.history = [
+    ...(state.history || []),
+    { date: new Date().toISOString(), skill, correct, errorType, source }
+  ].slice(-80);
+}
+
+function correctionKeyFor(skill = "", errorType = "") {
+  const text = `${skill} ${errorType}`.toLowerCase();
+  if (/param|lambda|alpha|k|m|discuss/.test(text)) return "parametros";
+  if (/sinal|arit|conta|linha|opera|piv|escal/.test(text)) return "escalonamento";
+  if (/class|spd|spi|si|contradi|livre/.test(text)) return "classificacao";
+  if (/homog|det/.test(text)) return "homogeneos";
+  return "fundamentos";
+}
+
+function maybeQueueCorrection(skill, errorType) {
+  const key = correctionKeyFor(skill, errorType);
+  const queueId = `adaptive-${key}`;
+  const count = Object.entries(state.stats.mistakes || {})
+    .filter(([name]) => correctionKeyFor(name) === key)
+    .reduce((sum, [, value]) => sum + value, 0);
+  if (count < 2) return;
+  if (state.completed.includes(queueId)) return;
+  if (state.adaptiveQueue.includes(key)) return;
+  state.adaptiveQueue.push(key);
+}
+
+function buildDiagnosticResult(answers = []) {
+  const total = diagnostic.length;
+  const score = answers.filter((answer) => answer.correct).length;
+  const bySkill = {};
+  answers.forEach((answer) => {
+    const skill = answer.skill || "conceitoSistema";
+    bySkill[skill] ||= { correct: 0, wrong: 0, total: 0 };
+    bySkill[skill].total += 1;
+    if (answer.correct) bySkill[skill].correct += 1;
+    else bySkill[skill].wrong += 1;
+  });
+  Object.keys(DIAGNOSTIC_SKILL_LABELS).forEach((skill) => {
+    bySkill[skill] ||= { correct: 0, wrong: 0, total: 0 };
+  });
+  const strengths = Object.entries(bySkill)
+    .filter(([, value]) => value.total > 0 && value.wrong === 0)
+    .map(([skill]) => skill);
+  const weakPoints = Object.entries(bySkill)
+    .filter(([, value]) => value.wrong > 0)
+    .map(([skill]) => skill);
+  const weakTargets = answers.filter((answer) => !answer.correct).map((answer) => answer.target);
+  const percent = total ? Math.round((score / total) * 100) : 0;
+  const route = recommendRoute({ score, total, percent, weakPoints, weakTargets, bySkill });
+  const result = {
+    date: new Date().toISOString(),
+    score,
+    total,
+    percent,
+    strengths,
+    weaknesses: weakPoints,
+    weakPoints,
+    weakTargets,
+    misses: weakTargets,
+    bySkill,
+    ...route
+  };
+  result.userProfile = {
+    level: route.level,
+    label: route.levelLabel,
+    skills: Object.fromEntries(Object.entries(bySkill).map(([skill, value]) => {
+      const skillScore = value.total ? Math.round((value.correct / value.total) * 100) : 50;
+      return [skill, skillScore];
+    })),
+    recommendedStartPhase: route.recommendedStartPhase,
+    weakPoints
+  };
+  return result;
+}
+
+function recommendRoute(result) {
+  const weak = new Set(result.weakPoints || []);
+  const percent = result.percent ?? 0;
+  const route = (missionKey, label, message, level, phase) => ({
+    recommendedMode: "recommendedJourney",
+    recommendedMissionId: DIAGNOSTIC_ROUTE_MISSIONS[missionKey],
+    recommendedRoute: label,
+    message,
+    level,
+    levelLabel: {
+      nivel0: "Nivel 0 - fundamento quebrado",
+      nivel1: "Nivel 1 - iniciante operacional",
+      nivel2: "Nivel 2 - entende, mas se perde na conta",
+      nivel3: "Nivel 3 - intermediario fragil",
+      nivel4: "Nivel 4 - quase prova"
+    }[level],
+    recommendedStartPhase: phase
+  });
+
+  if (weak.has("conceitoSistema")) {
+    return route("fundamentos", "Sobrevivencia: sistema linear", "Tem base conceitual balancando. A jornada comeca no minimo necessario, sem castigo teorico.", "nivel0", 1);
+  }
+  if (weak.has("matrizAmpliada")) {
+    return route("matriz", "Matriz ampliada e leitura do campo", "Voce entende a ideia, mas precisa firmar barra, coeficientes e lado direito antes do escalonamento.", "nivel1", 2);
+  }
+  if (weak.has("aritmetica") || weak.has("escalonamento")) {
+    return route("escalonamento", "Escalonamento sem se perder", "Seu gargalo parece operacional: pivo, sinais e organizacao. Vamos uma decisao por tela.", "nivel2", 3);
+  }
+  if (weak.has("classificacao")) {
+    return route("classificacao", "SPD, SPI e SI", "Voce precisa transformar matriz final em conclusao formal: pivos, contradicao e variavel livre.", "nivel2", 4);
+  }
+  if (weak.has("homogeneo")) {
+    return route("homogeneos", "Homogeneos e solucao trivial", "A frase-chave e: homogeneo sempre tem a trivial; determinante decide se ela e unica.", "nivel3", 6);
+  }
+  if (weak.has("determinante")) {
+    return route("determinante", "Determinante como radar", "det(A) diferente de zero mata a duvida: SPD. det(A)=0 manda investigar.", "nivel3", 7);
+  }
+  if (weak.has("parametros") || weak.has("discussaoSistema") || weak.has("escritaConclusao")) {
+    return route("discussao", "Discussao de sistemas por casos", "Voce ja pode ir para a parte que derruba em prova: valor critico, caso geral, caso especial e conclusao completa.", "nivel3", 8);
+  }
+  if (percent >= 90) {
+    return route("simulado", "Simulado modo prova", "Voce nao precisa ficar preso no tutorial. Vamos para questoes misturadas e escrita de conclusao.", "nivel4", 9);
+  }
+  return route("escalonamento", "Escalonamento sem se perder", "Diagnostico misto: vamos fortalecer a execucao antes de discutir parametro pesado.", percent <= 65 ? "nivel1" : "nivel2", percent <= 65 ? 2 : 3);
+}
+
+function applyDiagnosticResult(result) {
+  state.diagnostic = result;
+  state.userProfile = result.userProfile;
+  state.lastRecommendation = {
+    mode: result.recommendedMode,
+    missionId: result.recommendedMissionId,
+    route: result.recommendedRoute,
+    message: result.message,
+    date: result.date
+  };
+  if (diagnosticBasicsMastered(result) && result.recommendedMissionId) markMissionsBeforeOptional(result.recommendedMissionId);
+  if (result.score >= result.total - 1) state.bossUnlocked = true;
+  saveState();
+}
+
+function recommendNextMode(diagnosticResult = state.diagnostic) {
+  if (!diagnosticResult?.recommendedMode) {
+    return {
+      mode: "diagnostic",
+      title: "Fazer diagnostico rapido",
+      reason: "O Chapeu Seletor decide o ponto de entrada da Jornada. Sem menu poluido: voce responde e eu te coloco na proxima missao certa."
+    };
+  }
+  const mission = COURSE_PATH.find((item) => item.id === diagnosticResult.recommendedMissionId);
+  return {
+    mode: diagnosticResult.recommendedMode,
+    missionId: diagnosticResult.recommendedMissionId,
+    title: `Recomendacao atual: ${diagnosticResult.recommendedRoute}`,
+    reason: diagnosticResult.message || "Continuar pela missao recomendada.",
+    missionTitle: mission?.title
   };
 }
 
@@ -1813,6 +2077,97 @@ const COURSE_PATH_BASE = [
   courseFromQuestion("course-c8-64-lista11-3", COURSE_CHAPTERS[8], "Resolver Lista 11 ex. 3", parameterQuestions.find((item) => item.id === "p-l11-3-a1")),
   courseFromQuestion("course-c8-65-lista11-4", COURSE_CHAPTERS[8], "Resolver Lista 11 ex. 4", parameterQuestions.find((item) => item.id === "p-l11-4-k0")),
 
+  courseMission({
+    id: "course-discussion-01-type",
+    chapter: COURSE_CHAPTERS[8],
+    title: "Discutir sistema: identificar o tipo",
+    origin: "Lista 11",
+    skill: "discussao de sistemas",
+    difficulty: 3,
+    data: String.raw`<p><strong>Enunciado:</strong> discuta o sistema em funcao de \(\alpha\).</p>
+<p>\[\begin{cases}
+x_1+4x_2+\alpha x_3=6\\
+2x_1-x_2+2\alpha x_3=3\\
+\alpha x_1+3x_2+x_3=5
+\end{cases}\]</p>`,
+    explain: "Discutir nao e so resolver. E dizer para quais valores o sistema e SPD, SPI ou SI.",
+    question: "Antes da conta, que tipo de questao e essa?",
+    choices: ["discussao com parametro", "sistema homogeneo", "apenas reconhecer coeficiente"],
+    answer: 0,
+    feedback: "Certo. Tem parametro e pede discussao: o jogo agora e separar casos.",
+    fullSolution: "<p>Primeiro identifique o bicho: ha parametro, ha sistema quadrado e a pergunta pede discutir. Caminho provavel: determinante, valores criticos e investigacao dos casos especiais.</p>",
+    why: "O anti-travamento comeca antes da conta: descobrir o tipo da questao reduz o panico."
+  }),
+  courseMission({
+    id: "course-discussion-02-det-radar",
+    chapter: COURSE_CHAPTERS[8],
+    title: "Determinante como radar",
+    origin: "Gerada no escopo Lista 11",
+    skill: "determinante",
+    difficulty: 3,
+    data: String.raw`<p>Em uma discussao, apareceu:</p>\[\det(A)=a-2\]`,
+    explain: "Quando o determinante e diferente de zero, acabou a duvida: o sistema quadrado e SPD.",
+    question: String.raw`Para qual caso ja podemos concluir SPD?`,
+    choices: [String.raw`\(a\neq2\)`, String.raw`\(a=2\)`, "nenhum caso"],
+    answer: 0,
+    feedback: String.raw`Certo. Se \(a\neq2\), entao \(\det(A)\neq0\), logo SPD.`,
+    fullSolution: String.raw`<p>\(a-2=0\Rightarrow a=2\). Portanto, para \(a\neq2\), o determinante nao zera e o sistema e possivel determinado.</p>`,
+    why: "Valor critico separa caso geral e caso especial."
+  }),
+  courseMission({
+    id: "course-discussion-03-zero-det",
+    chapter: COURSE_CHAPTERS[8],
+    title: "Determinante zero nao fecha a historia",
+    origin: "Gerada no escopo Lista 11",
+    skill: "discussao de sistemas",
+    difficulty: 3,
+    data: String.raw`<p>Depois de \(\det(A)=a-2\), olhamos o caso especial:</p>\[a=2\]`,
+    explain: "Quando o determinante zera, voce perde a garantia de solucao unica. Ainda precisa investigar a matriz ampliada.",
+    question: String.raw`No caso \(a=2\), o que vem depois?`,
+    choices: ["substituir e escalonar", "concluir SPI direto", "concluir SI direto"],
+    answer: 0,
+    feedback: "Certo. det(A)=0 pode virar SPI ou SI; so a matriz ampliada decide.",
+    fullSolution: "<p>Frase de prova: quando det(A)=0, a treta comeca. Substitua o valor critico e procure contradicao ou variavel livre.</p>",
+    why: "Esse e um erro campeao: achar que determinante zero significa infinitas solucoes automaticamente."
+  }),
+  courseMission({
+    id: "course-discussion-04-param-row",
+    chapter: COURSE_CHAPTERS[8],
+    title: "Parametro depois do escalonamento",
+    origin: "Gerada no escopo Lista 11",
+    skill: "parametros",
+    difficulty: 3,
+    data: String.raw`<p>No fim do escalonamento apareceu a linha:</p>\[[0,\ 0,\ 0\ |\ a-3]\]`,
+    explain: "A linha diz \(0=a-3\). Se o lado direito nao for zero, ha contradicao.",
+    question: String.raw`Para qual caso essa linha vira contradicao?`,
+    choices: [String.raw`\(a\neq3\)`, String.raw`\(a=3\)`, "sempre SPI"],
+    answer: 0,
+    feedback: String.raw`Certo. Se \(a\neq3\), entao \(a-3\neq0\), logo \(0=a-3\) e impossivel.`,
+    fullSolution: String.raw`<p>Se \(a=3\), a linha vira \(0=0\). Ai nao ha contradicao; resta ver se sobrou variavel livre.</p>`,
+    why: "Linha com parametro exige dois casos, exatamente como um pivo com parametro."
+  }),
+  courseMission({
+    id: "course-discussion-05-write-conclusion",
+    chapter: COURSE_CHAPTERS[8],
+    title: "Escrever a conclusao completa",
+    origin: "Gerada no escopo Lista 11",
+    skill: "escrita da conclusao",
+    difficulty: 3,
+    data: String.raw`<p>Dado: \(\det(A)=3a-6\).</p>
+<p>Valor critico: \(a=2\).</p>`,
+    explain: "Achar o valor critico nao e a resposta final. A resposta final diz o destino do sistema em cada caso.",
+    question: "Qual conclusao esta completa?",
+    choices: [
+      "a = 2",
+      "Se a diferente de 2, SPD. Se a = 2, substituir e escalonar para decidir entre SPI e SI.",
+      "det(A)=0, logo SPI"
+    ],
+    answer: 1,
+    feedback: "Certo. Discussao completa tem caso geral e caso especial.",
+    fullSolution: String.raw`<p>Modelo: se \(a\neq2\), entao \(\det(A)\neq0\), logo SPD. Se \(a=2\), entao \(\det(A)=0\), logo precisamos substituir no sistema e investigar por escalonamento.</p>`,
+    why: "Professor exigente nao aceita so o valor critico. Precisa classificar os casos."
+  }),
+
   courseFromQuestion("course-c9-66-mix-linear", COURSE_CHAPTERS[9], "Misturar identificação linear", linearQuestions[6]),
   courseFromQuestion("course-c9-67-mix-matrix", COURSE_CHAPTERS[9], "Misturar matriz aumentada", matrixQuestions[8]),
   courseFromLab("course-c9-68-mix-row-operation", COURSE_CHAPTERS[9], lab.find((item) => item.id === "combo-3") || lab[52]),
@@ -2164,6 +2519,84 @@ const COURSE_PATH = COURSE_PATH_BASE.flatMap((mission) => [
   mission
 ]);
 
+const CORRECTIVE_MISSIONS = {
+  fundamentos: courseMission({
+    id: "adaptive-fundamentos",
+    chapter: "Microcorrecao adaptativa",
+    title: "Microcorrecao: ler o sistema antes da conta",
+    origin: "Adaptativo",
+    skill: "conceito de sistema",
+    data: String.raw`\[\begin{cases}x_1-x_2=3\\2x_1+x_2=6\end{cases}\]`,
+    explain: "Voce nao precisa resolver tudo de uma vez. Primeiro leia: cada linha e uma equacao e a solucao precisa satisfazer todas.",
+    question: "Uma solucao de sistema precisa satisfazer:",
+    choices: ["todas as equacoes", "so a primeira", "a equacao com mais numeros"],
+    answer: 0,
+    feedback: "Certo. Sistema e pacote fechado.",
+    fullSolution: "<p>Se um vetor falha em uma linha, ele nao e solucao do sistema.</p>",
+    why: "Esta microaula aparece porque houve repeticao de erro de leitura/conceito."
+  }),
+  escalonamento: courseMission({
+    id: "adaptive-escalonamento",
+    chapter: "Microcorrecao adaptativa",
+    title: "Microcorrecao: operacao de linha sem bagunca",
+    origin: "Adaptativo",
+    skill: "escalonamento",
+    data: String.raw`<p>\(L_1=[1,2,-1|-10]\)</p><p>\(L_2=[3,7,2|-19]\)</p>`,
+    explain: "Objetivo primeiro, operacao depois. Para zerar o 3 abaixo do pivo 1, use o multiplicador 3.",
+    question: String.raw`Qual conta zera o primeiro termo da nova \(L_2\)?`,
+    choices: [String.raw`\(3-3\cdot1=0\)`, String.raw`\(3+3\cdot1=6\)`, String.raw`\(3-1=2\)`],
+    answer: 0,
+    feedback: String.raw`Certo. Por isso \(L_2\leftarrow L_2-3L_1\).`,
+    fullSolution: String.raw`<p>\(3L_1=[3,6,-3|-30]\). Entao \(L_2-3L_1=[0,1,5|11]\). O lado direito tambem entra: \(-19-(-30)=11\).</p>`,
+    why: "Sua ideia pode estar certa; o vacilo costuma ser sinal, ordem ou esquecer a barra."
+  }),
+  classificacao: courseMission({
+    id: "adaptive-classificacao",
+    chapter: "Microcorrecao adaptativa",
+    title: "Microcorrecao: matriz final fala SPD/SPI/SI",
+    origin: "Adaptativo",
+    skill: "classificacao",
+    data: matrixTex([[1, 2, -1, 3], [0, 1, 4, 2], [0, 0, 0, 5]]),
+    explain: "Antes de falar em variavel livre, procure contradicao. Linha [0,0,0|5] diz 0=5.",
+    question: "Essa matriz final indica:",
+    choices: ["SI", "SPI", "SPD"],
+    answer: 0,
+    feedback: "Certo. Contradicao mata o sistema: conjunto solucao vazio.",
+    fullSolution: String.raw`<p>A ultima linha e \(0=5\). Logo o sistema e impossivel, \(S=\varnothing\).</p>`,
+    why: "A linha impossivel vem antes de qualquer discussao sobre variavel livre."
+  }),
+  homogeneos: courseMission({
+    id: "adaptive-homogeneos",
+    chapter: "Microcorrecao adaptativa",
+    title: "Microcorrecao: homogeneo nunca comeca impossivel",
+    origin: "Adaptativo",
+    skill: "homogeneos",
+    data: String.raw`\[A\vec{x}=\vec{0}\]`,
+    explain: "Se \(\vec{x}=\vec{0}\), o lado esquerdo vira zero. O lado direito ja e zero.",
+    question: "Qual solucao sempre existe em sistema homogeneo?",
+    choices: [String.raw`\(\vec{x}=\vec{0}\)`, "nenhuma", String.raw`\(\vec{x}=(1,1,1)\)`],
+    answer: 0,
+    feedback: "Certo. Essa e a solucao trivial.",
+    fullSolution: String.raw`<p>Se \(\det(A)\neq0\), so ha a trivial. Se \(\det(A)=0\), podem existir solucoes nao triviais.</p>`,
+    why: "O erro comum e tratar homogeneo como se pudesse ser SI de cara."
+  }),
+  parametros: courseMission({
+    id: "adaptive-parametros",
+    chapter: "Microcorrecao adaptativa",
+    title: "Microcorrecao: parametro e chefe secreto",
+    origin: "Adaptativo",
+    skill: "parametros",
+    data: String.raw`<p>Apareceu o pivo \(k-2\).</p>`,
+    explain: "Antes de dividir por uma expressao com parametro, pergunte quando ela zera.",
+    question: String.raw`Quando \(k-2\) zera?`,
+    choices: [String.raw`\(k=2\)`, String.raw`\(k=-2\)`, "nunca"],
+    answer: 0,
+    feedback: String.raw`Certo. Separe \(k\neq2\) e \(k=2\).`,
+    fullSolution: String.raw`<p>No caso \(k\neq2\), pode dividir. No caso \(k=2\), substitua no sistema e investigue SPD, SPI ou SI.</p>`,
+    why: "Dividir por algo que pode ser zero destrói a discussao."
+  })
+};
+
 const DIAGNOSTIC_TARGETS = {
   fundamentals: "course-c0-03-coefficient",
   linear: "course-c1-06-l10-1a",
@@ -2340,6 +2773,56 @@ const diagnostic = [
   }
 ];
 
+diagnostic.splice(9, 0,
+  {
+    target: "determinant",
+    skill: "determinante",
+    errorType: "interpretacao",
+    q: String.raw`Em um sistema quadrado, se \(\det(A)\neq0\), a classificacao e:`,
+    c: ["SPD", "SPI automaticamente", "SI automaticamente"],
+    a: 0,
+    feedbacks: [
+      "Certo: determinante diferente de zero garante solucao unica, isto e, SPD.",
+      "Nao. SPI pode acontecer quando a garantia de solucao unica cai, mas nao quando det(A) e diferente de zero.",
+      "Nao. SI exige contradicao; det(A) diferente de zero garante SPD."
+    ]
+  },
+  {
+    target: "discussion",
+    skill: "discussaoSistema",
+    errorType: "conclusao",
+    q: String.raw`Se \(\det(A)=0\) em um sistema com parametro, o proximo passo correto e:`,
+    c: ["substituir o valor critico e investigar", "concluir SPI automaticamente", "parar no valor critico"],
+    a: 0,
+    feedbacks: [
+      "Certo. det(A)=0 nao decide tudo: substitua o valor critico e escalone a matriz ampliada.",
+      "Cuidado: det(A)=0 nao significa SPI automaticamente. Pode ser SPI ou SI.",
+      "Valor critico nao e resposta final. Falta discutir o destino do sistema."
+    ]
+  }
+);
+
+const DIAGNOSTIC_SKILL_BY_TARGET = {
+  fundamentals: "conceitoSistema",
+  linear: "conceitoSistema",
+  matrix: "matrizAmpliada",
+  rows: "escalonamento",
+  signs: "aritmetica",
+  pivot: "escalonamento",
+  classify: "classificacao",
+  free: "classificacao",
+  homogeneous: "homogeneo",
+  determinant: "determinante",
+  discussion: "discussaoSistema",
+  parameters: "parametros"
+};
+
+diagnostic.forEach((item, index) => {
+  item.id ||= `diagnostic-${String(index + 1).padStart(2, "0")}-${item.target}`;
+  item.skill ||= DIAGNOSTIC_SKILL_BY_TARGET[item.target] || "conceitoSistema";
+  item.errorType ||= inferErrorType(item.skill);
+});
+
 const bossSets = {
   matrix: {
     title: "Boss 1: Matriz aumentada",
@@ -2399,46 +2882,49 @@ const infinitePool = [
 function home() {
   screen = { mode: "home", index: 0, boss: "mixed", score: 0, errors: [], item: null };
   const next = nextMission();
-  const locked = !state.bossUnlocked;
   const completedCount = getCourseCompletedCount();
   const nextMissionItem = getNextCourseMission();
   const recommendation = recommendNextMode();
+  const hasDiagnostic = !!state.diagnostic?.recommendedMode;
+  const profile = state.userProfile;
+  const weakPoints = profile?.weakPoints?.length ? profile.weakPoints.map(skillLabel).join(", ") : "ainda nao medido";
+  const phaseText = profile?.recommendedStartPhase != null ? `Fase ${profile.recommendedStartPhase}` : "Triagem pendente";
+  const primaryLabel = hasDiagnostic ? "Continuar proxima missao" : "Fazer Chapeu Seletor";
   const basicsNote = state.optionalReview.foundations
-    ? `<p class="tiny"><strong>Fundamentos:</strong> revisão opcional liberada pelo diagnóstico. Você pode voltar quando quiser.</p>`
+    ? `<p class="tiny"><strong>Fundamentos:</strong> revisao opcional. O diagnostico liberou entrada mais avancada, mas o mapa permite revisar.</p>`
     : "";
   const chapterTitle = nextMissionItem?.chapter || "Campanha concluída";
   setStage(`
-    <section class="home-shell">
+    <section class="home-shell single-journey">
       <div class="hero course-hero">
         <img src="assets/study-map-banner.png" alt="">
         <div class="hero-content">
-          <p class="eyebrow">Curso gamificado</p>
-          <h1>Sistemas Lineares — Modo Guerra</h1>
-          <p>Uma campanha linear para entender sistemas, matrizes, escalonamento e classificação sem caça ao botão.</p>
+          <p class="eyebrow">Jornada Modo Guerra</p>
+          <h1>Sistemas Lineares</h1>
+          <p>Uma campanha unica: diagnostico, entrada automatica no nivel certo, treino, discussao de sistemas e simulado.</p>
         </div>
       </div>
       <article class="current-mission">
-        <span class="eyebrow">Recomendacao inteligente</span>
+        <span class="eyebrow">${hasDiagnostic ? "Proxima missao recomendada" : "Entrada da campanha"}</span>
         <h2>${recommendation.title}</h2>
         <p>${recommendation.reason}</p>
+        ${recommendation.missionTitle ? `<p class="tiny"><strong>Missao alvo:</strong> ${recommendation.missionTitle}</p>` : ""}
         <div class="bar"><span style="width:${Math.round((completedCount / COURSE_PATH.length) * 100)}%"></span></div>
-        <button class="primary big-cta" data-mode="${recommendation.mode}">Continuar recomendacao</button>
+        <div class="actions">
+          <button class="primary big-cta" data-mode="${recommendation.mode}">${primaryLabel}</button>
+          <button class="secondary" data-mode="journeyMap">Mapa discreto</button>
+          <button class="secondary" data-mode="grimoire">Grimorio</button>
+        </div>
         ${basicsNote}
       </article>
-      <div class="secondary-grid" aria-label="Ações secundárias">
-        ${menuButton("Comecar do zero", "Jornada completa desde fundamentos", "startJourney")}
-        ${menuButton("Diagnostico rapido", "10 questoes para calibrar rota", "diagnostic")}
-        ${menuButton("Escalonamento completo", "Pivo, sinais, retrocesso e classificacao", "escalation")}
-        ${menuButton("Parametros", String.raw`\(\lambda\), \(m\), \(\alpha\), \(k\) sem travar`, "params")}
-        ${menuButton("Boss Lista 11", "Mistao de prova sem pedagio", "lista11Boss")}
-        ${menuButton("Quadro de Bolso", "Treinar deitado, uma conta por tela", "pocketHome")}
-      </div>
-      <div class="secondary-grid compact-actions" aria-label="Modos auxiliares">
-        ${menuButton("Jornada linear", `${completedCount}/${COURSE_PATH.length} missoes`, "continue")}
-        ${menuButton("Laboratorio", "Treino focado por habilidade", "lab")}
-        ${menuButton("Grimorio", "Consulta organizada", "grimoire")}
-        ${menuButton("Treino livre", "Questoes misturadas", "infinite")}
-      </div>
+      <article class="coach-panel">
+        <span class="eyebrow">Status do tutor</span>
+        <div class="mission-list compact">
+          <div class="mission-card"><strong>${phaseText}</strong><small>entrada recomendada</small></div>
+          <div class="mission-card"><strong>${profile?.label || "Sem diagnostico"}</strong><small>perfil atual</small></div>
+          <div class="mission-card"><strong>${weakPoints}</strong><small>ponto fraco monitorado</small></div>
+        </div>
+      </article>
       <div class="status-strip" aria-label="Status do estudante">
         <span>${state.xp} XP</span>
         <span>${state.streak} sequência</span>
@@ -2446,14 +2932,15 @@ function home() {
         <span>${chapterTitle}: ${next.label}</span>
       </div>
       <details class="extras-panel">
-        <summary>Outros modos e conquistas</summary>
+        <summary>Academia opcional e ajustes</summary>
         <div class="menu-grid compact-menu">
-          ${menuButton("Exemplo guiado Lista 10", "Sistema I ativo + Sistema II resolvido", "guided")}
-          ${menuButton("Duelos rápidos", "Bosses por habilidade", "duels")}
-          ${menuButton("Classificacao SPD/SPI/SI", "Ler matriz final com linguagem formal", "classificationTrack")}
-          ${menuButton("Homogeneos", "Trivial, determinante e Lista 11", "homogeneousTrack")}
-          ${menuButton("Câmara dos Parâmetros", "Boss real da Lista 11", "params")}
-          ${menuButton("Boss fight Lista 11", locked ? "Recomendado treinar antes, mas liberado" : `${bossSets.mixed.qs.length} questões reais`, "lista11Boss")}
+          ${menuButton("Comecar do zero", "Reinicia so a Jornada", "startJourney")}
+          ${menuButton("Refazer diagnostico", "Recalibrar perfil", "diagnostic")}
+          ${menuButton("Quadro de Bolso", "Escalonar uma conta por tela", "pocketHome")}
+          ${menuButton("Laboratorio", "Operacoes de linha", "lab")}
+          ${menuButton("Treino livre", "Questoes misturadas", "infinite")}
+          ${menuButton("Boss Lista 11", `${bossSets.mixed.qs.length} questoes reais/geradas`, "lista11Boss")}
+          ${hasDiagnostic ? menuButton("Resetar diagnostico", "Apaga so o perfil do Chapeu", "resetDiagnostic") : ""}
         </div>
         <div class="medal-list compact-medals">${Object.entries(medals).map(([key, label]) => `<div class="medal ${state.medals.includes(key) ? "earned" : ""}">${label}</div>`).join("")}</div>
       </details>
@@ -2497,6 +2984,10 @@ function resetCourseProgress() {
 function nextMission() {
   const index = getNextCourseMissionIndex();
   if (index === -1) return { label: "Campanha concluída", mode: "campaignComplete" };
+  if (state.adaptiveQueue?.length) {
+    const key = state.adaptiveQueue[0];
+    return { label: `Microcorrecao: ${CORRECTIVE_MISSIONS[key]?.title || key}`, mode: "journey" };
+  }
   const item = COURSE_PATH[index];
   return { label: `${index + 1}/${COURSE_PATH.length}: ${item.title}`, mode: "journey" };
 }
@@ -2517,9 +3008,18 @@ function renderMission(mode, data, index, total, options = {}) {
 }
 
 function journey(index = getNextCourseMissionIndex()) {
+  if (state.adaptiveQueue?.length && index === getNextCourseMissionIndex()) {
+    return adaptiveMission(state.adaptiveQueue[0]);
+  }
   if (index < 0) return showCampaignComplete();
   screen = { mode: "journey", index, boss: "mixed", score: 0, errors: [], item: null };
   renderMission("journey", COURSE_PATH[index], index, COURSE_PATH.length, { doneLabel: "Ver conclusão" });
+}
+
+function adaptiveMission(key = state.adaptiveQueue?.[0]) {
+  const data = CORRECTIVE_MISSIONS[key] || CORRECTIVE_MISSIONS.fundamentos;
+  screen = { mode: "adaptive", index: 0, boss: "mixed", score: 0, errors: [], item: null, skillKey: key };
+  renderMission("adaptive", data, 0, 1, { kicker: "Microtreino adaptativo", doneLabel: "Voltar para Jornada" });
 }
 
 function journeyMap() {
@@ -2575,6 +3075,16 @@ function confirmRestartJourney() {
   `);
 }
 
+function resetDiagnosticOnly() {
+  state.diagnostic = null;
+  state.userProfile = null;
+  state.lastRecommendation = null;
+  state.adaptiveQueue = [];
+  state.optionalReview = { ...state.optionalReview, skippedTo: null };
+  saveState();
+  home();
+}
+
 function showCampaignComplete() {
   screen = { mode: "campaignComplete", index: 0, boss: "mixed", score: 0, errors: [], item: null };
   const skills = [...new Set(COURSE_PATH.map((mission) => mission.skill))].slice(0, 12);
@@ -2598,17 +3108,18 @@ function showCampaignComplete() {
   `);
 }
 
-function diagnosticMode(index = 0, score = 0, misses = []) {
-  screen = { mode: "diagnostic", index, score, errors: misses, item: null };
+function diagnosticMode(index = 0, score = 0, misses = [], answers = []) {
+  screen = { mode: "diagnostic", index, score, errors: misses, answers, item: null };
   const item = diagnostic[index];
   setStage(`
     <section class="micro">
       <div class="module-header">
         <span class="pill">Chapéu Seletor</span>
-        <h2>Diagnóstico opcional</h2>
+        <h2>Triagem da Jornada Modo Guerra</h2>
         <div class="bar"><span style="width:${((index + 1) / diagnostic.length) * 100}%"></span></div>
       </div>
-      <p>Responda para calibrar a rota. Isso não bloqueia nenhum módulo.</p>
+      <p>Responda para eu escolher sua entrada na Jornada. O objetivo e rota, nao nota bonita.</p>
+      <p class="tiny"><strong>Habilidade avaliada:</strong> ${skillLabel(item.skill)}.</p>
       ${contextBlock(item)}
       <div class="choices">
         <p><strong>${item.q}</strong></p>
@@ -2616,35 +3127,58 @@ function diagnosticMode(index = 0, score = 0, misses = []) {
       </div>
       <div id="feedback" class="feedback"></div>
       <div class="actions">
-        <button class="primary" data-next="diagnostic" disabled>Próxima</button>
+        <button class="primary" data-next="diagnostic" disabled>${index === diagnostic.length - 1 ? "Ver resultado" : "Proxima"}</button>
         <button class="secondary" data-mode="home">Sair</button>
       </div>
     </section>
   `);
 }
 
-function diagnosticResult(score, misses) {
-  const perfect = score === diagnostic.length;
-  if (perfect) state.bossUnlocked = true;
-  state.diagnostic = { score, total: diagnostic.length, misses, date: new Date().toISOString() };
-  if (diagnosticBasicsMastered(state.diagnostic)) markFoundationsOptional();
-  saveState();
-  const recommendation = recommendNextMode(state.diagnostic);
-  const recommendations = misses.length
-    ? [...new Set(misses)].map((id) => COURSE_PATH.find((mission) => mission.id === DIAGNOSTIC_TARGETS[id])).filter(Boolean)
-    : [];
+function diagnosticResult(score, misses, answers = []) {
+  const result = buildDiagnosticResult(answers);
+  applyDiagnosticResult(result);
+  showDiagnosticResult(result);
+}
+
+function showDiagnosticResult(result) {
+  const recommendation = recommendNextMode(result);
+  const weak = result.weakPoints?.length
+    ? result.weakPoints.map(skillLabel).join(", ")
+    : "nenhum ponto fraco grave detectado";
+  const strong = result.strengths?.length
+    ? result.strengths.map(skillLabel).join(", ")
+    : "ainda vamos medir melhor durante a Jornada";
+  const bySkill = Object.entries(result.bySkill || {})
+    .filter(([, value]) => value.total > 0)
+    .map(([skill, value]) => `
+      <div class="mission-card compact">
+        <strong>${skillLabel(skill)}</strong>
+        <small>${value.correct}/${value.total} acertos</small>
+      </div>
+    `).join("");
   setStage(`
-    <section class="panel stack">
-      <span class="pill">${score}/${diagnostic.length}</span>
-      <h2>${perfect ? "Voce nao precisa do tutorial basico." : "Rota calibrada"}</h2>
-      <p>${recommendation.reason}</p>
+    <section class="panel stack diagnostic-report">
+      <span class="pill">Resultado do Chapeu Seletor</span>
+      <h2>${result.levelLabel || "Rota calibrada"}</h2>
+      <p><strong>Voce acertou ${result.score} de ${result.total}.</strong> ${result.message}</p>
+      <div class="mission-list">
+        <div class="mission-card"><strong>Pontos fortes</strong><small>${strong}</small></div>
+        <div class="mission-card"><strong>Pontos a treinar</strong><small>${weak}</small></div>
+        <div class="mission-card"><strong>Proxima fase</strong><small>Fase ${result.recommendedStartPhase}: ${result.recommendedRoute}</small></div>
+      </div>
+      <div class="feedback show success">
+        <strong>Missao recomendada:</strong> ${recommendation.missionTitle || result.recommendedRoute}.<br>
+        O app marcou as telas anteriores como revisao opcional quando voce mostrou base suficiente.
+      </div>
+      <details class="solution" open>
+        <summary>Mapa do diagnostico</summary>
+        <div class="mission-list">${bySkill}</div>
+      </details>
       <div class="actions">
         <button class="primary" data-mode="${recommendation.mode}">${recommendationLabel(recommendation.mode)}</button>
-        <button class="secondary" data-mode="pocketHome">Quadro de Bolso</button>
-        <button class="secondary" data-mode="lista11Boss">Boss Lista 11</button>
-        <button class="secondary" data-mode="home">Menu</button>
+        <button class="secondary" data-mode="journeyMap">Ver mapa discreto</button>
+        <button class="secondary" data-mode="home">Voltar ao menu</button>
       </div>
-      ${recommendations.length ? `<div class="mission-list">${recommendations.map((r) => `<button class="game-button" data-jump="${r.id}"><strong>${r.title}</strong><small>${r.chapter}</small></button>`).join("")}</div>` : ""}
     </section>
   `);
 }
@@ -3322,6 +3856,7 @@ function answer(selected) {
   const item = screen.mode === "journey" ? COURSE_PATH[screen.index]
     : screen.mode === "guided" ? guided[screen.index]
       : screen.mode === "diagnostic" ? diagnostic[screen.index]
+        : screen.mode === "adaptive" ? CORRECTIVE_MISSIONS[screen.skillKey]
         : null;
   if (!item) return;
   const correctAnswer = item.answer ?? item.a;
@@ -3331,13 +3866,33 @@ function answer(selected) {
   if (screen.mode === "diagnostic") {
     if (correct) screen.score += 1;
     else screen.errors.push(item.target);
+    screen.answers = [
+      ...(screen.answers || []),
+      {
+        id: item.id,
+        target: item.target,
+        skill: item.skill,
+        errorType: item.errorType,
+        selected,
+        correct
+      }
+    ];
     fb.innerHTML = item.feedbacks?.[selected] || (correct ? "Acertou." : "Quase. Vou recomendar revisao, sem bloquear nada.");
   } else {
     const msg = correct
       ? (item.feedbacks?.[selected] || item.feedback || item.f || "Certo.")
       : (item.feedbacks?.[selected] || item.wrong || item.feedback || item.f || "Revise a conta.");
     fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item, item.solutionLabel || "Ver conta inteira")}`;
-    correct ? complete(item.id) : miss(item.skill || "jornada");
+    if (correct) {
+      recordPerformance({ skill: item.skill || "jornada", correct: true, source: screen.mode || "jornada" });
+      complete(item.id);
+      if (screen.mode === "adaptive") {
+        state.adaptiveQueue = (state.adaptiveQueue || []).filter((key) => key !== screen.skillKey);
+        saveState();
+      }
+    } else {
+      miss(item.skill || "jornada");
+    }
   }
   fb.className = `feedback show ${correct ? "success" : "danger"}`;
   if (correct || screen.mode === "diagnostic") enableNextButtons();
@@ -3413,8 +3968,8 @@ function next(kind) {
     return journey(index);
   }
   if (kind === "diagnostic") {
-    if (screen.index >= diagnostic.length - 1) return diagnosticResult(screen.score, screen.errors);
-    return diagnosticMode(screen.index + 1, screen.score, screen.errors);
+    if (screen.index >= diagnostic.length - 1) return diagnosticResult(screen.score, screen.errors, screen.answers || []);
+    return diagnosticMode(screen.index + 1, screen.score, screen.errors, screen.answers || []);
   }
   if (kind === "lab") {
     if (screen.index >= lab.length - 1) return labHome();
@@ -3440,10 +3995,12 @@ function next(kind) {
     return bossMode(screen.boss, screen.index + 1, screen.score, screen.errors);
   }
   if (kind === "infinite") return infiniteMode();
+  if (kind === "adaptive") return journey(getNextCourseMissionIndex());
 }
 
 function repeat(kind) {
   if (kind === "journey") return journey(screen.index);
+  if (kind === "adaptive") return adaptiveMission(screen.skillKey);
   if (kind === "lab") return labMode(screen.index);
   if (kind === "pocket") return pocketMode(screen.boardIndex, screen.index, screen.score, screen.errors);
   if (kind === "guided") return guidedMode(screen.index);
@@ -3459,9 +4016,15 @@ function route(mode) {
   }
   if (mode === "campaignComplete") return showCampaignComplete();
   if (mode === "journey") return journey();
+  if (mode === "recommendedJourney") {
+    const missionId = state.diagnostic?.recommendedMissionId || state.lastRecommendation?.missionId;
+    const index = COURSE_PATH.findIndex((mission) => mission.id === missionId && !state.completed.includes(mission.id));
+    return journey(index >= 0 ? index : getNextCourseMissionIndex());
+  }
   if (mode === "startJourney") return confirmRestartJourney();
   if (mode === "journeyMap") return journeyMap();
   if (mode === "diagnostic") return diagnosticMode(0, 0, []);
+  if (mode === "resetDiagnostic") return resetDiagnosticOnly();
   if (mode === "escalation") return escalationTrack();
   if (mode === "pocketHome") return pocketHome();
   if (mode === "classificationTrack") return bossMode("classify", 0, 0, []);
