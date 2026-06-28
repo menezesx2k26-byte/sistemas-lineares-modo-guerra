@@ -35,6 +35,17 @@
   --chapter-done-bg: #edf8f3;
   --hero-overlay: linear-gradient(90deg, rgba(255, 248, 232, 0.96), rgba(255, 248, 232, 0.68), rgba(255, 248, 232, 0.2));
   --shadow: 0 14px 34px rgba(23, 33, 46, 0.12);
+  --space-1: clamp(0.35rem, 1vw, 0.5rem);
+  --space-2: clamp(0.55rem, 1.4vw, 0.85rem);
+  --space-3: clamp(0.85rem, 2vw, 1.25rem);
+  --space-4: clamp(1.1rem, 3vw, 1.75rem);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-sm: clamp(0.84rem, 2.6vw, 0.95rem);
+  --font-base: clamp(0.95rem, 2.8vw, 1.06rem);
+  --font-lg: clamp(1.1rem, 3.8vw, 1.35rem);
+  --focus-ring: #f3be46;
 }
 
 :root[data-theme="dark"] {
@@ -103,9 +114,29 @@ button {
 }
 
 button:focus-visible,
-input:focus-visible {
-  outline: 3px solid #f3be46;
+input:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  padding: 0.75rem 1rem;
+  color: #fff;
+  background: var(--wine);
+  border-radius: var(--radius-sm);
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 .app {
@@ -212,8 +243,22 @@ input:focus-visible {
   color: var(--muted);
   background: var(--button-soft);
   border: 1px solid var(--line);
-  font-size: 0.78rem;
+  padding: 0.38rem 0.25rem;
+  text-align: center;
+  font-size: 0.76rem;
   font-weight: 900;
+}
+
+.bottom-nav button strong,
+.bottom-nav button small {
+  display: block;
+}
+
+.bottom-nav button small {
+  margin-top: 0.1rem;
+  color: inherit;
+  font-size: 0.66rem;
+  font-weight: 750;
 }
 
 .theme-toggle {
@@ -873,6 +918,15 @@ button,
   border-color: var(--green);
 }
 
+.site-footer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .home-shell,
 .lesson-flow,
 .lab-home,
@@ -899,6 +953,88 @@ button,
 .course-hero p:not(.eyebrow) {
   color: var(--muted);
   max-width: 31rem;
+}
+
+.home-section,
+.pedagogy-card,
+.progress-legend {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.home-section h2,
+.pedagogy-card h2 {
+  font-size: clamp(1.18rem, 4.8vw, 1.75rem);
+}
+
+.info-grid,
+.stepper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+
+.info-card,
+.stepper-step {
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 90%, var(--bg));
+}
+
+.info-card strong,
+.stepper-step strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.info-card small,
+.stepper-step small,
+.progress-legend small {
+  display: block;
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.stepper-step {
+  position: relative;
+  border-left: 5px solid var(--line);
+}
+
+.stepper-step.current {
+  border-color: var(--gold);
+  background: var(--chapter-current-bg);
+}
+
+.stepper-step.done {
+  border-color: var(--success);
+  background: var(--chapter-done-bg);
+}
+
+.progress-legend {
+  box-shadow: none;
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+}
+
+.error-summary {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border: 2px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+}
+
+.error-summary ul {
+  margin: 0;
+  padding-left: 1.25rem;
 }
 
 .current-mission {
@@ -1382,8 +1518,13 @@ button,
   .board-main-actions,
   .metric-grid,
   .board-metrics,
-  .readiness-grid {
+  .readiness-grid,
+  .info-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stepper {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .board-main-actions {

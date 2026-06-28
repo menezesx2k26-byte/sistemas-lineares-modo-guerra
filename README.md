@@ -43,11 +43,20 @@ python -m http.server
 
 Depois abra o endereco mostrado pelo terminal.
 
+## Testes estaticos
+
+Este projeto nao tem framework de testes nem dependencias de build. O smoke test em Node puro verifica contratos basicos de acessibilidade, Home, titulos dinamicos e feedback:
+
+```bash
+node tests/static-a11y-smoke.js
+```
+
 ## Producao
 
 - O arquivo principal e `index.html`.
 - O CSS esta separado em `style.css`.
 - O JavaScript esta separado em `script.js`.
+- A stack real e HTML/CSS/JavaScript puro; nao ha Vite, React, Next, Vue, Astro nem etapa de build.
 - Imagens ficam em `assets/`.
 - O progresso do aluno e salvo em `localStorage`.
 - O app e totalmente estatico e funciona sem backend.
@@ -73,6 +82,9 @@ Depois abra o endereco mostrado pelo terminal.
 - O Boss da Lista 11 agora usa parametros e homogeneos reais das listas, incluindo determinantes, casos especiais e classificacao.
 - O Treino infinito mistura questoes das listas e questoes geradas equivalentes, registra erros frequentes e recomenda revisao por habilidade.
 - Botoes grandes, layout de uma coluna no mobile e formulas em caixas com rolagem horizontal continuam como padrao.
+- A Home explica objetivo, publico, funcionamento, trilha recomendada e o significado pedagogico de XP, sequencia e medalhas antes dos atalhos de treino.
+- A navegacao recebeu rotulos funcionais: Quadro/Seu progresso, Diagnostico/Ponto de partida, Boss/Desafio final e Grimorio/Teoria e exemplos.
+- Acessibilidade: skip link, landmarks HTML, foco visivel, `aria-current` na navegacao, `aria-live` nos feedbacks, toggle de tema com `aria-pressed` e titulos dinamicos por modo.
 
 ## Fontes usadas
 

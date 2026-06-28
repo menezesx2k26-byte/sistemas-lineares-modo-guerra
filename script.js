@@ -121,6 +121,72 @@ function typeset() {
   if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
 }
 
+const PAGE_TITLES = {
+  home: "Sistemas Lineares | Modo Guerra",
+  board: "Quadro de Sistemas Lineares | Modo Guerra",
+  diagnostic: "Diagnostico de Sistemas Lineares | Modo Guerra",
+  bossFinalBoard: "Boss Final de Sistemas Lineares | Modo Guerra",
+  grimoire: "Grimorio de Sistemas Lineares | Modo Guerra",
+  journey: "Trilha de Estudo de Sistemas Lineares | Modo Guerra",
+  journeyMap: "Trilha de Estudo | Modo Guerra",
+  readinessReport: "Relatorio de Prontidao | Modo Guerra",
+  lab: "Laboratorio de Sistemas Lineares | Modo Guerra",
+  infinite: "Treino Infinito | Modo Guerra"
+};
+
+function pageTitleFor(mode = screen.mode) {
+  if (typeof PROOF_MODES !== "undefined" && PROOF_MODES?.[mode]) return `${PROOF_MODES[mode].title} | Modo Guerra`;
+  if (mode?.endsWith?.("Result")) return "Resultado do treino | Modo Guerra";
+  return PAGE_TITLES[mode] || "Sistemas Lineares | Modo Guerra";
+}
+
+function ensureSingleH1(html) {
+  if (/<h1[\s>]/i.test(html)) return html;
+  return html.replace("<h2", "<h1").replace("</h2>", "</h1>");
+}
+
+function updatePageMeta() {
+  document.title = pageTitleFor();
+  const main = $("#appStage");
+  if (main) main.focus({ preventScroll: true });
+}
+
+function learningStepper(current = "diagnostic") {
+  const order = [
+    ["diagnostic", "Diagnostico", "Descubra seu ponto de partida"],
+    ["study", "Estudo", "Aprenda a tecnica antes de usar"],
+    ["practice", "Pratica", "Escalone e classifique"],
+    ["challenge", "Desafio", "Boss sem dica direta"],
+    ["review", "Revisao", "Grimorio e anti-vacilo"]
+  ];
+  const currentIndex = Math.max(0, order.findIndex(([key]) => key === current));
+  return `
+    <nav class="stepper" aria-label="Trilha recomendada">
+      ${order.map(([key, title, subtitle], index) => `
+        <div class="stepper-step ${index < currentIndex ? "done" : index === currentIndex ? "current" : ""}" aria-current="${index === currentIndex ? "step" : "false"}">
+          <strong>${index + 1}. ${title}</strong>
+          <small>${subtitle}</small>
+        </div>
+      `).join("")}
+    </nav>
+  `;
+}
+
+function reviewLinkBlock(item = {}) {
+  const label = item.skill ? humanSkillLabel(item.skill) : "teoria relacionada";
+  return `<div class="inline-actions"><button class="secondary" type="button" data-mode="grimoire">Revisar no Grimorio: ${label}</button></div>`;
+}
+
+function errorSummaryBlock(items = [], title = "Resumo de revisao") {
+  if (!items.length) return "";
+  return `
+    <section class="error-summary" role="status" aria-live="polite" aria-label="${title}">
+      <strong>${title}</strong>
+      <ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>
+    </section>
+  `;
+}
+
 function addXp(amount, reason) {
   state.xp += amount;
   state.streak += 1;
@@ -165,8 +231,9 @@ function renderHud() {
   const themeButton = $("[data-theme-toggle]");
   if (themeButton) {
     const isDark = state.theme === "dark";
-    themeButton.textContent = isDark ? "Claro" : "Escuro";
-    themeButton.setAttribute?.("aria-label", `Ativar tema ${isDark ? "claro" : "escuro"}`);
+    themeButton.textContent = `Tema: ${isDark ? "escuro" : "claro"}`;
+    themeButton.setAttribute("aria-pressed", String(isDark));
+    themeButton.setAttribute("aria-label", `Alternar para tema ${isDark ? "claro" : "escuro"}`);
   }
   const activeMode = {
     journeyMap: "journey",
@@ -193,7 +260,12 @@ function renderHud() {
     readinessReport: "home",
     checklist: "grimoire"
   }[screen.mode] || screen.mode;
-  $$(".bottom-nav button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === activeMode));
+  $$(".bottom-nav button").forEach((btn) => {
+    const active = btn.dataset.mode === activeMode;
+    btn.classList.toggle("active", active);
+    if (active) btn.setAttribute("aria-current", "page");
+    else btn.removeAttribute("aria-current");
+  });
 }
 
 function applyTheme() {
@@ -209,8 +281,9 @@ function toggleTheme() {
 }
 
 function setStage(html) {
-  $("#appStage").innerHTML = html;
+  $("#appStage").innerHTML = ensureSingleH1(html);
   renderHud();
+  updatePageMeta();
   typeset();
 }
 
@@ -349,7 +422,7 @@ function exerciseCard(item, attr = "data-answer") {
       ${questionSnapshotBlock(item)}
       <p><strong>${question}</strong></p>
       <div class="choices">
-        ${choices.map((choice, i) => `<button class="choice" ${attr}="${i}">${choice}</button>`).join("")}
+        ${choices.map((choice, i) => `<button class="choice" type="button" ${attr}="${i}">${choice}</button>`).join("")}
       </div>
     </article>
   `;
@@ -362,7 +435,7 @@ function feedbackCard(mode, data, index, total, options = {}) {
     <section class="feedback-zone">
       <button class="secondary quiet" data-why="${whyId}">Ver dica didática</button>
       <div id="${whyId}" class="feedback">${data.why || "A técnica entra depois de entender o objetivo da pergunta."}</div>
-      <div id="feedback" class="feedback"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
       <div class="actions">
         <button class="primary" data-next="${mode}" disabled>${nextText}</button>
         <button class="secondary" data-repeat="${mode}">${mode === "guided" ? "Refazer passo" : "Refazer tela"}</button>
@@ -4319,32 +4392,69 @@ function home() {
   setStage(`
     <section class="home-shell board-home">
       <div class="hero course-hero">
-        <img src="assets/study-map-banner.png" alt="">
+        <img src="assets/study-map-banner.png" alt="" loading="eager">
         <div class="hero-content">
-          <p class="eyebrow">Lista 11 e Modo Quadro</p>
+          <p class="eyebrow">Modo Guerra de prova</p>
           <h1>Sistemas Lineares</h1>
-          <p>O aluno nao passa porque reconheceu a resposta. Passa porque resolveu no quadro.</p>
+          <p>Tutor gamificado para diagnosticar sua base, estudar a tecnica certa e praticar escalonamento, classificacao, homogeneos e parametros com feedback de prova.</p>
+          <div class="inline-actions">
+            <button class="primary big-cta" type="button" data-mode="diagnostic">Come&ccedil;ar diagn&oacute;stico</button>
+            <button class="secondary big-cta" type="button" data-mode="journeyMap">Ver trilha de estudo</button>
+          </div>
         </div>
       </div>
 
-      <section class="readiness-card">
-        <span class="pill">Regua honesta</span>
-        <h2>100% de progresso nao e 100% de dominio.</h2>
+      <section class="home-section">
+        <span class="pill">Como funciona</span>
+        ${learningStepper("diagnostic")}
+        <p>Voce comeca pelo diagnostico, recebe uma rota, resolve no Quadro com uma decisao por vez, encara o Boss e volta ao Grimorio quando precisar revisar teoria.</p>
+      </section>
+
+      <section class="home-section">
+        <h2>O que voce vai aprender</h2>
+        <div class="info-grid">
+          <div class="info-card"><strong>Matriz aumentada</strong><small>Separar coeficientes, lado direito e barra sem copiar sinal errado.</small></div>
+          <div class="info-card"><strong>Escalonamento</strong><small>Escolher pivo, zerar abaixo e controlar a linha inteira.</small></div>
+          <div class="info-card"><strong>Classificacao</strong><small>Escrever SPD, SPI ou SI com justificativa de posto, contradicao ou variavel livre.</small></div>
+          <div class="info-card"><strong>Lista 11</strong><small>Discutir homogeneos e parametros como \\(\\lambda\\), \\(m\\), \\(\\alpha\\) e \\(k\\).</small></div>
+        </div>
+      </section>
+
+      <section class="home-section">
+        <h2>Para quem e</h2>
+        <div class="info-grid">
+          <div class="info-card"><strong>Aluno que sabe matrizes</strong><small>Mas ainda se perde em pivo, operacoes de linha e interpretacao da matriz final.</small></div>
+          <div class="info-card"><strong>Quem quer prova, nao reconhecimento</strong><small>O app nao da dominio alto sem escalonamento, parametros, homogeneos e Boss Final.</small></div>
+        </div>
+      </section>
+
+      <section class="readiness-card" aria-labelledby="progress-title">
+        <span class="pill">Gamificacao a servico do dominio</span>
+        <h2 id="progress-title">Seu progresso</h2>
         <div class="metric-grid">
           <div><strong>${metrics.progressPercent}%</strong><span>Progresso do app</span></div>
-          <div><strong>${metrics.estimatedMastery}%</strong><span>Dominio estimado · teto ${metrics.masteryCap}%</span></div>
+          <div><strong>${metrics.estimatedMastery}%</strong><span>Dominio estimado - teto ${metrics.masteryCap}%</span></div>
           <div><strong>${metrics.operationalConfidence}</strong><span>Confianca operacional</span></div>
+        </div>
+        <div class="progress-legend">
+          <strong>Legenda</strong>
+          <small>XP registra pratica feita. Sequencia mede acertos seguidos. Medalhas marcam habilidades dominadas. Nada disso substitui resolver no quadro.</small>
         </div>
         <p><strong>Risco principal:</strong> ${metrics.risk}.</p>
         <p><strong>Proximo treino:</strong> ${metrics.nextTraining}.</p>
       </section>
 
-      <div class="board-main-actions" aria-label="Acoes principais">
-        ${menuButton("Continuar jornada", `Sistema ${String(currentSystem.number).padStart(2, "0")}: ${currentSystem.title}`, "board")}
-        ${menuButton("Resolver no quadro", "Lousa guiada com matriz, operacao, erro e conclusao", "board")}
-        ${menuButton("Ver diagnostico", "Chapeu Seletor focado na Lista 11", "diagnostic")}
-        ${menuButton("Boss Final", "So libera dominio acima de 90% com prova pratica", "bossFinalBoard")}
-      </div>
+      <section class="pedagogy-card">
+        <span class="pill">Quadro</span>
+        <h2>Seu progresso</h2>
+        <p>Proximo sistema recomendado: <strong>Sistema ${String(currentSystem.number).padStart(2, "0")} - ${currentSystem.title}</strong>.</p>
+        <div class="board-main-actions" aria-label="Acoes principais">
+          ${menuButton("Continuar no Quadro", "Seu progresso: resolver o proximo sistema com conta e conclusao", "board")}
+          ${menuButton("Diagnostico", "Descubra seu ponto de partida", "diagnostic")}
+          ${menuButton("Boss", "Desafio final", "bossFinalBoard")}
+          ${menuButton("Grimorio", "Teoria, formulas e exemplos", "grimoire")}
+        </div>
+      </section>
 
       <details class="extras-panel">
         <summary>Treinos auxiliares e consulta</summary>
@@ -4375,7 +4485,7 @@ function proofModeCard(mode, data) {
 }
 
 function menuButton(title, sub, mode, locked = false) {
-  return `<button class="game-button ${locked ? "locked" : ""}" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
+  return `<button class="game-button ${locked ? "locked" : ""}" type="button" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
 }
 
 function proofMode(mode, index = state.modeProgress?.[mode] || 0) {
@@ -4754,7 +4864,7 @@ function renderBoardMode(systemIndex = state.boardProgress?.systemIndex || 0, st
         <p>${item.explain}</p>
         <div class="choices">
           <p><strong>${item.question}</strong></p>
-          ${item.choices.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
+          ${item.choices.map((choice, i) => `<button class="choice" type="button" data-answer="${i}">${choice}</button>`).join("")}
         </div>
         <button class="secondary quiet" data-why="why-board-${system.id}-${safeStep}">Nao entendi / por que?</button>
         <div id="why-board-${system.id}-${safeStep}" class="feedback">${item.why}</div>
@@ -4762,7 +4872,7 @@ function renderBoardMode(systemIndex = state.boardProgress?.systemIndex || 0, st
 
       <article class="board-panel">
         <h3>Diagnostico do erro</h3>
-        <div id="feedback" class="feedback">Ainda sem resposta. O app vai separar erro conceitual, aritmetico, organizacao e conclusao.</div>
+        <div id="feedback" class="feedback" role="status" aria-live="polite">Ainda sem resposta. O app vai separar erro conceitual, aritmetico, organizacao e conclusao.</div>
       </article>
 
       <article class="board-panel">
@@ -4981,12 +5091,12 @@ function bossFinalBoard(index = 0, score = 0, errors = []) {
         <p>${item.explain}</p>
         <div class="choices">
           <p><strong>${item.question}</strong></p>
-          ${item.choices.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
+          ${item.choices.map((choice, i) => `<button class="choice" type="button" data-answer="${i}">${choice}</button>`).join("")}
         </div>
       </article>
       <article class="board-panel">
         <h3>Diagnostico</h3>
-        <div id="feedback" class="feedback">Responda antes de ver a correcao. Boss nao entrega caminho antes da tentativa.</div>
+        <div id="feedback" class="feedback" role="status" aria-live="polite">Responda antes de ver a correcao. Boss nao entrega caminho antes da tentativa.</div>
       </article>
       <div class="actions">
         <button class="primary" data-next="bossFinalBoard" disabled>${safeIndex === total - 1 ? "Ver relatorio final" : "Proximo boss"}</button>
@@ -5205,9 +5315,9 @@ function diagnosticMode(index = 0, score = 0, misses = [], answers = []) {
       ${questionSnapshotBlock(item)}
       <div class="choices">
         <p><strong>${item.q}</strong></p>
-        ${item.c.map((choice, i) => `<button class="choice" data-answer="${i}">${choice}</button>`).join("")}
+        ${item.c.map((choice, i) => `<button class="choice" type="button" data-answer="${i}">${choice}</button>`).join("")}
       </div>
-      <div id="feedback" class="feedback"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
       <div class="actions">
         <button class="primary" data-next="diagnostic" disabled>${index === diagnostic.length - 1 ? "Ver resultado" : "Proxima"}</button>
         <button class="secondary" data-mode="home">Sair</button>
@@ -5242,9 +5352,19 @@ function showDiagnosticResult(result) {
     <section class="panel stack diagnostic-report">
       <span class="pill">Resultado do Chapeu Seletor</span>
       <h2>${result.levelLabel || "Rota calibrada"}</h2>
+      ${learningStepper("study")}
       <p><strong>Voce acertou ${result.score} de ${result.total}.</strong> Isso mede leitura rapida, nao dominio de prova.</p>
       <p class="tiny"><strong>Dominio estimado apos diagnostico:</strong> ${result.percent}% (teto atual: ${result.cap}%). Voce nao esta zerado, mas tambem nao esta blindado enquanto nao resolver no quadro, discutir parametros e passar pelo Boss Final.</p>
       <p>${result.message}</p>
+      <div class="home-section">
+        <h2>Feedback por objetivo</h2>
+        <div class="info-grid">
+          <div class="info-card"><strong>O que voce domina</strong><small>${strong}</small></div>
+          <div class="info-card"><strong>O que precisa revisar</strong><small>${weak}</small></div>
+          <div class="info-card"><strong>Proximo passo recomendado</strong><small>${recommendation.missionTitle || result.recommendedRoute}</small></div>
+        </div>
+      </div>
+      ${errorSummaryBlock(result.weakPoints?.map((skill) => `Revisar: ${skillLabel(skill)}`) || [], "Pontos de revisao do diagnostico")}
       <div class="mission-list">
         <div class="mission-card"><strong>Pontos fortes</strong><small>${strong}</small></div>
         <div class="mission-card"><strong>Pontos a treinar</strong><small>${weak}</small></div>
@@ -5586,7 +5706,7 @@ function pocketMode(boardIndex = 0, stepIndex = 0, score = 0, errors = []) {
       ${contextBlock(data)}
       ${conceptCard(data)}
       ${exerciseCard(data, "data-pocket-answer")}
-      <div id="feedback" class="feedback"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
       <div class="actions">
         <button class="primary" data-next="pocket" disabled>${stepIndex === board.steps.length - 1 ? "Fechar escalonamento" : "Proximo pedaco"}</button>
         <button class="secondary" data-repeat="pocket">Refazer passo</button>
@@ -5610,7 +5730,7 @@ function answerPocket(selected) {
     screen.errors.push(item.skill);
     miss(item.skill);
   }
-  $("#feedback").innerHTML = `${choice.ok ? "Acertou. " : "Ainda nao. "}${choice.f}${solutionBlock(item, "Ver conta completa")}`;
+  $("#feedback").innerHTML = `${choice.ok ? "Acertou. " : "Ainda nao. "}${choice.f}${solutionBlock(item, "Ver conta completa")}${reviewLinkBlock(item)}`;
   $("#feedback").className = `feedback show ${choice.ok ? "success" : "danger"}`;
   enableNextButtons();
   typeset();
@@ -5713,7 +5833,7 @@ function labMode(index = 0) {
       ${contextBlock(data)}
       ${conceptCard(data)}
       ${exerciseCard(data, "data-lab")}
-      <div id="feedback" class="feedback"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
       <div class="actions">
         <button class="primary" data-next="lab" disabled>${index === lab.length - 1 ? "Concluir lab" : "Próximo treino"}</button>
         <button class="secondary" data-repeat="lab">Refazer desafio</button>
@@ -5787,11 +5907,11 @@ function bossMode(key = "mixed", index = 0, score = 0, errors = [], force = fals
       ${questionSnapshotBlock(item)}
       <div class="choices">
         <p><strong>${item.prompt}</strong></p>
-        ${item.choices.map((choice, i) => `<button class="choice" data-boss-answer="${i}">${choice}</button>`).join("")}
+        ${item.choices.map((choice, i) => `<button class="choice" type="button" data-boss-answer="${i}">${choice}</button>`).join("")}
       </div>
       <button class="secondary" data-why="${whyId}">Por quê?</button>
       <div id="${whyId}" class="feedback">${item.why || item.review || "Leia os dados, identifique o objeto matemático e só então escolha a alternativa."}</div>
-      <div id="feedback" class="feedback"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
       <div class="actions">
         <button class="primary" data-next="boss" disabled>${index === set.qs.length - 1 ? "Ver desempenho" : "Próxima pergunta"}</button>
         <button class="secondary" data-repeat="boss">Reiniciar boss</button>
@@ -5852,11 +5972,11 @@ function infiniteMode(item = pickInfiniteQuestion()) {
       ${questionSnapshotBlock(item)}
       <div class="choices">
         <p><strong>${item.prompt}</strong></p>
-        ${item.choices.map((choice, i) => `<button class="choice" data-infinite-answer="${i}">${choice}</button>`).join("")}
+        ${item.choices.map((choice, i) => `<button class="choice" type="button" data-infinite-answer="${i}">${choice}</button>`).join("")}
       </div>
       <button class="secondary" data-why="${whyId}">Por quê?</button>
       <div id="${whyId}" class="feedback">${item.why || item.review || "A pergunta deve ser resolvida usando apenas os dados mostrados acima."}</div>
-      <div id="feedback" class="feedback"></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
       <div class="actions">
         <button class="primary" data-next="infinite" disabled>Próxima aleatória</button>
         <button class="secondary" data-mode="home">Menu</button>
@@ -5964,7 +6084,7 @@ function answer(selected) {
     const msg = correct
       ? (item.feedbacks?.[selected] || item.feedback || item.f || "Certo.")
       : (item.feedbacks?.[selected] || item.wrong || item.feedback || item.f || "Revise a conta.");
-    fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item, item.solutionLabel || "Ver conta inteira")}`;
+    fb.innerHTML = `${correct ? addXp(10, "missão") : "Ainda não."} ${msg}${solutionBlock(item, item.solutionLabel || "Ver conta inteira")}${reviewLinkBlock(item)}`;
     if (screen.mode === "board") {
       advanceBoardProgress(correct, item);
     }
@@ -6012,7 +6132,7 @@ function answerLab(selected) {
   } else {
     miss(item.skill);
   }
-  $("#feedback").innerHTML = `${choice.ok ? "" : "Ainda não. "}${choice.f}${solutionBlock(item)}`;
+  $("#feedback").innerHTML = `${choice.ok ? "" : "Ainda não. "}${choice.f}${solutionBlock(item)}${reviewLinkBlock(item)}`;
   $("#feedback").className = `feedback show ${choice.ok ? "success" : "danger"}`;
   enableNextButtons();
   typeset();
@@ -6029,7 +6149,7 @@ function answerBoss(selected) {
     miss(item.skill || item.review);
   }
   const msg = correct ? item.correct : (item.feedbacks?.[selected] || item.review);
-  $("#feedback").innerHTML = `${correct ? "Acertou. " : "Ainda não. "}${msg}${solutionBlock(item)}`;
+  $("#feedback").innerHTML = `${correct ? "Acertou. " : "Ainda não. "}${msg}${solutionBlock(item)}${reviewLinkBlock(item)}`;
   $("#feedback").className = `feedback show ${correct ? "success" : "danger"}`;
   enableNextButtons();
   typeset();
@@ -6047,7 +6167,7 @@ function answerInfinite(selected) {
   }
   const recs = topMistakes();
   const msg = correct ? item.correct : (item.feedbacks?.[selected] || item.review);
-  $("#feedback").innerHTML = `${correct ? "Acertou. " : "Ainda não. "}${msg}${solutionBlock(item)}${recs.length ? `<p class="tiny">Erros frequentes: ${recs.map(([k, v]) => `${k} (${v})`).join(", ")}.</p>` : ""}`;
+  $("#feedback").innerHTML = `${correct ? "Acertou. " : "Ainda não. "}${msg}${solutionBlock(item)}${reviewLinkBlock(item)}${recs.length ? `<p class="tiny">Erros frequentes: ${recs.map(([k, v]) => `${k} (${v})`).join(", ")}.</p>` : ""}`;
   $("#feedback").className = `feedback show ${correct ? "success" : "danger"}`;
   enableNextButtons();
   typeset();
