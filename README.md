@@ -6,7 +6,7 @@ App estatico, mobile-first, para matar a Lista 11 de Sistemas Lineares em uma tr
 
 A experiencia principal agora e **Lista 11 Desespero**:
 
-- modo **Resolucao Guiada - Lista 11** para quando o aluno esta cansado: o app resolve a lista passo a passo, com imagem do exercicio e conclusao copiavel;
+- modo **Resolucao Guiada - Lista 11** para quando o aluno esta cansado: o app resolve a lista passo a passo, com imagem do exercicio, conclusao copiavel e blocos curtos explicando de onde saem trincas unicas, variaveis livres e parametros como \(t\);
 - uma trilha unica, em ordem, focada apenas na Lista 11;
 - nada de campo de escrita no caminho principal;
 - interacao por cliques A/B/C/D;

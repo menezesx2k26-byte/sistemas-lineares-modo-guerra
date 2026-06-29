@@ -928,7 +928,11 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Agora o caso m=2",
         body: "Como 2 nao e -8, esse caso tem uma unica solucao. Escalonando o sistema numerico, obtemos:",
-        math: String.raw`\[(x_1,x_2,x_3)=(1,-1,1)\]`
+        math: String.raw`\[(x_1,x_2,x_3)=(1,-1,1)\]`,
+        note: String.raw`<strong>De onde saiu essa trinca?</strong>
+          <p>Agora \(m\) virou numero fixo: \(m=2\). O sistema numerico e escalonado e cada variavel fica presa a um valor.</p>
+          <div class="math-box compact">\[x_1=1,\quad x_2=-1,\quad x_3=1\]</div>
+          <p>Sem variavel livre, a solucao e uma unica trinca.</p>`
       },
       {
         title: "Conferencia rapida",
@@ -938,7 +942,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Conclusao copiavel",
         body: "Feche assim:",
-        math: String.raw`\[m\neq-8\Rightarrow\text{solucao unica. Para }m=2,\ S=\{(1,-1,1)\}.\]`
+        math: String.raw`\[m\neq-8\Rightarrow\text{solucao unica. Para }m=2,\ S=\{(1,-1,1)\}.\]`,
+        note: String.raw`<strong>Como ler \(S=\{(1,-1,1)\}\)?</strong>
+          <p>As chaves indicam o conjunto solucao. A trinca diz \(x_1=1,\ x_2=-1,\ x_3=1\). Como nao sobrou variavel livre, ha solucao unica.</p>`
       }
     ]
   },
@@ -960,12 +966,22 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Caso alpha = 0",
         body: "Como 0 nao zera o determinante, ha solucao unica. O escalonamento/substituicao da:",
-        math: String.raw`\[\alpha=0\Rightarrow (x_1,x_2,x_3)=(2,1,2)\]`
+        math: String.raw`\[\alpha=0\Rightarrow (x_1,x_2,x_3)=(2,1,2)\]`,
+        note: String.raw`<strong>De onde saiu essa trinca?</strong>
+          <p>Com \(\alpha=0\), o determinante nao zera. O escalonamento determina todas as variaveis:</p>
+          <div class="math-box compact">\[x_1=2,\quad x_2=1,\quad x_3=2\]</div>
+          <p>Sem variavel livre, isso e uma solucao unica.</p>`
       },
       {
         title: "Caso alpha = 1",
         body: "Aqui o determinante zera, mas nao aparece contradicao. Sobra variavel livre.",
-        math: String.raw`\[\alpha=1\Rightarrow x_2=1,\quad x_3=t,\quad x_1=2-t\]`
+        math: String.raw`\[\alpha=1\Rightarrow x_2=1,\quad x_3=t,\quad x_1=2-t\]`,
+        note: String.raw`<strong>De onde saiu o \(t\)?</strong>
+          <p>Depois do escalonamento, nao ha pivo para \(x_3\). A equacao \(x_1+x_3=2\) nao fixa \(x_1\) e \(x_3\) separadamente.</p>
+          <div class="math-box compact">\[x_3=t,\quad x_1+t=2,\quad x_1=2-t\]</div>
+          <p>Como \(t\in\mathbb R\), cada valor de \(t\) gera uma trinca diferente.</p>
+          <div class="math-box compact">\[S=\{(2-t,1,t):t\in\mathbb R\}\]</div>
+          <div class="mini-examples"><span>\(t=0\Rightarrow(2,1,0)\)</span><span>\(t=1\Rightarrow(1,1,1)\)</span><span>\(t=2\Rightarrow(0,1,2)\)</span></div>`
       },
       {
         title: "Caso alpha = -1",
@@ -1002,7 +1018,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Caso especial",
         body: "Quando k=-3, precisa testar a matriz aumentada. O escalonamento gera uma linha contraditoria.",
-        math: String.raw`\[[0,\ 0,\ 0\ |\ -3]\Rightarrow 0=-3\Rightarrow SI\]`
+        math: String.raw`\[[0,\ 0,\ 0\ |\ -3]\Rightarrow 0=-3\Rightarrow SI\]`,
+        note: String.raw`<strong>Por que isso e SI?</strong>
+          <p>A linha \([0,0,0|-3]\) significa \(0=-3\). Isso e contradicao: nenhuma trinca consegue satisfazer essa linha.</p>`
       },
       {
         title: "Existe SPI?",
@@ -1012,12 +1030,18 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Caso k = 0",
         body: "Agora resolvemos a parte numerica pedida no item b.",
-        math: String.raw`\[k=0\Rightarrow S=\{(0,2,-1)\}\]`
+        math: String.raw`\[k=0\Rightarrow S=\{(0,2,-1)\}\]`,
+        note: String.raw`<strong>De onde saiu essa trinca?</strong>
+          <p>Agora \(k\) virou numero fixo: \(k=0\). O sistema numerico e escalonado, e todas as variaveis ficam determinadas.</p>
+          <div class="math-box compact">\[x_1=0,\quad x_2=2,\quad x_3=-1\]</div>
+          <p>Entao \(S=\{(0,2,-1)\}\): uma unica trinca, sem variavel livre.</p>`
       },
       {
         title: "Conclusao copiavel",
         body: "Essa e a resposta final enxuta e completa.",
-        math: String.raw`\[k\neq-3:\ SPD;\quad k=-3:\ SI;\quad \text{nao ha SPI};\quad k=0:\ S=\{(0,2,-1)\}.\]`
+        math: String.raw`\[k\neq-3:\ SPD;\quad k=-3:\ SI;\quad \text{nao ha SPI};\quad k=0:\ S=\{(0,2,-1)\}.\]`,
+        note: String.raw`<strong>Como ler \(S=\{(0,2,-1)\}\)?</strong>
+          <p>Isso quer dizer \(x_1=0,\ x_2=2,\ x_3=-1\). Como cada variavel recebeu valor fixo, o caso \(k=0\) tem solucao unica.</p>`
       }
     ]
   },
@@ -1039,7 +1063,12 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Solução geral para alpha = 0",
         body: "Com alpha=0, sobra variavel livre. Chamando essa variavel de t:",
-        math: String.raw`\[(x_1,x_2,x_3)=t(-1,1,1)\]`
+        math: String.raw`\[(x_1,x_2,x_3)=t(-1,1,1)\]`,
+        note: String.raw`<strong>Por que sobra variavel livre?</strong>
+          <p>Quando \(\alpha=0\), o determinante zera e falta pivo. A variavel livre pode receber qualquer valor real; chamamos esse valor de \(t\).</p>
+          <div class="math-box compact">\[x_3=t,\quad x_1=-t,\quad x_2=t\]</div>
+          <p>Por isso a familia fica \((x_1,x_2,x_3)=t(-1,1,1)\).</p>
+          <div class="mini-examples"><span>\(t=0\Rightarrow(0,0,0)\)</span><span>\(t=1\Rightarrow(-1,1,1)\)</span><span>\(t=2\Rightarrow(-2,2,2)\)</span></div>`
       },
       {
         title: "Solução particular",
@@ -1049,7 +1078,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Conclusao copiavel",
         body: "Feche sem esquecer a trivial e a nao trivial.",
-        math: String.raw`\[\alpha=0\Rightarrow S=\{t(-1,1,1):t\in\mathbb R\};\quad \text{particular }(-1,1,1).\]`
+        math: String.raw`\[\alpha=0\Rightarrow S=\{t(-1,1,1):t\in\mathbb R\};\quad \text{particular }(-1,1,1).\]`,
+        note: String.raw`<strong>Como ler esse conjunto solucao?</strong>
+          <p>\(S=\{t(-1,1,1):t\in\mathbb R\}\) significa que \(t\) pode ser qualquer real. Por isso existem infinitas solucoes; \((-1,1,1)\) e uma delas, quando \(t=1\).</p>`
       }
     ]
   },
@@ -1076,7 +1107,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Resposta final",
         body: "Para ter apenas a trivial, precisamos ficar fora desses dois valores.",
-        math: String.raw`\[m\neq0\quad \text{e}\quad m\neq3\]`
+        math: String.raw`\[m\neq0\quad \text{e}\quad m\neq3\]`,
+        note: String.raw`<strong>Por que so a trivial?</strong>
+          <p>Se \(m\neq0\) e \(m\neq3\), o determinante nao zera. Entao ha pivo para todas as variaveis e nenhuma variavel livre. No homogeneo, isso deixa apenas \(\vec{x}=\vec{0}\).</p>`
       }
     ]
   }
@@ -6525,6 +6558,7 @@ function renderGuidedLista11() {
           <h2>${step.title}</h2>
           <p>${step.body}</p>
           <div class="math-box">${step.math}</div>
+          ${step.note ? `<aside class="guided-note">${step.note}</aside>` : ""}
         </div>
       </article>
 
