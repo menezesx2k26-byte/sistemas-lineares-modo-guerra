@@ -6,6 +6,7 @@ App estatico, mobile-first, para matar a Lista 11 de Sistemas Lineares em uma tr
 
 A experiencia principal agora e **Lista 11 Desespero**:
 
+- modo **Resolucao Guiada - Lista 11** para quando o aluno esta cansado: o app resolve a lista passo a passo, com imagem do exercicio e conclusao copiavel;
 - uma trilha unica, em ordem, focada apenas na Lista 11;
 - nada de campo de escrita no caminho principal;
 - interacao por cliques A/B/C/D;
@@ -14,6 +15,8 @@ A experiencia principal agora e **Lista 11 Desespero**:
 - distratores baseados em erros reais e plausiveis: erro de sinal, caso critico invertido, `det=0 -> SPI`, esquecer caso especial, confundir homogeneo com impossivel, resolver valor numerico sem discutir parametro;
 - visual novo, mais vivo, com mapa de progresso, botoes grandes e feedback imediato;
 - Folha em Branco e Grimorio continuam como modos auxiliares, mas nao baguncam a trilha principal.
+
+As imagens dos exercicios foram extraidas do PDF `lista de exercicios 11.pdf` e salvas em `assets/lista11/` como recortes leves por exercicio.
 
 Resumo da trilha:
 

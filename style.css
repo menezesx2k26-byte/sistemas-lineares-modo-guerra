@@ -2208,6 +2208,85 @@ body[data-focus-mode="blank"] .stats {
   display: grid;
 }
 
+.exercise-snapshot {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.exercise-snapshot figcaption {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.exercise-snapshot img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.guided-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.guided-hero,
+.guided-board,
+.guided-step-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.guided-hero {
+  padding: 1rem;
+}
+
+.guided-hero h1 {
+  max-width: 12ch;
+  font-size: clamp(2rem, 11vw, 4.8rem);
+  line-height: 0.94;
+}
+
+.guided-board {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.guided-step-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 82%, var(--panic-yellow)), var(--surface));
+}
+
+.guided-step-card h2 {
+  font-size: clamp(1.6rem, 7vw, 3rem);
+}
+
+.guided-step-card p {
+  font-size: clamp(1rem, 3.4vw, 1.2rem);
+  font-weight: 760;
+}
+
+.guided-controls {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 0.65rem;
+}
+
+.guided-controls button:last-child {
+  grid-column: 1 / -1;
+}
+
 .result-burst {
   padding: 1rem;
 }
@@ -2229,6 +2308,19 @@ body[data-focus-mode="blank"] .stats {
 
   .despair-choices {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .guided-board {
+    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+
+  .guided-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .guided-controls button:last-child {
+    grid-column: auto;
   }
 }
 

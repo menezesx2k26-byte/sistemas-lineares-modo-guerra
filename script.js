@@ -128,6 +128,7 @@ const PAGE_TITLES = {
   home: "Sistemas Lineares | Modo Guerra",
   desespero: "Lista 11 Desespero | Sistemas Lineares",
   desesperoResult: "Resultado Lista 11 Desespero | Sistemas Lineares",
+  guidedLista11: "Resolucao Guiada Lista 11 | Sistemas Lineares",
   board: "Quadro de Sistemas Lineares | Modo Guerra",
   diagnostic: "Diagnostico de Sistemas Lineares | Modo Guerra",
   bossFinalBoard: "Boss Final de Sistemas Lineares | Modo Guerra",
@@ -863,6 +864,221 @@ const LISTA11_DESESPERO = [
       desChoice("D) Resolver o caso numerico pedido ja basta, porque a discussao por parametro e so justificativa extra.", false, "Na Lista 11, discutir parametro e parte central do enunciado, nao enfeite.", "conclusion")
     ],
     solution: "Regra-mãe: caso geral, caso especial, teste de consistencia, conclusao formal."
+  }
+];
+
+const LISTA11_GUIDED_RESOLUTION = [
+  {
+    id: "guided-l11-1a",
+    title: "Exercicio 1(a) - discutir \\(\\lambda\\)",
+    image: "assets/lista11/ex1a.png",
+    steps: [
+      {
+        title: "O que a questao pede?",
+        body: "Discutir o sistema significa dizer para quais valores do parametro ha SPD, SPI ou SI.",
+        math: String.raw`\[\begin{cases}\lambda x+2y=\lambda-1\\2x+4y=3\lambda\end{cases}\]`
+      },
+      {
+        title: "Radar do caso critico",
+        body: "Como o sistema e 2x2, olhamos o determinante da matriz dos coeficientes.",
+        math: String.raw`\[A=\begin{pmatrix}\lambda&2\\2&4\end{pmatrix},\qquad \det(A)=4\lambda-4=4(\lambda-1)\]`
+      },
+      {
+        title: "Caso geral",
+        body: "Se o determinante nao zera, ha pivo para as duas incognitas. Entao o sistema tem solucao unica.",
+        math: String.raw`\[\lambda\neq1\Rightarrow \det(A)\neq0\Rightarrow SPD\]`
+      },
+      {
+        title: "Caso especial",
+        body: "Agora substituimos o valor que zera o determinante. Nao da para chamar de SPI sem testar.",
+        math: String.raw`\[\lambda=1:\quad \begin{cases}x+2y=0\\2x+4y=3\end{cases}\]`
+      },
+      {
+        title: "Contradicao",
+        body: "A esquerda da segunda equacao e o dobro da primeira, mas o lado direito nao acompanha. Se dobrasse a primeira, o lado direito deveria ser 0, nao 3.",
+        math: String.raw`\[2(x+2y=0)\Rightarrow 2x+4y=0\neq3\]`
+      },
+      {
+        title: "Conclusao copiavel",
+        body: "Para responder bonito na prova:",
+        math: String.raw`\[\lambda\neq1\Rightarrow SPD.\qquad \lambda=1\Rightarrow SI.\]`
+      }
+    ]
+  },
+  {
+    id: "guided-l11-2",
+    title: "Exercicio 2 - parametro \\(m\\) e caso \\(m=2\\)",
+    image: "assets/lista11/ex2.png",
+    steps: [
+      {
+        title: "O que a questao pede?",
+        body: "Duas tarefas: achar quando ha solucao unica e depois resolver o caso numerico m=2 por escalonamento.",
+        math: String.raw`\[A=\begin{pmatrix}m&1&1\\2&-1&2\\4&-1&1\end{pmatrix},\qquad \vec b=\begin{pmatrix}2\\5\\6\end{pmatrix}\]`
+      },
+      {
+        title: "Determinante como radar",
+        body: "Solucao unica em sistema quadrado acontece quando o determinante nao zera.",
+        math: String.raw`\[\det(A)=m+8\]`
+      },
+      {
+        title: "Classificacao do item a",
+        body: "O determinante zera em m=-8. Fora disso, existe solucao unica.",
+        math: String.raw`\[m+8\neq0\Rightarrow m\neq-8\Rightarrow SPD\]`
+      },
+      {
+        title: "Agora o caso m=2",
+        body: "Como 2 nao e -8, esse caso tem uma unica solucao. Escalonando o sistema numerico, obtemos:",
+        math: String.raw`\[(x_1,x_2,x_3)=(1,-1,1)\]`
+      },
+      {
+        title: "Conferencia rapida",
+        body: "A conferencia evita erro de sinal.",
+        math: String.raw`\[\begin{pmatrix}2&1&1\\2&-1&2\\4&-1&1\end{pmatrix}\begin{pmatrix}1\\-1\\1\end{pmatrix}=\begin{pmatrix}2\\5\\6\end{pmatrix}\]`
+      },
+      {
+        title: "Conclusao copiavel",
+        body: "Feche assim:",
+        math: String.raw`\[m\neq-8\Rightarrow\text{solucao unica. Para }m=2,\ S=\{(1,-1,1)\}.\]`
+      }
+    ]
+  },
+  {
+    id: "guided-l11-3",
+    title: "Exercicio 3 - casos \\(\\alpha=0,1,-1\\)",
+    image: "assets/lista11/ex3.png",
+    steps: [
+      {
+        title: "O que a questao quer provar?",
+        body: "Ela ja diz os tres resultados esperados. Seu trabalho e justificar por escalonamento/determinante.",
+        math: String.raw`\[\alpha=0\Rightarrow SPD,\quad \alpha=1\Rightarrow SPI,\quad \alpha=-1\Rightarrow SI\]`
+      },
+      {
+        title: "Valores criticos",
+        body: "O determinante mostra quando a classificacao pode mudar.",
+        math: String.raw`\[\det(A)=9(\alpha-1)(\alpha+1)\]`
+      },
+      {
+        title: "Caso alpha = 0",
+        body: "Como 0 nao zera o determinante, ha solucao unica. O escalonamento/substituicao da:",
+        math: String.raw`\[\alpha=0\Rightarrow (x_1,x_2,x_3)=(2,1,2)\]`
+      },
+      {
+        title: "Caso alpha = 1",
+        body: "Aqui o determinante zera, mas nao aparece contradicao. Sobra variavel livre.",
+        math: String.raw`\[\alpha=1\Rightarrow x_2=1,\quad x_3=t,\quad x_1=2-t\]`
+      },
+      {
+        title: "Caso alpha = -1",
+        body: "Aqui o caso singular gera contradicao: a mesma variavel ficaria obrigada a assumir valores incompatíveis.",
+        math: String.raw`\[\alpha=-1\Rightarrow SI\]`
+      },
+      {
+        title: "Conclusao copiavel",
+        body: "Escreva por casos, sem misturar det zero com SPI automatico.",
+        math: String.raw`\[\alpha=0:\ SPD,\ S=\{(2,1,2)\};\quad \alpha=1:\ SPI;\quad \alpha=-1:\ SI.\]`
+      }
+    ]
+  },
+  {
+    id: "guided-l11-4",
+    title: "Exercicio 4 - parametro \\(k\\)",
+    image: "assets/lista11/ex4.png",
+    steps: [
+      {
+        title: "O que a questao pede?",
+        body: "Discutir k em tres classificacoes e depois resolver o caso k=0.",
+        math: String.raw`\[SPD,\ SPI,\ SI,\quad \text{e depois } k=0.\]`
+      },
+      {
+        title: "Valor critico",
+        body: "O determinante indica o caso que precisa ser separado.",
+        math: String.raw`\[\det(A)=-2(k+3)\Rightarrow k=-3\]`
+      },
+      {
+        title: "Caso geral",
+        body: "Fora do valor critico, o determinante nao zera. Logo ha solucao unica.",
+        math: String.raw`\[k\neq-3\Rightarrow SPD\]`
+      },
+      {
+        title: "Caso especial",
+        body: "Quando k=-3, precisa testar a matriz aumentada. O escalonamento gera uma linha contraditoria.",
+        math: String.raw`\[[0,\ 0,\ 0\ |\ -3]\Rightarrow 0=-3\Rightarrow SI\]`
+      },
+      {
+        title: "Existe SPI?",
+        body: "Nao. O unico caso singular e k=-3, mas ele deu contradicao. Entao nao sobra caso para infinitas solucoes.",
+        math: String.raw`\[\text{Nao ha valor de }k\text{ para SPI.}\]`
+      },
+      {
+        title: "Caso k = 0",
+        body: "Agora resolvemos a parte numerica pedida no item b.",
+        math: String.raw`\[k=0\Rightarrow S=\{(0,2,-1)\}\]`
+      },
+      {
+        title: "Conclusao copiavel",
+        body: "Essa e a resposta final enxuta e completa.",
+        math: String.raw`\[k\neq-3:\ SPD;\quad k=-3:\ SI;\quad \text{nao ha SPI};\quad k=0:\ S=\{(0,2,-1)\}.\]`
+      }
+    ]
+  },
+  {
+    id: "guided-l11-5",
+    title: "Exercicio 5 - homogeneo com \\(\\alpha\\)",
+    image: "assets/lista11/ex5.png",
+    steps: [
+      {
+        title: "Primeira ideia",
+        body: "Sistema homogeneo nunca e impossivel, porque o vetor zero sempre resolve.",
+        math: String.raw`\[A\vec{x}=\vec{0}\Rightarrow \vec{x}=\vec{0}\text{ e solucao trivial.}\]`
+      },
+      {
+        title: "Quando ha infinitas?",
+        body: "No homogeneo quadrado, solucoes nao triviais aparecem quando o determinante zera.",
+        math: String.raw`\[\det(A)=3\alpha\Rightarrow \alpha=0\]`
+      },
+      {
+        title: "Solução geral para alpha = 0",
+        body: "Com alpha=0, sobra variavel livre. Chamando essa variavel de t:",
+        math: String.raw`\[(x_1,x_2,x_3)=t(-1,1,1)\]`
+      },
+      {
+        title: "Solução particular",
+        body: "O enunciado pede fazer variaveis livres iguais a 1. Entao use t=1.",
+        math: String.raw`\[t=1\Rightarrow (-1,1,1)\]`
+      },
+      {
+        title: "Conclusao copiavel",
+        body: "Feche sem esquecer a trivial e a nao trivial.",
+        math: String.raw`\[\alpha=0\Rightarrow S=\{t(-1,1,1):t\in\mathbb R\};\quad \text{particular }(-1,1,1).\]`
+      }
+    ]
+  },
+  {
+    id: "guided-l11-6",
+    title: "Exercicio 6 - homogeneo com \\(m\\)",
+    image: "assets/lista11/ex6.png",
+    steps: [
+      {
+        title: "O que significa apenas trivial?",
+        body: "Quer dizer que a unica solucao e o vetor zero. Em sistema homogeneo quadrado, isso acontece quando o determinante nao zera.",
+        math: String.raw`\[\vec{x}=\vec{0}\text{ apenas}\iff \det(A)\neq0\]`
+      },
+      {
+        title: "Determinante",
+        body: "O determinante fatorado mostra os valores proibidos.",
+        math: String.raw`\[\det(A)=3m(m-3)\]`
+      },
+      {
+        title: "Valores que zeram",
+        body: "Se m=0 ou m=3, o determinante zera e podem aparecer solucoes nao triviais.",
+        math: String.raw`\[3m(m-3)=0\Rightarrow m=0\text{ ou }m=3\]`
+      },
+      {
+        title: "Resposta final",
+        body: "Para ter apenas a trivial, precisamos ficar fora desses dois valores.",
+        math: String.raw`\[m\neq0\quad \text{e}\quad m\neq3\]`
+      }
+    ]
   }
 ];
 
@@ -6054,6 +6270,25 @@ function desesperoChoiceOrder(item, attempt = desesperoState()) {
   return order;
 }
 
+function desesperoExerciseImage(item = {}) {
+  const map = [
+    ["d11-1a", "assets/lista11/ex1a.png"],
+    ["d11-2", "assets/lista11/ex2.png"],
+    ["d11-3", "assets/lista11/ex3.png"],
+    ["d11-4", "assets/lista11/ex4.png"],
+    ["d11-5", "assets/lista11/ex5.png"],
+    ["d11-6", "assets/lista11/ex6.png"]
+  ];
+  const found = map.find(([prefix]) => item.id?.startsWith(prefix));
+  if (!found) return "";
+  return `
+    <figure class="exercise-snapshot">
+      <figcaption>Imagem do exercicio no PDF</figcaption>
+      <img src="${found[1]}" alt="Recorte do ${item.chapter} da Lista 11" loading="lazy">
+    </figure>
+  `;
+}
+
 function desesperoProgress() {
   const progress = desesperoState();
   const index = Math.min(progress.index || 0, LISTA11_DESESPERO.length);
@@ -6075,8 +6310,8 @@ function desesperoHome() {
           <div class="bar"><span style="width:${percent}%"></span></div>
         </div>
         <div class="actions">
-          <button class="primary big-cta" type="button" data-mode="desespero">${percent ? "Continuar matando a Lista 11" : "Comecar modo desespero"}</button>
-          <button class="secondary big-cta" type="button" data-des-reset>Reiniciar trilha</button>
+          <button class="primary big-cta" type="button" data-mode="guidedLista11">Estou cansado: resolver comigo</button>
+          <button class="secondary big-cta" type="button" data-mode="desespero">${percent ? "Treinar A/B/C/D" : "Modo A/B/C/D"}</button>
         </div>
       </header>
 
@@ -6097,8 +6332,8 @@ function desesperoHome() {
       </section>
 
       <section class="despair-brief">
-        <h2>Agora o app e uma trilha so</h2>
-        <p>Proxima pancada: <strong>${current.chapter} - ${current.title}</strong>. O app nao pede texto; ele cobra decisao correta e explica por que as outras opcoes matam ponto.</p>
+        <h2>Agora tem modo professor cansado junto com voce</h2>
+        <p>Se voce esta sem energia para conta, entre na <strong>Resolucao Guiada</strong>: eu mostro cada passo logico da Lista 11 ate fechar. Quando respirar, volte para o A/B/C/D.</p>
       </section>
     </section>
   `);
@@ -6137,6 +6372,7 @@ function renderDesesperoStep() {
 
       <article class="despair-paper">
         <span class="step-label">Enunciado cru</span>
+        ${desesperoExerciseImage(item)}
         <div class="math-box">${item.statement}</div>
         <p class="despair-prompt">${item.prompt}</p>
       </article>
@@ -6237,6 +6473,117 @@ function resetDesespero() {
   state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false, seed: Date.now() };
   saveState();
   return desesperoMode(0);
+}
+
+function guidedLista11State() {
+  if (!state.guidedLista11) state.guidedLista11 = { exercise: 0, step: 0, completed: [] };
+  return state.guidedLista11;
+}
+
+function guidedLista11Mode(exerciseIndex = guidedLista11State().exercise || 0, stepIndex = guidedLista11State().step || 0) {
+  const progress = guidedLista11State();
+  const safeExercise = Math.max(0, Math.min(Number(exerciseIndex) || 0, LISTA11_GUIDED_RESOLUTION.length - 1));
+  const exercise = LISTA11_GUIDED_RESOLUTION[safeExercise];
+  const safeStep = Math.max(0, Math.min(Number(stepIndex) || 0, exercise.steps.length - 1));
+  progress.exercise = safeExercise;
+  progress.step = safeStep;
+  state.guidedLista11 = progress;
+  screen = { mode: "guidedLista11", index: safeStep, boss: "mixed", score: 0, errors: [], item: exercise, exerciseIndex: safeExercise };
+  saveState();
+  renderGuidedLista11();
+}
+
+function renderGuidedLista11() {
+  const progress = guidedLista11State();
+  const exercise = LISTA11_GUIDED_RESOLUTION[progress.exercise] || LISTA11_GUIDED_RESOLUTION[0];
+  const step = exercise.steps[progress.step] || exercise.steps[0];
+  const totalStepsBefore = LISTA11_GUIDED_RESOLUTION
+    .slice(0, progress.exercise)
+    .reduce((sum, item) => sum + item.steps.length, 0);
+  const totalSteps = LISTA11_GUIDED_RESOLUTION.reduce((sum, item) => sum + item.steps.length, 0);
+  const globalStep = totalStepsBefore + progress.step + 1;
+  const percent = Math.round((globalStep / totalSteps) * 100);
+  setStage(`
+    <section class="guided-shell">
+      <header class="guided-hero">
+        <span class="pill hot">Resolucao guiada</span>
+        <h1>${exercise.title}</h1>
+        <p>Eu resolvo aos poucos. Voce so acompanha o raciocinio e clica no proximo passo.</p>
+        <div class="panic-meter compact">
+          <span>${percent}% da Lista 11 guiada</span>
+          <div class="bar"><span style="width:${percent}%"></span></div>
+        </div>
+      </header>
+
+      <article class="guided-board">
+        <figure class="exercise-snapshot guided-image">
+          <figcaption>Imagem original do exercicio</figcaption>
+          <img src="${exercise.image}" alt="Recorte do ${exercise.title} na Lista 11" loading="lazy">
+        </figure>
+        <div class="guided-step-card">
+          <span class="step-label">Passo ${progress.step + 1} de ${exercise.steps.length}</span>
+          <h2>${step.title}</h2>
+          <p>${step.body}</p>
+          <div class="math-box">${step.math}</div>
+        </div>
+      </article>
+
+      <nav class="guided-controls" aria-label="Controles da resolucao guiada">
+        <button class="secondary" type="button" data-guided-prev ${progress.exercise === 0 && progress.step === 0 ? "disabled" : ""}>Voltar</button>
+        <button class="primary" type="button" data-guided-next>${progress.exercise === LISTA11_GUIDED_RESOLUTION.length - 1 && progress.step === exercise.steps.length - 1 ? "Fechar Lista 11" : "Proximo passo"}</button>
+        <button class="secondary" type="button" data-mode="desespero">Treinar A/B/C/D</button>
+      </nav>
+    </section>
+  `);
+}
+
+function guidedLista11Next() {
+  const progress = guidedLista11State();
+  const exercise = LISTA11_GUIDED_RESOLUTION[progress.exercise] || LISTA11_GUIDED_RESOLUTION[0];
+  if (progress.step < exercise.steps.length - 1) {
+    progress.step += 1;
+  } else {
+    if (!progress.completed.includes(exercise.id)) progress.completed.push(exercise.id);
+    if (progress.exercise >= LISTA11_GUIDED_RESOLUTION.length - 1) return guidedLista11Result();
+    progress.exercise += 1;
+    progress.step = 0;
+  }
+  state.guidedLista11 = progress;
+  saveState();
+  renderGuidedLista11();
+}
+
+function guidedLista11Prev() {
+  const progress = guidedLista11State();
+  if (progress.step > 0) {
+    progress.step -= 1;
+  } else if (progress.exercise > 0) {
+    progress.exercise -= 1;
+    progress.step = LISTA11_GUIDED_RESOLUTION[progress.exercise].steps.length - 1;
+  }
+  state.guidedLista11 = progress;
+  saveState();
+  renderGuidedLista11();
+}
+
+function guidedLista11Result() {
+  const progress = guidedLista11State();
+  if (!progress.completed.includes("guided-lista11-finish")) progress.completed.push("guided-lista11-finish");
+  state.guidedLista11 = progress;
+  saveState();
+  screen = { mode: "guidedLista11", index: 0, boss: "mixed", score: 0, errors: [], item: null };
+  setStage(`
+    <section class="guided-shell result-burst">
+      <span class="pill hot">Lista 11 guiada fechada</span>
+      <h1>Voce viu o caminho inteiro.</h1>
+      <p>Hoje o objetivo era baixar o panico e enxergar a estrutura: determinante como radar, caso especial, homogêneo, trivial/nao trivial e conclusao por casos.</p>
+      <div class="actions">
+        <button class="primary" type="button" data-mode="desespero">Agora treinar A/B/C/D</button>
+        <button class="secondary" type="button" data-mode="guidedLista11">Rever resolucao guiada</button>
+        <button class="secondary" type="button" data-mode="blankSheet">Folha em Branco</button>
+      </div>
+    </section>
+  `);
 }
 
 function proofMode(mode, index = state.modeProgress?.[mode] || 0) {
@@ -7997,6 +8344,7 @@ function repeat(kind) {
 
 function route(mode) {
   if (mode === "home") return home();
+  if (mode === "guidedLista11") return guidedLista11Mode();
   if (mode === "desespero") return desesperoMode();
   if (mode === "desesperoResult") return desesperoResult();
   if (mode === "continue") {
@@ -8102,6 +8450,10 @@ document.addEventListener("click", (event) => {
   if (event.target.closest("[data-des-next]")) return nextDesespero();
 
   if (event.target.closest("[data-des-reset]")) return resetDesespero();
+
+  if (event.target.closest("[data-guided-next]")) return guidedLista11Next();
+
+  if (event.target.closest("[data-guided-prev]")) return guidedLista11Prev();
 
   const boardGo = event.target.closest("[data-board-go]");
   if (boardGo) {
