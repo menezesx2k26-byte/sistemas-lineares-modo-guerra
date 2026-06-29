@@ -32,6 +32,7 @@ assert(script.includes("desesperoChoiceOrder") && script.includes("hashDesespero
 assert(script.includes("LISTA11_GUIDED_RESOLUTION") && script.includes("guidedLista11Mode"), "guided Lista 11 resolution mode exists");
 assert(script.includes("data-guided-next") && script.includes("data-guided-prev"), "guided mode has next and previous controls");
 assert(script.includes("De onde saiu o") && script.includes("mini-examples"), "guided mode explains free variables and parametric examples");
+assert(script.includes("conjunto vazio") && script.includes("determinante zero") && script.includes("reta de solucoes"), "guided mode explains empty sets, determinant zero, and homogeneous solution families");
 assert(script.includes("assets/lista11/ex4.png") && script.includes("Imagem original do exercicio"), "guided/despair modes reference exercise images");
 assert(script.includes("Feedback por objetivo"), "diagnostic result gives formative feedback");
 assert(script.includes("errorSummaryBlock") && script.includes("Pontos de revisao do diagnostico"), "diagnostic has accessible review summary");

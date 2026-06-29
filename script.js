@@ -881,7 +881,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Radar do caso critico",
         body: "Como o sistema e 2x2, olhamos o determinante da matriz dos coeficientes.",
-        math: String.raw`\[A=\begin{pmatrix}\lambda&2\\2&4\end{pmatrix},\qquad \det(A)=4\lambda-4=4(\lambda-1)\]`
+        math: String.raw`\[A=\begin{pmatrix}\lambda&2\\2&4\end{pmatrix},\qquad \det(A)=4\lambda-4=4(\lambda-1)\]`,
+        note: String.raw`<strong>O que significa zerar o determinante?</strong>
+          <p>Se \(\det(A)\neq0\), ha pivo para todas as incognitas: SPD. Se \(\det(A)=0\), nao conclua SPI ainda; em sistema nao homogeneo, precisa testar contradicao ou variavel livre.</p>`
       },
       {
         title: "Caso geral",
@@ -896,7 +898,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Contradicao",
         body: "A esquerda da segunda equacao e o dobro da primeira, mas o lado direito nao acompanha. Se dobrasse a primeira, o lado direito deveria ser 0, nao 3.",
-        math: String.raw`\[2(x+2y=0)\Rightarrow 2x+4y=0\neq3\]`
+        math: String.raw`\[2(x+2y=0)\Rightarrow 2x+4y=0\neq3\]`,
+        note: String.raw`<strong>Por que nao tem solucao?</strong>
+          <p>O sistema exige ao mesmo tempo \(2x+4y=0\) e \(2x+4y=3\). Isso equivale a uma linha \(0=3\). Portanto \(S=\varnothing\): conjunto vazio, nenhuma solucao.</p>`
       },
       {
         title: "Conclusao copiavel",
@@ -918,7 +922,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Determinante como radar",
         body: "Solucao unica em sistema quadrado acontece quando o determinante nao zera.",
-        math: String.raw`\[\det(A)=m+8\]`
+        math: String.raw`\[\det(A)=m+8\]`,
+        note: String.raw`<strong>Como usar esse radar?</strong>
+          <p>\(\det(A)\neq0\) prende todas as variaveis e da SPD. \(\det(A)=0\) so avisa: este valor precisa ser separado e investigado.</p>`
       },
       {
         title: "Classificacao do item a",
@@ -961,7 +967,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Valores criticos",
         body: "O determinante mostra quando a classificacao pode mudar.",
-        math: String.raw`\[\det(A)=9(\alpha-1)(\alpha+1)\]`
+        math: String.raw`\[\det(A)=9(\alpha-1)(\alpha+1)\]`,
+        note: String.raw`<strong>Por que dois casos especiais?</strong>
+          <p>O determinante zera em \(\alpha=1\) e \(\alpha=-1\). Fora deles, ha SPD. Neles, o sistema perdeu pivo e voce precisa escalonar: pode virar SPI ou SI.</p>`
       },
       {
         title: "Caso alpha = 0",
@@ -986,12 +994,16 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Caso alpha = -1",
         body: "Aqui o caso singular gera contradicao: a mesma variavel ficaria obrigada a assumir valores incompatíveis.",
-        math: String.raw`\[\alpha=-1\Rightarrow SI\]`
+        math: String.raw`\[\alpha=-1\Rightarrow SI\]`,
+        note: String.raw`<strong>Por que nao tem solucao?</strong>
+          <p>O escalonamento obriga a mesma variavel a ter valores diferentes. Isso e contradicao, como uma linha \(0=5\). Logo \(S=\varnothing\), isto e, conjunto solucao vazio.</p>`
       },
       {
         title: "Conclusao copiavel",
         body: "Escreva por casos, sem misturar det zero com SPI automatico.",
-        math: String.raw`\[\alpha=0:\ SPD,\ S=\{(2,1,2)\};\quad \alpha=1:\ SPI;\quad \alpha=-1:\ SI.\]`
+        math: String.raw`\[\alpha=0:\ SPD,\ S=\{(2,1,2)\};\quad \alpha=1:\ SPI;\quad \alpha=-1:\ SI.\]`,
+        note: String.raw`<strong>Como ler os finais?</strong>
+          <p>\(S=\{(2,1,2)\}\) quer dizer \(x_1=2,\ x_2=1,\ x_3=2\): uma unica trinca. Em \(\alpha=1\), ha variavel livre e infinitas solucoes. Em \(\alpha=-1\), ha contradicao e \(S=\varnothing\).</p>`
       }
     ]
   },
@@ -1008,7 +1020,9 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Valor critico",
         body: "O determinante indica o caso que precisa ser separado.",
-        math: String.raw`\[\det(A)=-2(k+3)\Rightarrow k=-3\]`
+        math: String.raw`\[\det(A)=-2(k+3)\Rightarrow k=-3\]`,
+        note: String.raw`<strong>Por que separar \(k=-3\)?</strong>
+          <p>Esse e o valor que zera o determinante. Fora dele, ha SPD. Nele, nao da para concluir sozinho: precisamos olhar a matriz escalonada.</p>`
       },
       {
         title: "Caso geral",
@@ -1020,7 +1034,7 @@ const LISTA11_GUIDED_RESOLUTION = [
         body: "Quando k=-3, precisa testar a matriz aumentada. O escalonamento gera uma linha contraditoria.",
         math: String.raw`\[[0,\ 0,\ 0\ |\ -3]\Rightarrow 0=-3\Rightarrow SI\]`,
         note: String.raw`<strong>Por que isso e SI?</strong>
-          <p>A linha \([0,0,0|-3]\) significa \(0=-3\). Isso e contradicao: nenhuma trinca consegue satisfazer essa linha.</p>`
+          <p>A linha \([0,0,0|-3]\) significa \(0=-3\). Isso e contradicao: nenhuma trinca consegue satisfazer essa linha. Logo \(S=\varnothing\), conjunto vazio.</p>`
       },
       {
         title: "Existe SPI?",
@@ -1053,12 +1067,16 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Primeira ideia",
         body: "Sistema homogeneo nunca e impossivel, porque o vetor zero sempre resolve.",
-        math: String.raw`\[A\vec{x}=\vec{0}\Rightarrow \vec{x}=\vec{0}\text{ e solucao trivial.}\]`
+        math: String.raw`\[A\vec{x}=\vec{0}\Rightarrow \vec{x}=\vec{0}\text{ e solucao trivial.}\]`,
+        note: String.raw`<strong>O que e homogeneo aqui?</strong>
+          <p>O lado direito e zero. Entao \((0,0,0)\) sempre funciona. A pergunta da Lista 11 nao e se existe solucao; e quando existe solucao nao trivial alem da zero.</p>`
       },
       {
         title: "Quando ha infinitas?",
         body: "No homogeneo quadrado, solucoes nao triviais aparecem quando o determinante zera.",
-        math: String.raw`\[\det(A)=3\alpha\Rightarrow \alpha=0\]`
+        math: String.raw`\[\det(A)=3\alpha\Rightarrow \alpha=0\]`,
+        note: String.raw`<strong>Por que \(\det(A)=0\) muda tudo?</strong>
+          <p>No homogeneo, determinante zero significa falta de pivo. Como a coluna direita e zero, nao aparece contradicao tipo \(0=5\). Sobra variavel livre e, com ela, infinitas solucoes.</p>`
       },
       {
         title: "Solução geral para alpha = 0",
@@ -1067,13 +1085,15 @@ const LISTA11_GUIDED_RESOLUTION = [
         note: String.raw`<strong>Por que sobra variavel livre?</strong>
           <p>Quando \(\alpha=0\), o determinante zera e falta pivo. A variavel livre pode receber qualquer valor real; chamamos esse valor de \(t\).</p>
           <div class="math-box compact">\[x_3=t,\quad x_1=-t,\quad x_2=t\]</div>
-          <p>Por isso a familia fica \((x_1,x_2,x_3)=t(-1,1,1)\).</p>
+          <p>Assim \((x_1,x_2,x_3)=(-t,t,t)\). Colocando \(t\) em evidencia: \(t(-1,1,1)\). E uma reta de solucoes passando pela origem.</p>
           <div class="mini-examples"><span>\(t=0\Rightarrow(0,0,0)\)</span><span>\(t=1\Rightarrow(-1,1,1)\)</span><span>\(t=2\Rightarrow(-2,2,2)\)</span></div>`
       },
       {
         title: "Solução particular",
         body: "O enunciado pede fazer variaveis livres iguais a 1. Entao use t=1.",
-        math: String.raw`\[t=1\Rightarrow (-1,1,1)\]`
+        math: String.raw`\[t=1\Rightarrow (-1,1,1)\]`,
+        note: String.raw`<strong>O que significa escolher \(t=1\)?</strong>
+          <p>A variavel livre podia ser qualquer real. O exercicio pede uma solucao particular; escolher \(t=1\) pega uma trinca concreta da familia: \((-1,1,1)\).</p>`
       },
       {
         title: "Conclusao copiavel",
@@ -1097,12 +1117,16 @@ const LISTA11_GUIDED_RESOLUTION = [
       {
         title: "Determinante",
         body: "O determinante fatorado mostra os valores proibidos.",
-        math: String.raw`\[\det(A)=3m(m-3)\]`
+        math: String.raw`\[\det(A)=3m(m-3)\]`,
+        note: String.raw`<strong>O que estamos procurando?</strong>
+          <p>A pergunta e quando existe apenas a trivial. Entao queremos \(\det(A)\neq0\), porque isso garante pivo em todas as variaveis e impede variavel livre.</p>`
       },
       {
         title: "Valores que zeram",
         body: "Se m=0 ou m=3, o determinante zera e podem aparecer solucoes nao triviais.",
-        math: String.raw`\[3m(m-3)=0\Rightarrow m=0\text{ ou }m=3\]`
+        math: String.raw`\[3m(m-3)=0\Rightarrow m=0\text{ ou }m=3\]`,
+        note: String.raw`<strong>Por que esses valores saem da resposta?</strong>
+          <p>Em \(m=0\) ou \(m=3\), falta pivo. Como o sistema e homogeneo, isso abre caminho para variavel livre e solucoes nao triviais. Para "apenas trivial", esses valores nao servem.</p>`
       },
       {
         title: "Resposta final",
