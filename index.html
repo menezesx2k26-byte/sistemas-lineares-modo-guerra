@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Tutor gamificado e acessivel para estudar Sistemas Lineares com diagnostico, trilha de estudo, pratica guiada, Boss Final e Grimorio.">
-  <title>Sistemas Lineares | Modo Guerra</title>
-  <link rel="stylesheet" href="style.css?v=blank-v3">
+  <meta name="description" content="Trilha unica de emergencia para matar a Lista 11 de Sistemas Lineares com cliques A/B/C/D, casos, escalonamento e conclusao de prova.">
+  <title>Lista 11 Desespero | Sistemas Lineares</title>
+  <link rel="stylesheet" href="style.css?v=desespero-v1">
   <script>
     window.MathJax = {
       tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]']] },
@@ -13,23 +13,23 @@
     };
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script defer src="script.js?v=blank-v3"></script>
+  <script defer src="script.js?v=desespero-v1"></script>
 </head>
 <body>
-  <a class="skip-link" href="#appStage">Ir para o conteúdo principal</a>
+  <a class="skip-link" href="#appStage">Ir para o conteudo principal</a>
   <div class="app">
     <header class="hud" aria-label="Progresso do estudante">
       <button class="brand-button" type="button" data-action="home" aria-label="Voltar ao menu inicial">
-        <span class="brand-mark">SL</span>
+        <span class="brand-mark">L11</span>
         <span class="brand-copy">
-          <strong>Modo Guerra</strong>
-          <small>Sistemas Lineares</small>
+          <strong>Lista 11</strong>
+          <small>Modo Desespero</small>
         </span>
       </button>
       <div class="hud-actions">
-        <div class="stats" aria-label="Resumo de gamificação">
+        <div class="stats" aria-label="Resumo de progresso">
           <span id="xpStat">0 XP</span>
-          <span id="streakStat">0 sequência</span>
+          <span id="streakStat">0 sequencia</span>
           <span id="medalStat">0 medalhas</span>
         </div>
         <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Alternar para tema escuro">Tema: claro</button>
@@ -38,16 +38,16 @@
 
     <main id="appStage" class="stage" tabindex="-1" aria-live="polite"></main>
 
-    <nav class="bottom-nav" aria-label="Navegação principal">
-      <button type="button" data-mode="home"><strong>Início</strong><small>Visão geral</small></button>
-      <button type="button" data-mode="board"><strong>Quadro</strong><small>Seu progresso</small></button>
-      <button type="button" data-mode="diagnostic"><strong>Diagnóstico</strong><small>Ponto de partida</small></button>
-      <button type="button" data-mode="bossFinalBoard"><strong>Boss</strong><small>Desafio final</small></button>
-      <button type="button" data-mode="grimoire"><strong>Grimório</strong><small>Teoria e exemplos</small></button>
+    <nav class="bottom-nav" aria-label="Navegacao principal">
+      <button type="button" data-mode="home"><strong>Trilha</strong><small>Lista 11</small></button>
+      <button type="button" data-mode="desespero"><strong>Resolver</strong><small>A/B/C/D</small></button>
+      <button type="button" data-mode="blankSheet"><strong>Folha</strong><small>Prova crua</small></button>
+      <button type="button" data-mode="readinessReport"><strong>Risco</strong><small>Prontidao</small></button>
+      <button type="button" data-mode="grimoire"><strong>Grimorio</strong><small>Consulta</small></button>
     </nav>
 
     <footer class="site-footer">
-      <p>Sistemas Lineares — Modo Guerra. O progresso fica salvo neste navegador com localStorage.</p>
+      <p>Lista 11 - Modo Desespero. Progresso salvo neste navegador com localStorage.</p>
     </footer>
   </div>
 </body>

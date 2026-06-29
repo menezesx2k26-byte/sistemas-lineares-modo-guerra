@@ -126,6 +126,8 @@ function typeset() {
 
 const PAGE_TITLES = {
   home: "Sistemas Lineares | Modo Guerra",
+  desespero: "Lista 11 Desespero | Sistemas Lineares",
+  desesperoResult: "Resultado Lista 11 Desespero | Sistemas Lineares",
   board: "Quadro de Sistemas Lineares | Modo Guerra",
   diagnostic: "Diagnostico de Sistemas Lineares | Modo Guerra",
   bossFinalBoard: "Boss Final de Sistemas Lineares | Modo Guerra",
@@ -264,6 +266,8 @@ function renderHud() {
     discussaoSistemasResult: "discussaoSistemas",
     lista11Total: "lista11Total",
     lista11TotalResult: "lista11Total",
+    desespero: "desespero",
+    desesperoResult: "desespero",
     board: "board",
     blankSheet: "board",
     blankSheetCase: "board",
@@ -674,6 +678,193 @@ const ERROR_TYPE_LABELS = {
   pressa: "erro de pressa",
   conclusao: "erro de escrita da conclusao"
 };
+
+function desChoice(text, ok, feedback, errorType = "conceitual") {
+  return { text, ok, feedback, errorType };
+}
+
+const LISTA11_DESESPERO = [
+  {
+    id: "d11-1a-start",
+    chapter: "Exercicio 1(a)",
+    title: "Parametro \\(\\lambda\\): qual e o radar?",
+    kind: "parametro",
+    statement: String.raw`\[\begin{cases}\lambda x+2y=\lambda-1\\2x+4y=3\lambda\end{cases}\]`,
+    prompt: "Voce esta na prova. Qual e o primeiro passo que decide a discussao?",
+    choices: [
+      desChoice("A) Calcular o determinante da matriz dos coeficientes: \\(4(\\lambda-1)\\).", true, "Certo. Sistema 2x2 com parametro: o determinante mostra quando ha pivo para as duas variaveis."),
+      desChoice("B) Dividir a primeira equacao por \\(\\lambda\\) para isolar x.", false, "Perigoso. Antes de dividir por \\(\\lambda\\), voce teria que separar \\(\\lambda=0\\). E isso nem e o radar principal aqui.", "parameterDivision"),
+      desChoice("C) Subtrair as equacoes e concluir SPI.", false, "Apressado. SPI exige ausencia de contradicao e variavel livre. Primeiro ache o valor critico.", "prematureSPI"),
+      desChoice("D) Testar apenas \\(\\lambda=1\\), porque e o unico numero bonito.", false, "Chute com cara de sorte. \\(\\lambda=1\\) aparece porque zera o determinante, nao porque e bonito.", "organization")
+    ],
+    solution: String.raw`A matriz dos coeficientes e \(\begin{pmatrix}\lambda&2\\2&4\end{pmatrix}\). Logo \(\det(A)=4\lambda-4=4(\lambda-1)\).`
+  },
+  {
+    id: "d11-1a-case",
+    chapter: "Exercicio 1(a)",
+    title: "Caso critico \\(\\lambda=1\\)",
+    kind: "classificacao",
+    statement: String.raw`Para \(\lambda=1\): \[\begin{cases}x+2y=0\\2x+4y=3\end{cases}\]`,
+    prompt: "O que acontece no caso especial?",
+    choices: [
+      desChoice("A) SI, porque a segunda esquerda e o dobro da primeira, mas o lado direito nao e.", true, "Certo. Se a primeira diz lado direito 0, o dobro teria lado direito 0, nao 3. Contradicao."),
+      desChoice("B) SPI, porque determinante zero sempre significa infinitas solucoes.", false, "Esse e o golpe baixo da Lista 11. Det zero nao decide SPI/SI em sistema nao homogeneo.", "prematureSPI"),
+      desChoice("C) SPD, porque ha duas equacoes para duas incognitas.", false, "Quantidade de equacoes nao garante pivo. Aqui as linhas de coeficientes ficam dependentes.", "rankDiscussion"),
+      desChoice("D) Nao da para concluir nada, precisa de Cramer.", false, "Nao precisa. A contradicao aparece direto comparando as duas equacoes.", "organization")
+    ],
+    solution: String.raw`Conclusao: \(\lambda\neq1\Rightarrow SPD\). Para \(\lambda=1\Rightarrow SI\).`
+  },
+  {
+    id: "d11-2-det",
+    chapter: "Exercicio 2",
+    title: "Parametro m: achar solucao unica",
+    kind: "parametro",
+    statement: String.raw`\[\begin{pmatrix}m&1&1\\2&-1&2\\4&-1&1\end{pmatrix}\vec{x}=\begin{pmatrix}2\\5\\6\end{pmatrix}\]`,
+    prompt: "Qual caso precisa ser separado antes de resolver?",
+    choices: [
+      desChoice("A) \\(m=-8\\), porque \\(\\det(A)=m+8\\).", true, "Certo. Fora de \\(m=-8\\), ha solucao unica. O caso singular nao pode ser tratado junto."),
+      desChoice("B) \\(m=2\\), porque o enunciado pede resolver esse caso.", false, "O caso \\(m=2\\) e para calcular a solucao depois. O caso critico da discussao e onde o determinante zera.", "organization"),
+      desChoice("C) \\(m=0\\), porque parametro zero sempre e perigoso.", false, "Zero pode ser perigoso, mas aqui o radar e \\(m+8=0\\).", "parameterDivision"),
+      desChoice("D) Nenhum; sistema 3x3 sempre tem solucao unica.", false, "Falso. 3x3 tambem pode perder pivo.", "conceitual")
+    ],
+    solution: String.raw`\(\det(A)=m+8\). Logo ha solucao unica para \(m\neq-8\).`
+  },
+  {
+    id: "d11-2-m2",
+    chapter: "Exercicio 2",
+    title: "Resolver o caso \\(m=2\\)",
+    kind: "execucao",
+    statement: String.raw`No exercicio 2, agora use \(m=2\).`,
+    prompt: "Qual resultado fecha a parte numerica?",
+    choices: [
+      desChoice("A) \\((x_1,x_2,x_3)=(1,-1,1)\\).", true, "Certo. E como \\(2\\neq-8\\), esse caso tem solucao unica."),
+      desChoice("B) \\((1,1,-1)\\), trocando os sinais de \\(x_2\\) e \\(x_3\\).", false, "Erro de sinal. Esse tipo de troca e exatamente o que derruba no escalonamento.", "arithmetic"),
+      desChoice("C) SPI, porque ha parametro no exercicio.", false, "Parametro no enunciado nao significa infinitas solucoes. Para \\(m=2\\), o determinante nao zera.", "prematureSPI"),
+      desChoice("D) SI, porque o vetor \\(b\\) nao e zero.", false, "Nao ser homogeneo nao significa impossivel. O sistema tem uma solucao unica.", "conceitual")
+    ],
+    solution: String.raw`Para \(m=2\), \(S=\{(1,-1,1)\}\).`
+  },
+  {
+    id: "d11-3-critical",
+    chapter: "Exercicio 3",
+    title: "Alpha: dois valores criticos",
+    kind: "parametro",
+    statement: String.raw`\[\begin{cases}x_1+4x_2+\alpha x_3=6\\2x_1-x_2+2\alpha x_3=3\\\alpha x_1+3x_2+x_3=5\end{cases}\]`,
+    prompt: "De onde saem os valores criticos?",
+    choices: [
+      desChoice("A) De \\(\\det(A)=9(\\alpha-1)(\\alpha+1)\\), entao \\(\\alpha=1\\) e \\(\\alpha=-1\\).", true, "Certo. Fora desses valores, \\(\\det(A)\\neq0\\), logo SPD."),
+      desChoice("B) Dos valores pedidos \\(0,1,-1\\), entao todos sao criticos.", false, "\\(\\alpha=0\\) e pedido para resolver/testar, mas nao zera o determinante.", "organization"),
+      desChoice("C) De \\(\\alpha=0\\), porque parametro zero sempre zera a matriz.", false, "Nao aqui. Para \\(\\alpha=0\\), o determinante nao zera e ha solucao unica.", "conceitual"),
+      desChoice("D) Nao existem valores criticos; basta substituir os tres.", false, "Substituir ajuda, mas a discussao por determinante explica por que so \\(1\\) e \\(-1\\) mudam a classificacao.", "determinantMisuse")
+    ],
+    solution: String.raw`\(\det(A)=9(\alpha-1)(\alpha+1)\).`
+  },
+  {
+    id: "d11-3-cases",
+    chapter: "Exercicio 3",
+    title: "Classificar \\(\\alpha=0,1,-1\\)",
+    kind: "classificacao",
+    statement: String.raw`Casos pedidos: \(\alpha=0\), \(\alpha=1\), \(\alpha=-1\).`,
+    prompt: "Qual linha de conclusao esta correta?",
+    choices: [
+      desChoice("A) \\(\\alpha=0\\): SPD com \\((2,1,2)\\); \\(\\alpha=1\\): SPI; \\(\\alpha=-1\\): SI.", true, "Certo. Esse e o resumo que sobrevive na prova."),
+      desChoice("B) \\(\\alpha=0\\): SPI; \\(\\alpha=1\\): SPD; \\(\\alpha=-1\\): SI.", false, "\\(\\alpha=0\\) nao e critico. O determinante nao zera, entao e SPD.", "determinantMisuse"),
+      desChoice("C) \\(\\alpha=1\\) e \\(\\alpha=-1\\): SPI, porque ambos zeram o determinante.", false, "Det zero obriga investigar. Um vira SPI, o outro vira SI.", "prematureSPI"),
+      desChoice("D) Todos sao SPD, porque sao sistemas 3x3.", false, "3x3 nao garante solucao unica. O pivo pode sumir.", "conceitual")
+    ],
+    solution: String.raw`Para \(\alpha=1\), sobra variavel livre sem contradicao. Para \(\alpha=-1\), aparece contradicao.`
+  },
+  {
+    id: "d11-4-critical",
+    chapter: "Exercicio 4",
+    title: "Parametro k: o caso que morde",
+    kind: "parametro",
+    statement: String.raw`\[\begin{cases}x_1+3x_2+x_3=5\\2x_1+4x_2+3x_3=5\\-x_1+x_2+kx_3=2\end{cases}\]`,
+    prompt: "Qual e o caso especial e por que ele nao pode ser engolido pelo caso geral?",
+    choices: [
+      desChoice("A) \\(k=-3\\), porque zera o determinante/pivo; precisa testar separado.", true, "Certo. O caso geral so vale para \\(k\\neq-3\\)."),
+      desChoice("B) \\(k=0\\), porque o enunciado pede resolver esse valor.", false, "\\(k=0\\) e parte numerica. O valor critico da discussao e \\(k=-3\\).", "organization"),
+      desChoice("C) \\(k=-3\\), entao automaticamente SPI.", false, "Nao. Para \\(k=-3\\), o teste gera contradicao, entao SI.", "prematureSPI"),
+      desChoice("D) Nenhum caso; basta resolver para \\(k=0\\).", false, "Isso ignora metade da questao: discutir o sistema em funcao de k.", "conclusion")
+    ],
+    solution: String.raw`\(\det(A)=-2(k+3)\).`
+  },
+  {
+    id: "d11-4-end",
+    chapter: "Exercicio 4",
+    title: "Fechar o exercicio 4",
+    kind: "conclusao",
+    statement: String.raw`Caso especial testado: para \(k=-3\), aparece contradicao. Caso numerico: \(k=0\).`,
+    prompt: "Qual conclusao de prova esta completa?",
+    choices: [
+      desChoice("A) Se \\(k\\neq-3\\), SPD. Se \\(k=-3\\), SI. Nao ha SPI. Para \\(k=0\\), \\(S=\\{(0,2,-1)\\}\\).", true, "Certo. Tem caso geral, caso especial, ausencia de SPI e solucao pedida."),
+      desChoice("B) Se \\(k=-3\\), SPI; se \\(k=0\\), \\((0,2,-1)\\).", false, "Erro central. \\(k=-3\\) gera contradicao, nao infinitas solucoes.", "prematureSPI"),
+      desChoice("C) Para \\(k=0\\), \\((0,2,-1)\\).", false, "Correto, mas incompleto. A questao tambem pede discutir k.", "conclusion"),
+      desChoice("D) \\(k\\neq-3\\) nao tem solucao unica.", false, "Ao contrario: fora do caso critico, determinante diferente de zero garante SPD.", "determinantMisuse")
+    ],
+    solution: String.raw`Modelo: \(k\neq-3\Rightarrow SPD\); \(k=-3\Rightarrow SI\); nao ha SPI; \(k=0\Rightarrow S=\{(0,2,-1)\}\).`
+  },
+  {
+    id: "d11-5-hom",
+    chapter: "Exercicio 5",
+    title: "Homogeneo com alpha",
+    kind: "homogeneo",
+    statement: String.raw`\[\begin{pmatrix}2&1&1\\1&\alpha&1\\1&-1&2\end{pmatrix}\vec{x}=\vec{0}\]`,
+    prompt: "O que o aluno precisa lembrar antes de qualquer conta?",
+    choices: [
+      desChoice("A) Homogeneo sempre tem a solucao trivial; nao pode ser SI.", true, "Certo. O vetor zero sempre satisfaz \\(A\\vec{x}=0\\)."),
+      desChoice("B) Homogeneo e impossivel quando o determinante zera.", false, "Erro grave. Homogeneo nunca e impossivel, porque a solucao zero existe.", "homogeneousConfusion"),
+      desChoice("C) Homogeneo sempre tem infinitas solucoes.", false, "Nao. Se o determinante nao zera, so existe a trivial.", "conceitual"),
+      desChoice("D) Homogeneo dispensa determinante.", false, "Dispensa lado direito, nao dispensa analise. O determinante decide trivial/unica versus nao trivial.", "determinantMisuse")
+    ],
+    solution: String.raw`Sistema homogeneo: \(A\vec{x}=\vec{0}\).`
+  },
+  {
+    id: "d11-5-alpha0",
+    chapter: "Exercicio 5",
+    title: "Quando aparece solucao nao trivial?",
+    kind: "homogeneo",
+    statement: String.raw`No exercicio 5, \(\det(A)=3\alpha\).`,
+    prompt: "Qual conclusao fecha o exercicio?",
+    choices: [
+      desChoice("A) \\(\\alpha=0\\) gera infinitas solucoes; geral \\(t(-1,1,1)\\), particular \\((-1,1,1)\\).", true, "Certo. Quando det zera no homogeneo quadrado, aparece variavel livre e solucao nao trivial."),
+      desChoice("B) \\(\\alpha\\neq0\\) gera infinitas solucoes.", false, "Invertido. \\(\\alpha\\neq0\\) deixa o determinante diferente de zero, entao so a trivial.", "determinantMisuse"),
+      desChoice("C) \\(\\alpha=0\\) gera SI.", false, "Homogeneo nao gera SI. A solucao zero sempre funciona.", "homogeneousConfusion"),
+      desChoice("D) A particular nao trivial e \\((0,0,0)\\).", false, "Essa e a trivial. Nao trivial precisa ser diferente do vetor zero.", "conceitual")
+    ],
+    solution: String.raw`Para \(\alpha=0\): \(S=\{t(-1,1,1):t\in\mathbb{R}\}\).`
+  },
+  {
+    id: "d11-6-m",
+    chapter: "Exercicio 6",
+    title: "Homogeneo com m: so trivial",
+    kind: "homogeneo",
+    statement: String.raw`\[\begin{pmatrix}1&2&2\\m-1&1&m-2\\m+1&m-1&2\end{pmatrix}\vec{x}=\vec{0}\]`,
+    prompt: "Quando o sistema tem apenas a solucao trivial?",
+    choices: [
+      desChoice("A) Quando \\(m\\neq0\\) e \\(m\\neq3\\).", true, "Certo. \\(\\det(A)=3m(m-3)\\), entao so a trivial quando o determinante nao zera."),
+      desChoice("B) Quando \\(m=0\\) ou \\(m=3\\).", false, "Invertido. Esses sao os valores que zeram o determinante e permitem nao triviais.", "determinantMisuse"),
+      desChoice("C) Nunca, porque todo homogeneo tem infinitas solucoes.", false, "Todo homogeneo tem a trivial; infinitas so quando falta pivo.", "homogeneousConfusion"),
+      desChoice("D) Sempre, porque o lado direito e zero.", false, "Lado direito zero garante a trivial, mas nao garante que ela seja a unica.", "conceitual")
+    ],
+    solution: String.raw`\(\det(A)=3m(m-3)\). Apenas trivial para \(m\neq0,3\).`
+  },
+  {
+    id: "d11-boss",
+    chapter: "Boss final",
+    title: "Conclusao que mata a Lista 11",
+    kind: "conclusao",
+    statement: "Resumo mental da prova: parametro, homogêneo, determinante, caso especial, SPD/SPI/SI.",
+    prompt: "Qual frase evita a maior parte das voadoras da Lista 11?",
+    choices: [
+      desChoice("A) Det zero nao decide sozinho em sistema nao homogeneo; separo caso, testo contradicao/variavel livre e escrevo SPD/SPI/SI.", true, "Certo. Essa e a chave de prova."),
+      desChoice("B) Det zero sempre significa SPI.", false, "Essa frase destrói a Lista 11. Em nao homogeneo pode ser SI.", "prematureSPI"),
+      desChoice("C) Se e homogeneo, pode ser impossivel.", false, "Nunca. Homogeneo sempre tem a trivial.", "homogeneousConfusion"),
+      desChoice("D) Se achei uma solucao numerica, nao preciso discutir parametro.", false, "Precisa sim quando o enunciado pede discussao por valores.", "conclusion")
+    ],
+    solution: "Regra-mãe: caso geral, caso especial, teste de consistencia, conclusao formal."
+  }
+];
 
 function hasCompletedFullEscalation(currentState = state) {
   const boardEscalations = completedSystemObjects(currentState)
@@ -5812,6 +6003,11 @@ function home() {
   `);
 }
 
+const legacyFullHome = home;
+function home() {
+  return desesperoHome();
+}
+
 function proofModeCard(mode, data) {
   const done = state.modeProgress?.[mode] || 0;
   const total = data.items.length;
@@ -5828,6 +6024,197 @@ function proofModeCard(mode, data) {
 
 function menuButton(title, sub, mode, locked = false) {
   return `<button class="game-button ${locked ? "locked" : ""}" type="button" data-mode="${mode}" ${locked ? "data-locked='boss'" : ""}><strong>${title}</strong><small>${sub}</small></button>`;
+}
+
+function desesperoState() {
+  if (!state.desespero) {
+    state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false };
+  }
+  return state.desespero;
+}
+
+function desesperoProgress() {
+  const progress = desesperoState();
+  const index = Math.min(progress.index || 0, LISTA11_DESESPERO.length);
+  return Math.round((index / LISTA11_DESESPERO.length) * 100);
+}
+
+function desesperoHome() {
+  const progress = desesperoState();
+  const percent = desesperoProgress();
+  const current = LISTA11_DESESPERO[Math.min(progress.index || 0, LISTA11_DESESPERO.length - 1)];
+  setStage(`
+    <section class="despair-shell">
+      <header class="despair-hero">
+        <span class="pill hot">Modo desespero</span>
+        <h1>Lista 11: trilha unica</h1>
+        <p>Sem campo de escrita. Sem menu infinito. Voce clica A/B/C/D, mas cada clique e uma decisao de prova: caso geral, caso especial, contradicao, variavel livre, homogeneo e conclusao.</p>
+        <div class="panic-meter" aria-label="Progresso da Lista 11">
+          <span>${percent}% da trilha</span>
+          <div class="bar"><span style="width:${percent}%"></span></div>
+        </div>
+        <div class="actions">
+          <button class="primary big-cta" type="button" data-mode="desespero">${percent ? "Continuar matando a Lista 11" : "Comecar modo desespero"}</button>
+          <button class="secondary big-cta" type="button" data-des-reset>Reiniciar trilha</button>
+        </div>
+      </header>
+
+      <section class="despair-map" aria-label="Mapa unico da Lista 11">
+        ${LISTA11_DESESPERO.map((item, index) => {
+          const done = (progress.completed || []).includes(item.id);
+          const currentStep = index === (progress.index || 0);
+          return `
+            <article class="despair-node ${done ? "done" : ""} ${currentStep ? "current" : ""}">
+              <span>${String(index + 1).padStart(2, "0")}</span>
+              <div>
+                <strong>${item.chapter}</strong>
+                <small>${item.title}</small>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </section>
+
+      <section class="despair-brief">
+        <h2>Agora o app e uma trilha so</h2>
+        <p>Proxima pancada: <strong>${current.chapter} - ${current.title}</strong>. O app nao pede texto; ele cobra decisao correta e explica por que as outras opcoes matam ponto.</p>
+      </section>
+    </section>
+  `);
+}
+
+function desesperoMode(index = desesperoState().index || 0) {
+  const progress = desesperoState();
+  if (index >= LISTA11_DESESPERO.length) return desesperoResult();
+  const safeIndex = Math.max(0, Math.min(index, LISTA11_DESESPERO.length - 1));
+  progress.index = safeIndex;
+  progress.selected = null;
+  progress.lastOk = false;
+  screen = { mode: "desespero", index: safeIndex, boss: "mixed", score: progress.score || 0, errors: progress.errors || [], item: LISTA11_DESESPERO[safeIndex] };
+  saveState();
+  renderDesesperoStep();
+}
+
+function renderDesesperoStep() {
+  const progress = desesperoState();
+  const item = LISTA11_DESESPERO[screen.index] || LISTA11_DESESPERO[0];
+  const percent = Math.round((screen.index / LISTA11_DESESPERO.length) * 100);
+  const answered = Number.isInteger(progress.selected);
+  setStage(`
+    <section class="despair-shell despair-question">
+      <header class="despair-top">
+        <div>
+          <span class="pill hot">${item.chapter}</span>
+          <h1>${item.title}</h1>
+          <p>Etapa ${screen.index + 1}/${LISTA11_DESESPERO.length}. Clique A/B/C/D. Nada de textarea.</p>
+        </div>
+        <div class="panic-meter compact">
+          <span>${percent}%</span>
+          <div class="bar"><span style="width:${percent}%"></span></div>
+        </div>
+      </header>
+
+      <article class="despair-paper">
+        <span class="step-label">Enunciado cru</span>
+        <div class="math-box">${item.statement}</div>
+        <p class="despair-prompt">${item.prompt}</p>
+      </article>
+
+      <div class="despair-choices" role="group" aria-label="Alternativas A B C D">
+        ${item.choices.map((choice, i) => {
+          const letter = "ABCD"[i];
+          const klass = answered
+            ? i === progress.selected
+              ? choice.ok ? "selected correct" : "selected wrong"
+              : ""
+            : "";
+          return `<button class="des-choice ${klass}" type="button" data-des-choice="${i}" ${answered ? "disabled" : ""}><span>${letter}</span><strong>${choice.text.replace(/^[A-D]\)\s*/, "")}</strong></button>`;
+        }).join("")}
+      </div>
+
+      <section class="despair-feedback ${answered ? "show" : ""}" role="status" aria-live="polite">
+        ${answered ? `
+          <strong>${progress.lastOk ? "Boa. Esse clique tem raciocinio." : "Esse clique te derrubaria na prova."}</strong>
+          <p>${item.choices[progress.selected].feedback}</p>
+          <details open><summary>Conta/criterio que sustenta</summary><div>${item.solution}</div></details>
+        ` : `<p>Escolha uma decisao. A resposta so aparece depois do clique.</p>`}
+      </section>
+
+      <div class="actions">
+        <button class="primary" type="button" data-des-next ${answered ? "" : "disabled"}>${screen.index >= LISTA11_DESESPERO.length - 1 ? "Ver resultado" : "Proxima pancada"}</button>
+        <button class="secondary" type="button" data-mode="home">Mapa da trilha</button>
+      </div>
+    </section>
+  `);
+}
+
+function answerDesespero(selected) {
+  if (screen.mode !== "desespero") return;
+  const progress = desesperoState();
+  const item = LISTA11_DESESPERO[screen.index];
+  const choice = item.choices[selected];
+  if (!choice) return;
+  progress.selected = selected;
+  progress.lastOk = !!choice.ok;
+  if (choice.ok) {
+    progress.score = (progress.score || 0) + 1;
+    if (!progress.completed.includes(item.id)) progress.completed.push(item.id);
+    addXp(8, "Lista 11");
+  } else {
+    progress.errors.push({ id: item.id, title: item.title, errorType: choice.errorType, feedback: choice.feedback });
+    progress.errors = progress.errors.slice(-12);
+    recordProofError(choice.errorType || "conceptual");
+    miss(choice.errorType || "Lista 11");
+  }
+  state.desespero = progress;
+  saveState();
+  renderDesesperoStep();
+}
+
+function nextDesespero() {
+  const progress = desesperoState();
+  const nextIndex = (screen.index || 0) + 1;
+  progress.index = nextIndex;
+  progress.selected = null;
+  progress.lastOk = false;
+  state.desespero = progress;
+  saveState();
+  return nextIndex >= LISTA11_DESESPERO.length ? desesperoResult() : desesperoMode(nextIndex);
+}
+
+function desesperoResult() {
+  const progress = desesperoState();
+  const score = progress.score || 0;
+  const percent = Math.round((score / LISTA11_DESESPERO.length) * 100);
+  screen = { mode: "desesperoResult", index: 0, boss: "mixed", score, errors: progress.errors || [], item: null };
+  setStage(`
+    <section class="despair-shell result-burst">
+      <span class="pill hot">Resultado da Lista 11</span>
+      <h1>${percent >= 80 ? "Voce ja pode brigar com a lista." : "Ainda tem buraco, mas agora ele tem nome."}</h1>
+      <div class="metric-grid loud">
+        <div><strong>${score}/${LISTA11_DESESPERO.length}</strong><span>decisoes corretas</span></div>
+        <div><strong>${percent}%</strong><span>controle da Lista 11</span></div>
+        <div><strong>${progress.errors?.length || 0}</strong><span>erros recentes</span></div>
+      </div>
+      ${progress.errors?.length ? `
+        <section class="despair-brief">
+          <h2>O que ainda te derruba</h2>
+          <ul>${progress.errors.slice(-5).map((error) => `<li><strong>${error.title}:</strong> ${error.feedback}</li>`).join("")}</ul>
+        </section>
+      ` : `<p>Sem erros recentes nessa rodada. Agora refaca para ganhar velocidade.</p>`}
+      <div class="actions">
+        <button class="primary" type="button" data-des-reset>Refazer trilha inteira</button>
+        <button class="secondary" type="button" data-mode="blankSheet">Ir para Folha em Branco</button>
+        <button class="secondary" type="button" data-mode="grimoire">Abrir Grimorio</button>
+      </div>
+    </section>
+  `);
+}
+
+function resetDesespero() {
+  state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false };
+  saveState();
+  return desesperoMode(0);
 }
 
 function proofMode(mode, index = state.modeProgress?.[mode] || 0) {
@@ -7588,6 +7975,8 @@ function repeat(kind) {
 
 function route(mode) {
   if (mode === "home") return home();
+  if (mode === "desespero") return desesperoMode();
+  if (mode === "desesperoResult") return desesperoResult();
   if (mode === "continue") {
     const nextItem = nextMission();
     return route(nextItem.mode);
@@ -7684,6 +8073,13 @@ document.addEventListener("click", (event) => {
 
   const blankMessy = event.target.closest("[data-blank-messy]");
   if (blankMessy) return startBlankMessy(Number(blankMessy.dataset.blankMessy));
+
+  const desChoiceBtn = event.target.closest("[data-des-choice]");
+  if (desChoiceBtn) return answerDesespero(Number(desChoiceBtn.dataset.desChoice));
+
+  if (event.target.closest("[data-des-next]")) return nextDesespero();
+
+  if (event.target.closest("[data-des-reset]")) return resetDesespero();
 
   const boardGo = event.target.closest("[data-board-go]");
   if (boardGo) {

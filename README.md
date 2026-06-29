@@ -1,10 +1,50 @@
-# Sistemas Lineares | Tutor gamificado
+# Lista 11 Desespero | Sistemas Lineares
 
-App estatico, mobile-first, para estudar Sistemas Lineares em modo guerra de 2 dias. O projeto usa apenas HTML, CSS e JavaScript, sem backend e sem etapa real de build.
+App estatico, mobile-first, para matar a Lista 11 de Sistemas Lineares em uma trilha unica de emergencia. O projeto usa apenas HTML, CSS e JavaScript, sem backend e sem etapa real de build.
+
+## Modo Desespero
+
+A experiencia principal agora e **Lista 11 Desespero**:
+
+- uma trilha unica, em ordem, focada apenas na Lista 11;
+- nada de campo de escrita no caminho principal;
+- interacao por cliques A/B/C/D;
+- cada clique representa uma decisao de prova, nao uma pergunta decorativa;
+- distratores baseados em erros reais: `det=0 -> SPI`, esquecer caso especial, confundir homogeneo com impossivel, resolver valor numerico sem discutir parametro;
+- visual novo, mais vivo, com mapa de progresso, botoes grandes e feedback imediato;
+- Folha em Branco e Grimorio continuam como modos auxiliares, mas nao baguncam a trilha principal.
+
+Resumo da trilha:
+
+1. Exercicio 1(a): parametro `lambda`, determinante e caso SI.
+2. Exercicio 2: parametro `m`, caso `m=-8` e solucao para `m=2`.
+3. Exercicio 3: valores criticos `alpha=1` e `alpha=-1`, com SPD/SPI/SI.
+4. Exercicio 4: caso `k=-3`, ausencia de SPI e solucao para `k=0`.
+5. Exercicio 5: homogeneo, solucao trivial, `alpha=0` e solucao nao trivial.
+6. Exercicio 6: homogeneo com `m`, apenas trivial para `m != 0,3`.
+7. Boss final: regra mental para nao cair em conclusao precipitada.
+
+## Pesquisa aplicada
+
+A refatoracao usou fontes confiaveis para orientar decisoes, sem copiar texto longo:
+
+- Nielsen Norman Group: progressive disclosure, hierarquia visual, usabilidade mobile e reducao de carga na interface.
+- WCAG 2.1: foco visivel, contraste, landmarks e controles operaveis por teclado.
+- The Learning Scientists: recuperacao ativa, pratica intercalada e feedback corretivo.
+- CAST UDL Guidelines: multiplas formas de orientacao, objetivo explicito e reducao de barreiras.
+- OpenStax, LibreTexts, MIT OCW e Khan Academy: rigor de matriz aumentada, eliminacao, determinante, sistemas homogeneos e classificacao por consistencia.
+
+Aplicacao pratica no app:
+
+- trilha unica para reduzir escolha demais;
+- alternativas A/B/C/D como decisoes de prova, nao reconhecimento superficial;
+- feedback imediato explicando o erro provavel;
+- visual mais vivo para reduzir fadiga;
+- modos antigos rebaixados a apoio, sem atrapalhar a trilha da Lista 11.
 
 ## O que o app treina
 
-- Home com jornada unica de prova: continuar no Modo Quadro, diagnostico, Boss Final e relatorio.
+- Home com trilha unica Lista 11 Desespero.
 - Modo Quadro como experiencia central: enunciado, sistema, matriz aumentada, decisao do aluno, diagnostico do erro e conclusao de prova.
 - Folha em Branco - Lista 11: modo de prova sem alternativas, com resposta aberta, ajuda progressiva, ritual de prova, cronometro e avaliacao por eixos.
 - Banco com 20 sistemas diferentes: 15 originais/eixos da Lista 11 e 5 derivados no mesmo estilo.
