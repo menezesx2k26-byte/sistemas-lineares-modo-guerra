@@ -693,9 +693,9 @@ const LISTA11_DESESPERO = [
     prompt: "Voce esta na prova. Qual e o primeiro passo que decide a discussao?",
     choices: [
       desChoice("A) Calcular o determinante da matriz dos coeficientes: \\(4(\\lambda-1)\\).", true, "Certo. Sistema 2x2 com parametro: o determinante mostra quando ha pivo para as duas variaveis."),
-      desChoice("B) Dividir a primeira equacao por \\(\\lambda\\) para isolar x.", false, "Perigoso. Antes de dividir por \\(\\lambda\\), voce teria que separar \\(\\lambda=0\\). E isso nem e o radar principal aqui.", "parameterDivision"),
-      desChoice("C) Subtrair as equacoes e concluir SPI.", false, "Apressado. SPI exige ausencia de contradicao e variavel livre. Primeiro ache o valor critico.", "prematureSPI"),
-      desChoice("D) Testar apenas \\(\\lambda=1\\), porque e o unico numero bonito.", false, "Chute com cara de sorte. \\(\\lambda=1\\) aparece porque zera o determinante, nao porque e bonito.", "organization")
+      desChoice("B) Escalonar direto e dividir pela entrada \\(\\lambda-1\\) quando ela aparecer.", false, "A ideia de escalonar e boa, mas falta separar o caso em que \\(\\lambda-1=0\\).", "parameterDivision"),
+      desChoice("C) Comparar a segunda equacao com o dobro da primeira e concluir agora.", false, "Essa comparacao so fica decisiva depois de testar o caso critico. Antes disso voce ainda nao sabe qual caso esta analisando.", "prematureSPI"),
+      desChoice("D) Substituir \\(\\lambda=1\\) primeiro e depois, se sobrar tempo, pensar no caso geral.", false, "O caso especial e importante, mas a discussao precisa primeiro explicar por que ele e especial.", "organization")
     ],
     solution: String.raw`A matriz dos coeficientes e \(\begin{pmatrix}\lambda&2\\2&4\end{pmatrix}\). Logo \(\det(A)=4\lambda-4=4(\lambda-1)\).`
   },
@@ -708,9 +708,9 @@ const LISTA11_DESESPERO = [
     prompt: "O que acontece no caso especial?",
     choices: [
       desChoice("A) SI, porque a segunda esquerda e o dobro da primeira, mas o lado direito nao e.", true, "Certo. Se a primeira diz lado direito 0, o dobro teria lado direito 0, nao 3. Contradicao."),
-      desChoice("B) SPI, porque determinante zero sempre significa infinitas solucoes.", false, "Esse e o golpe baixo da Lista 11. Det zero nao decide SPI/SI em sistema nao homogeneo.", "prematureSPI"),
-      desChoice("C) SPD, porque ha duas equacoes para duas incognitas.", false, "Quantidade de equacoes nao garante pivo. Aqui as linhas de coeficientes ficam dependentes.", "rankDiscussion"),
-      desChoice("D) Nao da para concluir nada, precisa de Cramer.", false, "Nao precisa. A contradicao aparece direto comparando as duas equacoes.", "organization")
+      desChoice("B) SPI, porque os coeficientes da segunda equacao sao o dobro dos da primeira.", false, "Quase. Os coeficientes dependentes poderiam dar SPI, mas o lado direito teria que acompanhar. Aqui nao acompanha.", "prematureSPI"),
+      desChoice("C) SPD, porque para \\(\\lambda\\neq1\\) haveria determinante diferente de zero.", false, "Essa frase vale para o caso geral, nao para o caso especial \\(\\lambda=1\\).", "rankDiscussion"),
+      desChoice("D) SI, mas so depois de aplicar Cramer no sistema singular.", false, "A classificacao esta certa, mas o metodo esta errado: Cramer nao serve quando o determinante zera.", "organization")
     ],
     solution: String.raw`Conclusao: \(\lambda\neq1\Rightarrow SPD\). Para \(\lambda=1\Rightarrow SI\).`
   },
@@ -723,9 +723,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual caso precisa ser separado antes de resolver?",
     choices: [
       desChoice("A) \\(m=-8\\), porque \\(\\det(A)=m+8\\).", true, "Certo. Fora de \\(m=-8\\), ha solucao unica. O caso singular nao pode ser tratado junto."),
-      desChoice("B) \\(m=2\\), porque o enunciado pede resolver esse caso.", false, "O caso \\(m=2\\) e para calcular a solucao depois. O caso critico da discussao e onde o determinante zera.", "organization"),
-      desChoice("C) \\(m=0\\), porque parametro zero sempre e perigoso.", false, "Zero pode ser perigoso, mas aqui o radar e \\(m+8=0\\).", "parameterDivision"),
-      desChoice("D) Nenhum; sistema 3x3 sempre tem solucao unica.", false, "Falso. 3x3 tambem pode perder pivo.", "conceitual")
+      desChoice("B) \\(m=2\\), porque esse valor sera usado para resolver a parte numerica.", false, "Esse valor e pedido depois, mas nao e o valor que muda a existencia de solucao unica.", "organization"),
+      desChoice("C) \\(m=8\\), por erro de sinal ao resolver \\(m+8=0\\).", false, "Esse e um vacilo plausivel: \\(m+8=0\\) da \\(m=-8\\), nao \\(8\\).", "arithmetic"),
+      desChoice("D) \\(m\\neq-8\\), porque esse e o unico caso que precisa de teste separado.", false, "\\(m\\neq-8\\) e o caso geral. Quem precisa de cuidado separado e \\(m=-8\\).", "organization")
     ],
     solution: String.raw`\(\det(A)=m+8\). Logo ha solucao unica para \(m\neq-8\).`
   },
@@ -738,9 +738,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual resultado fecha a parte numerica?",
     choices: [
       desChoice("A) \\((x_1,x_2,x_3)=(1,-1,1)\\).", true, "Certo. E como \\(2\\neq-8\\), esse caso tem solucao unica."),
-      desChoice("B) \\((1,1,-1)\\), trocando os sinais de \\(x_2\\) e \\(x_3\\).", false, "Erro de sinal. Esse tipo de troca e exatamente o que derruba no escalonamento.", "arithmetic"),
-      desChoice("C) SPI, porque ha parametro no exercicio.", false, "Parametro no enunciado nao significa infinitas solucoes. Para \\(m=2\\), o determinante nao zera.", "prematureSPI"),
-      desChoice("D) SI, porque o vetor \\(b\\) nao e zero.", false, "Nao ser homogeneo nao significa impossivel. O sistema tem uma solucao unica.", "conceitual")
+      desChoice("B) \\((1,1,-1)\\), que aparece se voce troca sinais na substituicao final.", false, "Plausivel, mas o sinal de \\(x_2\\) e \\(x_3\\) ficou invertido.", "arithmetic"),
+      desChoice("C) \\((1,-1,-1)\\), mantendo \\(x_1\\) e \\(x_2\\), mas errando o ultimo retorno.", false, "Esse erro costuma vir de esquecer uma parcela na ultima equacao.", "arithmetic"),
+      desChoice("D) Nao resolver porque \\(m=2\\) ainda e um parametro.", false, "Depois de substituir \\(m=2\\), nao ha parametro: e um sistema numerico comum.", "organization")
     ],
     solution: String.raw`Para \(m=2\), \(S=\{(1,-1,1)\}\).`
   },
@@ -753,9 +753,9 @@ const LISTA11_DESESPERO = [
     prompt: "De onde saem os valores criticos?",
     choices: [
       desChoice("A) De \\(\\det(A)=9(\\alpha-1)(\\alpha+1)\\), entao \\(\\alpha=1\\) e \\(\\alpha=-1\\).", true, "Certo. Fora desses valores, \\(\\det(A)\\neq0\\), logo SPD."),
-      desChoice("B) Dos valores pedidos \\(0,1,-1\\), entao todos sao criticos.", false, "\\(\\alpha=0\\) e pedido para resolver/testar, mas nao zera o determinante.", "organization"),
-      desChoice("C) De \\(\\alpha=0\\), porque parametro zero sempre zera a matriz.", false, "Nao aqui. Para \\(\\alpha=0\\), o determinante nao zera e ha solucao unica.", "conceitual"),
-      desChoice("D) Nao existem valores criticos; basta substituir os tres.", false, "Substituir ajuda, mas a discussao por determinante explica por que so \\(1\\) e \\(-1\\) mudam a classificacao.", "determinantMisuse")
+      desChoice("B) De \\(\\alpha=0,1,-1\\), porque todos aparecem no enunciado como casos a verificar.", false, "\\(\\alpha=0\\) e caso pedido, mas nao e critico: o determinante nao zera nele.", "organization"),
+      desChoice("C) De \\(\\alpha=1\\) apenas, esquecendo o fator \\((\\alpha+1)\\).", false, "Esse erro e comum quando se fatora pela metade. O fator \\((\\alpha+1)\\) tambem zera.", "determinantMisuse"),
+      desChoice("D) De \\(\\alpha=-1\\) apenas, por tratar \\((\\alpha-1)\\) como sempre nao nulo.", false, "Voce perdeu o outro fator. Os dois fatores podem zerar.", "determinantMisuse")
     ],
     solution: String.raw`\(\det(A)=9(\alpha-1)(\alpha+1)\).`
   },
@@ -768,9 +768,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual linha de conclusao esta correta?",
     choices: [
       desChoice("A) \\(\\alpha=0\\): SPD com \\((2,1,2)\\); \\(\\alpha=1\\): SPI; \\(\\alpha=-1\\): SI.", true, "Certo. Esse e o resumo que sobrevive na prova."),
-      desChoice("B) \\(\\alpha=0\\): SPI; \\(\\alpha=1\\): SPD; \\(\\alpha=-1\\): SI.", false, "\\(\\alpha=0\\) nao e critico. O determinante nao zera, entao e SPD.", "determinantMisuse"),
-      desChoice("C) \\(\\alpha=1\\) e \\(\\alpha=-1\\): SPI, porque ambos zeram o determinante.", false, "Det zero obriga investigar. Um vira SPI, o outro vira SI.", "prematureSPI"),
-      desChoice("D) Todos sao SPD, porque sao sistemas 3x3.", false, "3x3 nao garante solucao unica. O pivo pode sumir.", "conceitual")
+      desChoice("B) \\(\\alpha=0\\): SPD com \\((2,1,2)\\); \\(\\alpha=1\\): SI; \\(\\alpha=-1\\): SPI.", false, "Voce inverteu os casos singulares: \\(\\alpha=1\\) e o caso sem contradicao; \\(\\alpha=-1\\) contradiz.", "rankDiscussion"),
+      desChoice("C) \\(\\alpha=0\\): SPD; \\(\\alpha=1\\) e \\(\\alpha=-1\\): SPI por det zero.", false, "Det zero abre investigacao. Nao garante SPI em sistema nao homogeneo.", "prematureSPI"),
+      desChoice("D) \\(\\alpha=0\\): SPD, mas sem solucao numerica; \\(\\alpha=1\\): SPI; \\(\\alpha=-1\\): SI.", false, "A classificacao esta quase certa, mas o enunciado pede verificar \\(\\alpha=0\\) com solucao \\((2,1,2)\\).", "conclusion")
     ],
     solution: String.raw`Para \(\alpha=1\), sobra variavel livre sem contradicao. Para \(\alpha=-1\), aparece contradicao.`
   },
@@ -783,9 +783,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual e o caso especial e por que ele nao pode ser engolido pelo caso geral?",
     choices: [
       desChoice("A) \\(k=-3\\), porque zera o determinante/pivo; precisa testar separado.", true, "Certo. O caso geral so vale para \\(k\\neq-3\\)."),
-      desChoice("B) \\(k=0\\), porque o enunciado pede resolver esse valor.", false, "\\(k=0\\) e parte numerica. O valor critico da discussao e \\(k=-3\\).", "organization"),
-      desChoice("C) \\(k=-3\\), entao automaticamente SPI.", false, "Nao. Para \\(k=-3\\), o teste gera contradicao, entao SI.", "prematureSPI"),
-      desChoice("D) Nenhum caso; basta resolver para \\(k=0\\).", false, "Isso ignora metade da questao: discutir o sistema em funcao de k.", "conclusion")
+      desChoice("B) \\(k=0\\), porque esse valor aparece na segunda parte do enunciado.", false, "\\(k=0\\) deve ser resolvido, mas nao e o valor que separa a classificacao.", "organization"),
+      desChoice("C) \\(k=3\\), por perder o sinal ao resolver \\(k+3=0\\).", false, "Erro de sinal classico: \\(k+3=0\\Rightarrow k=-3\\).", "arithmetic"),
+      desChoice("D) \\(k=-3\\), mas ja chamando de SPI sem testar a matriz aumentada.", false, "O valor critico esta certo; a conclusao esta adiantada. Esse caso gera contradicao.", "prematureSPI")
     ],
     solution: String.raw`\(\det(A)=-2(k+3)\).`
   },
@@ -798,9 +798,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual conclusao de prova esta completa?",
     choices: [
       desChoice("A) Se \\(k\\neq-3\\), SPD. Se \\(k=-3\\), SI. Nao ha SPI. Para \\(k=0\\), \\(S=\\{(0,2,-1)\\}\\).", true, "Certo. Tem caso geral, caso especial, ausencia de SPI e solucao pedida."),
-      desChoice("B) Se \\(k=-3\\), SPI; se \\(k=0\\), \\((0,2,-1)\\).", false, "Erro central. \\(k=-3\\) gera contradicao, nao infinitas solucoes.", "prematureSPI"),
-      desChoice("C) Para \\(k=0\\), \\((0,2,-1)\\).", false, "Correto, mas incompleto. A questao tambem pede discutir k.", "conclusion"),
-      desChoice("D) \\(k\\neq-3\\) nao tem solucao unica.", false, "Ao contrario: fora do caso critico, determinante diferente de zero garante SPD.", "determinantMisuse")
+      desChoice("B) Se \\(k\\neq-3\\), SPD. Se \\(k=-3\\), SPI. Para \\(k=0\\), \\((0,2,-1)\\).", false, "Quase tudo organizado, mas o caso \\(k=-3\\) foi classificado errado: ele e SI.", "prematureSPI"),
+      desChoice("C) Se \\(k\\neq-3\\), SPD. Para \\(k=0\\), \\((0,2,-1)\\).", false, "Falta o caso especial \\(k=-3\\) e falta dizer explicitamente que nao ha SPI.", "conclusion"),
+      desChoice("D) Se \\(k=-3\\), SI. Para \\(k=0\\), \\((0,2,-1)\\).", false, "Falta o caso geral \\(k\\neq-3\\), que garante solucao unica.", "conclusion")
     ],
     solution: String.raw`Modelo: \(k\neq-3\Rightarrow SPD\); \(k=-3\Rightarrow SI\); nao ha SPI; \(k=0\Rightarrow S=\{(0,2,-1)\}\).`
   },
@@ -813,9 +813,9 @@ const LISTA11_DESESPERO = [
     prompt: "O que o aluno precisa lembrar antes de qualquer conta?",
     choices: [
       desChoice("A) Homogeneo sempre tem a solucao trivial; nao pode ser SI.", true, "Certo. O vetor zero sempre satisfaz \\(A\\vec{x}=0\\)."),
-      desChoice("B) Homogeneo e impossivel quando o determinante zera.", false, "Erro grave. Homogeneo nunca e impossivel, porque a solucao zero existe.", "homogeneousConfusion"),
-      desChoice("C) Homogeneo sempre tem infinitas solucoes.", false, "Nao. Se o determinante nao zera, so existe a trivial.", "conceitual"),
-      desChoice("D) Homogeneo dispensa determinante.", false, "Dispensa lado direito, nao dispensa analise. O determinante decide trivial/unica versus nao trivial.", "determinantMisuse")
+      desChoice("B) Se o determinante zerar, o sistema pode ser SI, SPI ou SPD; precisa testar o lado direito.", false, "Essa cautela vale para nao homogeneos. Aqui o lado direito e zero, entao SI nao entra.", "homogeneousConfusion"),
+      desChoice("C) Homogeneo com det diferente de zero tem infinitas solucoes, porque o zero sempre funciona.", false, "O zero funcionar nao significa infinitas. Com det diferente de zero, so a trivial funciona.", "determinantMisuse"),
+      desChoice("D) Como o lado direito e zero, basta escrever \\(\\vec{x}=0\\) e parar.", false, "Isso da a trivial, mas a questao quer descobrir quando existem nao triviais.", "conclusion")
     ],
     solution: String.raw`Sistema homogeneo: \(A\vec{x}=\vec{0}\).`
   },
@@ -828,9 +828,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual conclusao fecha o exercicio?",
     choices: [
       desChoice("A) \\(\\alpha=0\\) gera infinitas solucoes; geral \\(t(-1,1,1)\\), particular \\((-1,1,1)\\).", true, "Certo. Quando det zera no homogeneo quadrado, aparece variavel livre e solucao nao trivial."),
-      desChoice("B) \\(\\alpha\\neq0\\) gera infinitas solucoes.", false, "Invertido. \\(\\alpha\\neq0\\) deixa o determinante diferente de zero, entao so a trivial.", "determinantMisuse"),
-      desChoice("C) \\(\\alpha=0\\) gera SI.", false, "Homogeneo nao gera SI. A solucao zero sempre funciona.", "homogeneousConfusion"),
-      desChoice("D) A particular nao trivial e \\((0,0,0)\\).", false, "Essa e a trivial. Nao trivial precisa ser diferente do vetor zero.", "conceitual")
+      desChoice("B) \\(\\alpha\\neq0\\) gera apenas a trivial; para \\(\\alpha=0\\), basta dizer que ha nao trivial sem dar vetor.", false, "A primeira metade esta certa, mas a prova pede solucao geral/particular nao trivial.", "conclusion"),
+      desChoice("C) \\(\\alpha=0\\) gera infinitas solucoes, mas a geral e \\(t(1,1,1)\\).", false, "Classificacao certa, vetor errado. O sinal de \\(x_1\\) e negativo.", "arithmetic"),
+      desChoice("D) \\(\\alpha=0\\) gera SI porque o determinante zera.", false, "Homogeneo nunca e SI. Det zero aqui significa variavel livre e nao trivial.", "homogeneousConfusion")
     ],
     solution: String.raw`Para \(\alpha=0\): \(S=\{t(-1,1,1):t\in\mathbb{R}\}\).`
   },
@@ -843,9 +843,9 @@ const LISTA11_DESESPERO = [
     prompt: "Quando o sistema tem apenas a solucao trivial?",
     choices: [
       desChoice("A) Quando \\(m\\neq0\\) e \\(m\\neq3\\).", true, "Certo. \\(\\det(A)=3m(m-3)\\), entao so a trivial quando o determinante nao zera."),
-      desChoice("B) Quando \\(m=0\\) ou \\(m=3\\).", false, "Invertido. Esses sao os valores que zeram o determinante e permitem nao triviais.", "determinantMisuse"),
-      desChoice("C) Nunca, porque todo homogeneo tem infinitas solucoes.", false, "Todo homogeneo tem a trivial; infinitas so quando falta pivo.", "homogeneousConfusion"),
-      desChoice("D) Sempre, porque o lado direito e zero.", false, "Lado direito zero garante a trivial, mas nao garante que ela seja a unica.", "conceitual")
+      desChoice("B) Quando \\(m=0\\) ou \\(m=3\\), pois sao os casos especiais do determinante.", false, "Esses casos sao especiais, mas justamente por permitirem solucao nao trivial.", "determinantMisuse"),
+      desChoice("C) Quando \\(m\\neq0\\) ou \\(m\\neq3\\).", false, "Cuidado com o conectivo. Tem que ser \\(m\\neq0\\) E \\(m\\neq3\\), nao OU.", "logic"),
+      desChoice("D) Para todo \\(m\\), porque sistema homogeneo sempre aceita \\(\\vec{x}=0\\).", false, "Aceitar a trivial nao significa que ela seja a unica para todo m.", "homogeneousConfusion")
     ],
     solution: String.raw`\(\det(A)=3m(m-3)\). Apenas trivial para \(m\neq0,3\).`
   },
@@ -858,9 +858,9 @@ const LISTA11_DESESPERO = [
     prompt: "Qual frase evita a maior parte das voadoras da Lista 11?",
     choices: [
       desChoice("A) Det zero nao decide sozinho em sistema nao homogeneo; separo caso, testo contradicao/variavel livre e escrevo SPD/SPI/SI.", true, "Certo. Essa e a chave de prova."),
-      desChoice("B) Det zero sempre significa SPI.", false, "Essa frase destrói a Lista 11. Em nao homogeneo pode ser SI.", "prematureSPI"),
-      desChoice("C) Se e homogeneo, pode ser impossivel.", false, "Nunca. Homogeneo sempre tem a trivial.", "homogeneousConfusion"),
-      desChoice("D) Se achei uma solucao numerica, nao preciso discutir parametro.", false, "Precisa sim quando o enunciado pede discussao por valores.", "conclusion")
+      desChoice("B) Det zero elimina SPD; se nao aparecer contradicao explicitamente, posso chamar SPI.", false, "Ainda falta testar. A ausencia de contradicao precisa ser demonstrada no escalonamento/posto.", "prematureSPI"),
+      desChoice("C) Em homogeneo, det zero pode indicar SI se a matriz aumentada ficar inconsistente.", false, "No homogeneo a coluna direita e zero; a solucao trivial impede SI.", "homogeneousConfusion"),
+      desChoice("D) Resolver o caso numerico pedido ja basta, porque a discussao por parametro e so justificativa extra.", false, "Na Lista 11, discutir parametro e parte central do enunciado, nao enfeite.", "conclusion")
     ],
     solution: "Regra-mãe: caso geral, caso especial, teste de consistencia, conclusao formal."
   }
@@ -6028,9 +6028,30 @@ function menuButton(title, sub, mode, locked = false) {
 
 function desesperoState() {
   if (!state.desespero) {
-    state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false };
+    state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false, seed: Date.now() };
   }
+  if (!state.desespero.seed) state.desespero.seed = Date.now();
   return state.desespero;
+}
+
+function hashDesesperoSeed(text = "") {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function desesperoChoiceOrder(item, attempt = desesperoState()) {
+  const order = item.choices.map((_, index) => index);
+  let seed = hashDesesperoSeed(`${item.id}-${attempt.seed}`);
+  for (let i = order.length - 1; i > 0; i -= 1) {
+    seed = Math.imul(seed ^ (i + 31), 1664525) + 1013904223;
+    const j = Math.abs(seed) % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
 }
 
 function desesperoProgress() {
@@ -6121,14 +6142,15 @@ function renderDesesperoStep() {
       </article>
 
       <div class="despair-choices" role="group" aria-label="Alternativas A B C D">
-        ${item.choices.map((choice, i) => {
+        ${desesperoChoiceOrder(item, progress).map((choiceIndex, i) => {
+          const choice = item.choices[choiceIndex];
           const letter = "ABCD"[i];
           const klass = answered
-            ? i === progress.selected
+            ? choiceIndex === progress.selected
               ? choice.ok ? "selected correct" : "selected wrong"
               : ""
             : "";
-          return `<button class="des-choice ${klass}" type="button" data-des-choice="${i}" ${answered ? "disabled" : ""}><span>${letter}</span><strong>${choice.text.replace(/^[A-D]\)\s*/, "")}</strong></button>`;
+          return `<button class="des-choice ${klass}" type="button" data-des-choice="${choiceIndex}" ${answered ? "disabled" : ""}><span>${letter}</span><strong>${choice.text.replace(/^[A-D]\)\s*/, "")}</strong></button>`;
         }).join("")}
       </div>
 
@@ -6212,7 +6234,7 @@ function desesperoResult() {
 }
 
 function resetDesespero() {
-  state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false };
+  state.desespero = { index: 0, score: 0, errors: [], completed: [], selected: null, lastOk: false, seed: Date.now() };
   saveState();
   return desesperoMode(0);
 }

@@ -28,6 +28,7 @@ assert(script.includes("document.title = pageTitleFor()"), "page title updates b
 assert(script.includes("ensureSingleH1"), "dynamic screens enforce an H1");
 assert(script.includes("LISTA11_DESESPERO") && script.includes("data-des-choice"), "Lista 11 despair trail exists with A/B/C/D choices");
 assert(script.includes("desesperoHome") && script.includes("desesperoMode") && script.includes("answerDesespero"), "despair mode has home, renderer and answer handler");
+assert(script.includes("desesperoChoiceOrder") && script.includes("hashDesesperoSeed"), "despair choices are shuffled per attempt instead of fixed on A");
 assert(script.includes("Feedback por objetivo"), "diagnostic result gives formative feedback");
 assert(script.includes("errorSummaryBlock") && script.includes("Pontos de revisao do diagnostico"), "diagnostic has accessible review summary");
 assert(script.includes("reviewLinkBlock"), "exercise feedback links to Grimoire review");

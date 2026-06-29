@@ -9,8 +9,9 @@ A experiencia principal agora e **Lista 11 Desespero**:
 - uma trilha unica, em ordem, focada apenas na Lista 11;
 - nada de campo de escrita no caminho principal;
 - interacao por cliques A/B/C/D;
+- ordem das alternativas embaralhada por tentativa, sem resposta correta fixa na letra A;
 - cada clique representa uma decisao de prova, nao uma pergunta decorativa;
-- distratores baseados em erros reais: `det=0 -> SPI`, esquecer caso especial, confundir homogeneo com impossivel, resolver valor numerico sem discutir parametro;
+- distratores baseados em erros reais e plausiveis: erro de sinal, caso critico invertido, `det=0 -> SPI`, esquecer caso especial, confundir homogeneo com impossivel, resolver valor numerico sem discutir parametro;
 - visual novo, mais vivo, com mapa de progresso, botoes grandes e feedback imediato;
 - Folha em Branco e Grimorio continuam como modos auxiliares, mas nao baguncam a trilha principal.
 
